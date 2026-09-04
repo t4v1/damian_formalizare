@@ -35,8 +35,8 @@ chapter:
 
 * `Chains R ind k` — the free `R`-module on the critical points of index `k`
   (§3.1, and §3.3 for `R = ℤ`);
-* `dLin ind cnt k` — the differential attached to an abstract count function
-  `cnt : Crit → Crit → R`;
+* `dLin ind cnt k` — the differential `Cₖ₊₁ → Cₖ` attached to an abstract count
+  function `cnt : Crit → Crit → R`;
 * `BrokenPairs ind cnt` — the hypothesis that for `Ind a = Ind b + 2` the
   once-broken trajectories from `a` to `b` cancel: this is the *conclusion* of
   Theorem 3.2.6 combined with Theorem 2.3.2 (a compact `1`-manifold has an even
@@ -202,7 +202,8 @@ theorem morseComplex_X {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
 theorem morseComplex_d {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
     {ind : Crit → ℕ} {cnt : Crit → Crit → R} (h : BrokenPairs ind cnt) (k : ℕ) :
     (morseComplex h).d (k + 1) k = ModuleCat.ofHom (dLin ind cnt k) :=
-  ChainComplex.of_d _ _ _ k
+  ChainComplex.of_d (fun k => ModuleCat.of R (Chains R ind k))
+    (fun k => ModuleCat.ofHom (dLin ind cnt k)) k
 
 /-- **Morse homology `Hₖ(f, X)`** (§3.1.b): the homology of the complex of
 critical points.  Chapter 4 studies its independence of `f` and `X`. -/
@@ -211,24 +212,26 @@ noncomputable def morseHomology {R : Type*} [CommRing R] {Crit : Type*} [Fintype
     ModuleCat R :=
   (morseComplex h).homology k
 
-/-- The cycles `Ker ∂ₖ` in degree `k`. -/
+/-- The cycles in degree `k + 1`: the kernel of `∂ : Cₖ₊₁ → Cₖ`.
+
+The indexing convention throughout is that `dLin ind cnt k` is the differential
+`Cₖ₊₁ → Cₖ`; the differential leaving degree `0` is zero, so every chain of
+degree `0` is a cycle and only the positive degrees need a definition. -/
 noncomputable def cycles {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
-    (ind : Crit → ℕ) (cnt : Crit → Crit → R) (k : ℕ) : Submodule R (Chains R ind k) :=
+    (ind : Crit → ℕ) (cnt : Crit → Crit → R) (k : ℕ) : Submodule R (Chains R ind (k + 1)) :=
   LinearMap.ker (dLin ind cnt k)
 
-/-- The boundaries `Im ∂ₖ₊₁` in degree `k`. -/
+/-- The boundaries in degree `k`: the image of `∂ : Cₖ₊₁ → Cₖ`. -/
 noncomputable def boundaries {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
     (ind : Crit → ℕ) (cnt : Crit → Crit → R) (k : ℕ) : Submodule R (Chains R ind k) :=
-  LinearMap.range (dLin ind cnt (k + 1))
+  LinearMap.range (dLin ind cnt k)
 
-/-- `Im ∂ₖ₊₁ ⊆ Ker ∂ₖ`, so that the book's quotient `Hₖ = Ker ∂ₖ / Im ∂ₖ₊₁`
-(§3.1.b) is defined. -/
+/-- `Im ∂ₖ₊₂ ⊆ Ker ∂ₖ₊₁`, so that the book's quotient `Hₖ = Ker ∂ₖ / Im ∂ₖ₊₁`
+(§3.1.b) is defined in every degree. -/
 theorem boundaries_le_cycles {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
     {ind : Crit → ℕ} {cnt : Crit → Crit → R} (h : BrokenPairs ind cnt) (k : ℕ) :
-    boundaries ind cnt k ≤ cycles ind cnt k := by
-  intro y hy
-  obtain ⟨x, rfl⟩ := hy
-  simpa [cycles] using LinearMap.congr_fun (dLin_comp_dLin h k) x
+    boundaries ind cnt (k + 1) ≤ cycles ind cnt k :=
+  LinearMap.range_le_ker_iff.mpr (dLin_comp_dLin h k)
 
 /-- The differential attached to a count function that vanishes identically. -/
 theorem dLin_zero {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit] (ind : Crit → ℕ)
@@ -253,7 +256,7 @@ theorem cycles_zero {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit] (ind 
 the whole of `Cₖ`. -/
 theorem boundaries_zero {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit] (ind : Crit → ℕ)
     (k : ℕ) : boundaries ind (fun _ _ => (0 : R)) k = ⊥ := by
-  show LinearMap.range (dLin ind (fun _ _ => (0 : R)) (k + 1)) = ⊥
+  show LinearMap.range (dLin ind (fun _ _ => (0 : R)) k) = ⊥
   rw [dLin_zero]
   exact LinearMap.range_zero
 
@@ -313,11 +316,14 @@ def torusCount : Fin 4 → Fin 4 → ZMod 2 := fun _ _ => 0
 theorem torus_brokenPairs : BrokenPairs torusIndex torusCount :=
   brokenPairs_zero torusIndex
 
-/-- The torus complex has zero differential, so its homology in degree `k` is
-all of `Cₖ`: `Z/2` in degrees `0` and `2`, and `Z/2 ⊕ Z/2` in degree `1`. -/
+/-- The torus complex has zero differential, so every chain is a cycle (here in
+degree `k + 1`; in degree `0` there is nothing to check). -/
 theorem torus_cycles (k : ℕ) : cycles torusIndex torusCount k = ⊤ :=
   cycles_zero torusIndex k
 
+/-- Dually no nonzero chain is a boundary, so the homology of the torus complex
+is the whole of `Cₖ` in each degree: `Z/2` for `k = 0` and `k = 2`, and
+`Z/2 ⊕ Z/2` for `k = 1`, which is the mod `2` homology of `T²`. -/
 theorem torus_boundaries (k : ℕ) : boundaries torusIndex torusCount k = ⊥ :=
   boundaries_zero torusIndex k
 
@@ -464,8 +470,9 @@ theorem hasDerivAt_modelFlow_fst (p : E × F) (s : ℝ) :
 /-- `φ` really is the flow of `X`: second component. -/
 theorem hasDerivAt_modelFlow_snd (p : E × F) (s : ℝ) :
     HasDerivAt (fun t : ℝ => (modelFlow t p).2) ((modelField (modelFlow s p)).2) s := by
-  have h : HasDerivAt (fun t : ℝ => -(2 * t)) (-2) s := by
-    simpa using ((hasDerivAt_id s).const_mul (2 : ℝ)).neg
+  have h0 : HasDerivAt (fun t : ℝ => 2 * t) 2 s := by
+    simpa using (hasDerivAt_id s).const_mul (2 : ℝ)
+  have h : HasDerivAt (fun t : ℝ => -(2 * t)) (-2) s := h0.neg
   have key : (modelField (modelFlow s p)).2 = (Real.exp (-(2 * s)) * -2) • p.2 := by
     show (-2 : ℝ) • (Real.exp (-(2 * s)) • p.2) = (Real.exp (-(2 * s)) * -2) • p.2
     rw [smul_smul, mul_comm]
@@ -506,6 +513,7 @@ theorem hasDerivAt_modelFun_modelFlow (p : E × F) (s : ℝ) :
   rw [hfun]
   exact (((h4.exp).mul_const (‖p.1‖ ^ 2)).neg).add ((h4.neg.exp).mul_const (‖p.2‖ ^ 2))
 
+omit [NormedSpace ℝ E] [NormedSpace ℝ F] in
 /-- **`X` is a pseudo-gradient**: away from the critical point `f` decreases
 strictly along the flow, since its derivative there is negative. -/
 theorem deriv_modelFun_modelFlow_neg {p : E × F} (hp : p ≠ 0) (s : ℝ) :
@@ -515,9 +523,11 @@ theorem deriv_modelFun_modelFlow_neg {p : E × F} (hp : p ≠ 0) (s : ℝ) :
   have n1 : (0 : ℝ) ≤ ‖p.1‖ ^ 2 := sq_nonneg _
   have n2 : (0 : ℝ) ≤ ‖p.2‖ ^ 2 := sq_nonneg _
   have hcases : p.1 ≠ 0 ∨ p.2 ≠ 0 := by
-    by_contra hc
-    push_neg at hc
-    exact hp (Prod.ext_iff.mpr ⟨hc.1, hc.2⟩)
+    rcases eq_or_ne p.1 0 with h | h
+    · rcases eq_or_ne p.2 0 with h' | h'
+      · exact absurd (Prod.ext_iff.mpr ⟨h, h'⟩) hp
+      · exact Or.inr h'
+    · exact Or.inl h
   rcases hcases with h | h
   · have hpos : (0 : ℝ) < ‖p.1‖ ^ 2 := pow_pos (norm_pos_iff.mpr h) 2
     nlinarith [mul_pos e1 hpos, mul_nonneg e2.le n2]
@@ -542,6 +552,7 @@ theorem modelFlow_log_eq_modelTransition {p : E × F} (h1 : p.1 ≠ 0) (h2 : p.2
     rw [harg, Real.exp_neg, Real.exp_log hr, inv_div]
   simp only [modelFlow, modelTransition, e1, e2]
 
+omit [NormedSpace ℝ E] [NormedSpace ℝ F] in
 /-- The time at which the flow realises `Φ` is positive: on `∂⁺U` one has
 `‖x⁻‖ < ‖x⁺‖`, so `Φ(p)` is reached in the future (§3.2.c). -/
 theorem modelFlow_log_time_pos {p : E × F} (h1 : p.1 ≠ 0) (hlt : ‖p.1‖ < ‖p.2‖) :

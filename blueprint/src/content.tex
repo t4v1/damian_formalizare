@@ -209,3 +209,201 @@
   four critical points of $\cos 2\pi x + \cos 2\pi y$ on the torus, of indices
   $0, 1, 1, 2$.
 \end{proposition}
+
+\chapter{A little differential geometry (Chapter 14)}
+
+This appendix is where the project's Mathlib coverage is decided: the gaps
+recorded here are what force the assumed results elsewhere.
+
+\begin{definition}[Critical point of a map, \S14.2.a]
+  \label{def:14.2.a}
+  \lean{MorseFloer.Chapter14.HasMaximalRank, MorseFloer.Chapter14.IsCriticalPointOfMap}
+  \leanok
+  A point is critical for $f\colon M\to N$ when $T_xf$ fails to have maximal
+  rank.  Maximal rank is recorded as ``injective or surjective'', which is
+  equivalent to the book's ``corank zero'' in either dimension regime and avoids
+  a case split.
+\end{definition}
+
+\begin{proposition}[The fundamental example, \S14.2.a]
+  \label{prop:14.2.a}
+  \lean{MorseFloer.Chapter14.isCriticalPointOfMap_iff_eq_zero}
+  \leanok
+  \uses{def:14.2.a}
+  For a real-valued function the general definition collapses to $T_xf \equiv 0$.
+  This is what reconciles the appendix's definition with the one used throughout
+  Part I.
+\end{proposition}
+
+\begin{theorem}[Theorem 14.2.1, Sard]
+  \label{thm:14.2.1}
+  \lean{MorseFloer.Chapter14.criticalSet, MorseFloer.Chapter14.criticalValues,
+        MorseFloer.Chapter14.sard}
+  \notready
+  \uses{def:14.2.a}
+  The critical values of a smooth map form a set of measure zero.
+  \emph{Assumed}, and the most consequential gap in the project: Proposition
+  1.2.1 and every transversality genericity statement in the book rest on it.
+\end{theorem}
+
+\begin{definition}[Transverse subspaces, \S14.3.a]
+  \label{def:14.3}
+  \lean{MorseFloer.Chapter14.IsTransverse}
+  \leanok
+  Two subspaces are transverse when together they span: the tangent-space
+  condition $T_uM + T_uN = T_uP$ of Theorem 14.3.1.
+\end{definition}
+
+\begin{theorem}[Theorem 14.3.1, linear core]
+  \label{thm:14.3.1}
+  \lean{MorseFloer.Chapter14.finrank_add_finrank_of_isTransverse,
+        MorseFloer.Chapter14.codim_inf_of_isTransverse,
+        MorseFloer.Chapter14.not_isTransverse_of_finrank_add_lt}
+  \leanok
+  \uses{def:14.3}
+  A transverse intersection has the expected dimension, so codimensions add; and
+  subspaces whose dimensions sum below the ambient dimension cannot be
+  transverse (Remark 14.3.4).  The manifold statement --- that $M\cap N$ is then
+  a submanifold with $T_u(M\cap N) = T_uM\cap T_uN$ --- needs a submanifold type
+  Mathlib does not have.
+\end{theorem}
+
+\begin{theorem}[Theorem 14.1.1, characterisation of submanifolds]
+  \label{thm:14.1.1}
+  \notready
+  For $V \subseteq \mathbb{R}^n$, being a $d$-dimensional submanifold is
+  equivalent to being locally the zero set of a submersion, and to being locally
+  the homeomorphic image of an immersion.
+  \emph{Not statable:} Mathlib has no submanifold type to carry the equivalence.
+\end{theorem}
+
+\begin{proposition}[Proposition 14.3.5 and Theorem 14.3.7]
+  \label{prop:14.3.5}
+  \notready
+  \uses{thm:14.2.1}
+  If $f \pitchfork P$ then $f^{-1}(P)$ is a submanifold; and if
+  $F\colon M\times S\to N$ is transverse to $P$ then $F_s$ is transverse to $P$
+  for almost every parameter $s$ --- the parametric transversality argument that
+  Chapters 8 and 11 use constantly.
+  \emph{Not statable:} needs submanifolds, and its proof needs Sard.
+\end{proposition}
+
+\begin{theorem}[Theorems 14.3.10--14.3.13, genericity of transversality]
+  \label{thm:14.3.11}
+  \notready
+  \uses{prop:14.3.5}
+  Maps transverse to a submanifold along a compact set form a dense open subset
+  of $C^\infty(M,N)$.
+  \emph{Not statable:} needs the $C^k$ topology on $C^\infty(M,N)$.
+\end{theorem}
+
+\chapter{The complex of critical points (Chapter 3)}
+
+Mathlib has no moduli space of trajectories, so the analytic input of \S3.2
+cannot be stated at all.  Everything downstream of it --- the entire algebraic
+skeleton of the chapter --- is formalized and proved.
+
+\section{\S3.1 The complex}
+
+\begin{definition}[The chain groups and the differential]
+  \label{def:3.1}
+  \lean{MorseFloer.Chapter3.CritSet, MorseFloer.Chapter3.Chains,
+        MorseFloer.Chapter3.dLin}
+  \leanok
+  \uses{def:index}
+  $C_k(f)$ is the free module on the critical points of index $k$, and
+  $\partial_X a = \sum_b n_X(a,b)\, b$ where $n_X(a,b)$ counts, modulo $2$, the
+  trajectories of $X$ from $a$ down to $b$.  The count enters as abstract data
+  `cnt`, since the geometry that produces it is not available.
+\end{definition}
+
+\begin{definition}[The broken-trajectory hypothesis]
+  \label{def:brokenPairs}
+  \lean{MorseFloer.Chapter3.BrokenPairs}
+  \leanok
+  \uses{def:3.1}
+  For $\operatorname{Ind} a = \operatorname{Ind} b + 2$, the once-broken
+  trajectories from $a$ to $b$ cancel in pairs:
+  $\sum_c n_X(a,c)\,n_X(c,b) = 0$.  This is the \emph{conclusion} of
+  Theorem 3.2.6 together with the fact that a compact $1$-manifold has an even
+  number of boundary points, taken as a hypothesis because its proof is
+  geometric.
+\end{definition}
+
+\begin{theorem}[$\partial_X\circ\partial_X = 0$, \S3.1.b]
+  \label{thm:dd0}
+  \lean{MorseFloer.Chapter3.dLin_comp_dLin}
+  \leanok
+  \uses{def:brokenPairs}
+  A complete proof from the broken-trajectory hypothesis: the coefficient of $b$
+  in $\partial\partial a$ is exactly the sum that hypothesis kills.  Only the
+  geometric input is assumed.
+\end{theorem}
+
+\begin{definition}[The Morse complex and its homology]
+  \label{def:morseComplex}
+  \lean{MorseFloer.Chapter3.morseComplex, MorseFloer.Chapter3.morseHomology,
+        MorseFloer.Chapter3.cycles, MorseFloer.Chapter3.boundaries,
+        MorseFloer.Chapter3.boundaries_le_cycles}
+  \leanok
+  \uses{thm:dd0}
+  $(C_\star(f),\partial_X)$ as an object of Mathlib's category of chain
+  complexes, so the whole homological-algebra library applies, together with the
+  book's description of $H_k$ as $\ker\partial_k/\operatorname{im}\partial_{k+1}$.
+\end{definition}
+
+\section{\S3.2 The geometric input}
+
+\begin{theorem}[Theorems 3.2.2, 3.2.6 and Corollary 3.2.4]
+  \label{thm:3.2}
+  \notready
+  The compactified space of trajectories $\bar L(a,b)$ is compact; $L(a,b)$ is
+  finite when the index drops by one (which is what makes $n_X(a,b)$ meaningful);
+  and when the index drops by two it is a compact $1$-manifold with boundary the
+  once-broken trajectories.
+  \emph{Not statable:} there is no space of trajectories, no compactification
+  with the topology of \S3.2.a, no manifolds with boundary or corners, and no
+  Smale condition in Mathlib.  Their joint consequence is what
+  \ref{def:brokenPairs} assumes.
+\end{theorem}
+
+\begin{lemma}[Lemma 3.2.11, the Morse model]
+  \label{lem:3.2.11}
+  \lean{MorseFloer.Chapter3.modelFun, MorseFloer.Chapter3.modelField,
+        MorseFloer.Chapter3.modelFlow, MorseFloer.Chapter3.modelTransition,
+        MorseFloer.Chapter3.modelFlow_log_eq_modelTransition,
+        MorseFloer.Chapter3.modelFun_modelTransition}
+  \leanok
+  In a Morse chart the flow carries one end of the chart to the other by
+  $(x^-,x^+) \mapsto (\lVert x^+\rVert/\lVert x^-\rVert\cdot x^-,\;
+  \lVert x^-\rVert/\lVert x^+\rVert\cdot x^+)$, and the model function decreases
+  strictly along the flow.  Proved in full.
+\end{lemma}
+
+\section{\S3.3 Integer coefficients}
+
+\begin{proposition}[Reduction mod 2]
+  \label{prop:3.3}
+  \lean{MorseFloer.Chapter3.BrokenPairs.map, MorseFloer.Chapter3.BrokenPairs.intCast}
+  \leanok
+  \uses{def:brokenPairs}
+  The same construction over $\mathbb{Z}$ using orientations; the mod $2$ counts
+  are the reductions of the integral ones, so the broken-trajectory hypothesis
+  descends.
+\end{proposition}
+
+\section{\S3.4 Independence of the data}
+
+\begin{theorem}[Theorem 3.4.2, algebraic steps]
+  \label{thm:3.4.2}
+  \lean{MorseFloer.Chapter3.coneDiff, MorseFloer.Chapter3.chainMap_of_coneDiff_comp,
+        MorseFloer.Chapter3.sub_mem_range_of_chainHomotopy}
+  \leanok
+  \uses{def:morseComplex}
+  Two steps of the invariance proof are pure algebra and are proved: a
+  differential triangular in a decomposition $C_k(f_0)\oplus C_{k+1}(f_1)$
+  squares to zero exactly when its off-diagonal part is a chain map, and two
+  maps differing by a chain homotopy agree on homology classes.
+  The theorem itself --- that the homology does not depend on $(f,X)$ --- links
+  those steps through the geometry and is not statable for abstract count data.
+\end{theorem}
