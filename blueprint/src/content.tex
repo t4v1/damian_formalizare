@@ -297,6 +297,124 @@ recorded here are what force the assumed results elsewhere.
   \emph{Not statable:} needs the $C^k$ topology on $C^\infty(M,N)$.
 \end{theorem}
 
+\chapter{Pseudo-gradients (Chapter 2)}
+
+\section{\S2.1 Pseudo-gradient fields and their trajectories}
+
+\begin{definition}[Pseudo-gradient field, \S2.1.a]
+  \label{def:2.1.a}
+  \lean{MorseFloer.Chapter2.IsPseudoGradient,
+        MorseFloer.Chapter2.isPseudoGradient_neg_gradient}
+  \leanok
+  \uses{def:hessian}
+  A field along which $f$ strictly decreases away from the critical points, and
+  which is standard in a Morse chart near each of them.  The negative gradient is
+  one, which is the local model of the existence proof of \S2.1.c.
+\end{definition}
+
+\begin{proposition}[$f$ decreases along a trajectory]
+  \label{prop:2.1.traj}
+  \lean{MorseFloer.Chapter2.hasDerivAt_comp_integralCurve,
+        MorseFloer.Chapter2.strictAnti_comp_integralCurve,
+        MorseFloer.Chapter2.tendsto_comp_integralCurve,
+        MorseFloer.Chapter2.frequently_fderiv_gt}
+  \leanok
+  \uses{def:2.1.a}
+  Along an integral curve of a pseudo-gradient, $f$ is strictly decreasing and,
+  when bounded below, converges; and $df(X)$ cannot stay below $-\varepsilon$
+  forever, which is the contradiction step of Proposition 2.1.6.
+\end{proposition}
+
+\begin{proposition}[\S2.1.b, the Morse model]
+  \label{prop:2.1.b}
+  \lean{MorseFloer.Chapter2.modelQ, MorseFloer.Chapter2.modelField,
+        MorseFloer.Chapter2.fderiv_modelQ_modelField,
+        MorseFloer.Chapter2.isPseudoGradient_modelField,
+        MorseFloer.Chapter2.modelFlow, MorseFloer.Chapter2.modelFlowFlow}
+  \leanok
+  \uses{def:2.1.a}
+  In a Morse chart the standard quadratic model, its standard pseudo-gradient
+  with $df(X) = -4(\lVert x_-\rVert^2 + \lVert x_+\rVert^2)$, and the explicit
+  flow, as a Mathlib \texttt{Flow}.
+\end{proposition}
+
+\begin{proposition}[Proposition 2.1.5, stable and unstable manifolds]
+  \label{prop:2.1.5}
+  \lean{MorseFloer.Chapter2.stableSet, MorseFloer.Chapter2.unstableSet,
+        MorseFloer.Chapter2.trajectorySet,
+        MorseFloer.Chapter2.stableSet_modelFlow}
+  \notready
+  \uses{prop:2.1.b}
+  The stable and unstable sets are defined and their flow-invariance and
+  disjointness proved, and in the model $W^s(0) = V_+$ exactly.  That they are
+  submanifolds diffeomorphic to disks, with the dimension count, is a gap:
+  Mathlib has no way to give a subset its own smooth structure.
+\end{proposition}
+
+\begin{theorem}[Theorem 2.1.7, sublevel sets between regular values]
+  \label{thm:2.1.7}
+  \lean{MorseFloer.Chapter2.descend_of_deriv_eq_neg_one,
+        MorseFloer.Chapter2.flow_mapsTo_sublevel}
+  \notready
+  \uses{prop:2.1.traj}
+  With no critical value between $a$ and $b$, the flow carries $V^b$ into $V^a$;
+  the real-analysis core of that is proved.  The full statement --- that the two
+  sublevel sets are diffeomorphic and one is a deformation retract of the other
+  --- needs manifolds with boundary, which Mathlib does not have.
+\end{theorem}
+
+\section{\S2.2 The Smale condition}
+
+\begin{proposition}[Remark 2.2.1, Proposition 2.2.2, Remark 2.2.3]
+  \label{prop:2.2}
+  \lean{MorseFloer.Chapter2.IsPseudoGradientFlow,
+        MorseFloer.Chapter2.lt_of_mem_trajectorySet,
+        MorseFloer.Chapter2.trajectorySet_eq_empty,
+        MorseFloer.Chapter2.injective_flow_of_mem_trajectorySet,
+        MorseFloer.Chapter2.existsUnique_level}
+  \leanok
+  \uses{prop:2.1.traj}
+  Along a trajectory from $a$ to $b$ one has $f(b) < f(a)$, so there are no
+  trajectories upward and none from a critical point to itself; the
+  $\mathbb{R}$-action on a trajectory is free; and a trajectory crosses each
+  intermediate level exactly once.
+\end{proposition}
+
+\begin{lemma}[Lemma 2.2.9]
+  \label{lem:2.2.9}
+  \lean{MorseFloer.Chapter2.smaleField, MorseFloer.Chapter2.smaleCurve,
+        MorseFloer.Chapter2.smaleCurve_neg}
+  \leanok
+  \uses{prop:2.2}
+  The model computation behind the perturbation making a pseudo-gradient
+  satisfy the Smale condition.
+\end{lemma}
+
+\begin{theorem}[The Smale condition itself, and Theorem 2.2.5]
+  \label{thm:2.2.5}
+  \notready
+  \uses{prop:2.2}
+  That stable and unstable manifolds can be made transverse, and that then
+  $\mathcal{M}(a,b)$ is a manifold of dimension
+  $\operatorname{Ind} a - \operatorname{Ind} b$.
+  \emph{Not statable:} needs transversality of submanifolds, the $C^1$ topology
+  on vector fields, Sard, and tubular neighbourhoods --- see \ref{thm:14.3.11}
+  and \ref{thm:14.2.1}.
+\end{theorem}
+
+\section{\S2.3 Dimension one}
+
+\begin{theorem}[Theorems 2.3.2 and 2.3.3]
+  \label{thm:2.3.2}
+  \lean{MorseFloer.Chapter2.classification_dim_one, MorseFloer.Chapter2.brouwer}
+  \notready
+  A compact connected $1$-manifold is a circle or a segment --- so a compact
+  $1$-manifold has an even number of boundary points, which is exactly what
+  \ref{def:brokenPairs} needs --- and Brouwer's fixed point theorem.
+  \emph{Assumed} (the classification for the closed case only); the manifolds
+  with boundary needed for the general statement are not available.
+\end{theorem}
+
 \chapter{The complex of critical points (Chapter 3)}
 
 Mathlib has no moduli space of trajectories, so the analytic input of \S3.2
@@ -407,3 +525,155 @@ skeleton of the chapter --- is formalized and proved.
   The theorem itself --- that the homology does not depend on $(f,X)$ --- links
   those steps through the geometry and is not statable for abstract count data.
 \end{theorem}
+
+\chapter{A little analysis (Chapter 16)}
+
+\begin{theorem}[Theorem 16.1.1, Ascoli]
+  \label{thm:16.1.1}
+  \leanok
+  Already in Mathlib, in the \texttt{ArzelaAscoli} namespace; nothing is
+  restated here.
+\end{theorem}
+
+\begin{definition}[The Fredholm index, \S16.2.a]
+  \label{def:16.2.a}
+  \lean{MorseFloer.Chapter16.fredholmIndex}
+  \leanok
+  $\operatorname{ind} u = \dim\ker u - \dim\operatorname{coker} u$.  Mathlib has
+  Fredholm operators but \emph{no index}, so it is defined here.  The index is
+  what Chapter 8 computes for the linearised Floer operator, and what gives the
+  moduli spaces of Chapters 8 and 9 their dimensions.
+\end{definition}
+
+\begin{proposition}[The index in finite dimensions]
+  \label{prop:16.2.fd}
+  \lean{MorseFloer.Chapter16.fredholmIndex_of_finiteDimensional}
+  \leanok
+  \uses{def:16.2.a}
+  In finite dimensions $\operatorname{ind} u = \dim E - \dim F$ whatever $u$ is.
+  This is rank--nullity plus the dimension of a quotient, and it is the check
+  that the definition is the right one: the index does not see the operator,
+  which is why it is a deformation invariant.
+\end{proposition}
+
+\begin{theorem}[Theorems 16.2.9, 16.2.10 and Proposition 16.2.7]
+  \label{thm:16.2.stability}
+  \lean{MorseFloer.Chapter16.fredholmIndex_locally_constant,
+        MorseFloer.Chapter16.fredholmIndex_comp,
+        MorseFloer.Chapter16.fredholmIndex_add_compact}
+  \notready
+  \uses{def:16.2.a}
+  The index is locally constant, additive under composition, and unchanged by a
+  compact perturbation.  \emph{Assumed:} standard, but their proofs need
+  operator theory Mathlib does not yet carry.  Chapter 8 uses the compact-
+  perturbation statement to reduce the linearised Floer operator to a
+  constant-coefficient model whose index is computable.
+\end{theorem}
+
+\begin{theorem}[\S16.3--16.4: distributions and Sobolev spaces]
+  \label{thm:16.4}
+  \notready
+  Weak derivatives and convolution of distributions; the spaces $W^{k,p}(U)$
+  with their extension, trace, Poincar\'e (16.4.3), Sobolev embedding (16.4.4)
+  and Rellich compactness (16.4.6) theorems.
+  \emph{Not statable:} Mathlib has neither distributions in this sense nor
+  Sobolev spaces on a domain.  This is the gap that puts the elliptic regularity
+  of Chapters 12 and 13 out of reach.
+\end{theorem}
+
+\chapter{Symplectic geometry (Chapter 5)}
+
+Mathlib has the linear symplectic group but no symplectic manifolds and no
+differential forms on manifolds, so the linear theory of \S5.1 and \S5.6 is
+formalized in depth while the manifold statements are gaps.
+
+\begin{definition}[Symplectic vector spaces and their subspaces, \S5.1]
+  \label{def:5.1}
+  \lean{MorseFloer.Chapter5.IsSymplecticForm, MorseFloer.Chapter5.IsIsotropic,
+        MorseFloer.Chapter5.IsCoisotropic, MorseFloer.Chapter5.IsLagrangian,
+        MorseFloer.Chapter5.IsSymplecticSubspace, MorseFloer.Chapter5.IsSymplecticBasis}
+  \leanok
+  A nondegenerate alternating form, and the isotropic, coisotropic, Lagrangian
+  and symplectic subspaces it distinguishes.
+\end{definition}
+
+\begin{proposition}[Proposition 5.1.1, existence of a symplectic basis]
+  \label{prop:5.1.1}
+  \lean{MorseFloer.Chapter5.exists_isSymplecticBasis,
+        MorseFloer.Chapter5.even_finrank_of_isSymplecticForm}
+  \leanok
+  \uses{def:5.1}
+  Every symplectic vector space has a symplectic basis, so its dimension is
+  even.  Proved in full by the book's induction: pick $e,f$ with
+  $\omega(e,f)=1$, note $\omega$ restricts nondegenerately to
+  $\langle e,f\rangle^\perp$, and recurse.
+\end{proposition}
+
+\begin{proposition}[Dimension counts for subspaces, \S5.1]
+  \label{prop:5.1.dim}
+  \lean{MorseFloer.Chapter5.finrank_orthogonal_add,
+        MorseFloer.Chapter5.orthogonal_orthogonal,
+        MorseFloer.Chapter5.IsLagrangian.two_mul_finrank,
+        MorseFloer.Chapter5.isCoisotropic_iff_isotropic_orthogonal,
+        MorseFloer.Chapter5.isSymplecticSubspace_iff_isCompl}
+  \leanok
+  \uses{prop:5.1.1}
+  The symplectic orthogonal is an involution of the right dimension; a
+  Lagrangian is exactly half-dimensional; a subspace is symplectic exactly when
+  it is complementary to its orthogonal.
+\end{proposition}
+
+\begin{definition}[Hamiltonian vector fields, \S5.4]
+  \label{def:5.4}
+  \lean{MorseFloer.Chapter5.hamiltonianVector, MorseFloer.Chapter5.hamiltonianField,
+        MorseFloer.Chapter5.hamiltonianVector_spec,
+        MorseFloer.Chapter5.hamiltonianVector_eq_zero_iff,
+        MorseFloer.Chapter5.apply_hamiltonianVector,
+        MorseFloer.Chapter5.hamiltonianVector_stdForm}
+  \leanok
+  \uses{def:5.1}
+  $X_H$ is defined by $\omega(Y,X_H) = dH(Y)$ and is unique; its zeros are the
+  critical points of $H$; $H$ is conserved along it; and on $\mathbb{R}^{2n}$
+  the definition unwinds to Hamilton's equations $X_H = J\,\nabla H$.
+\end{definition}
+
+\begin{theorem}[Theorem 5.3.2, Darboux]
+  \label{thm:5.3.2}
+  \lean{MorseFloer.Chapter5.darboux}
+  \notready
+  \uses{def:5.1}
+  Every symplectic form is locally the standard one.  \emph{Assumed}, stated in
+  the local model; the manifold statement needs differential forms.
+\end{theorem}
+
+\begin{proposition}[\S5.5, calibrated complex structures]
+  \label{prop:5.5}
+  \lean{MorseFloer.Chapter5.IsCalibrated, MorseFloer.Chapter5.calibratedMetric,
+        MorseFloer.Chapter5.calibratedMetric_pos, MorseFloer.Chapter5.stdJ_isCalibrated}
+  \leanok
+  \uses{def:5.1}
+  A complex structure compatible with $\omega$ induces an inner product
+  $\omega(\cdot,J\cdot)$; the standard $J_0$ on $\mathbb{R}^{2n}=\mathbb{C}^n$ is
+  calibrated and induces the Euclidean product.  Existence for a general
+  $\omega$ (Lemma 5.5.3) and contractibility of the space of such $J$
+  (Proposition 5.5.4) are assumed: the first needs polar decomposition, which
+  Mathlib lacks.
+\end{proposition}
+
+\begin{proposition}[\S5.6, the symplectic group]
+  \label{prop:5.6}
+  \lean{MorseFloer.Chapter5.mem_symplecticGroup_iff_preserves,
+        MorseFloer.Chapter5.symplectic_of_orthogonal_of_complexLinear,
+        MorseFloer.Chapter5.det_eq_one_of_symplectic,
+        MorseFloer.Chapter5.transpose_mul_J_eq,
+        MorseFloer.Chapter5.exp_mem_symplecticGroup}
+  \leanok
+  \uses{prop:5.5}
+  Mathlib's \texttt{Matrix.symplecticGroup} is the isometry group of the standard
+  form; symplectic, orthogonal and complex-linear --- any two imply the third
+  (Proposition 5.6.2); symplectic matrices have determinant one (Corollary
+  5.6.10); and the flow of a quadratic Hamiltonian is symplectic.  That
+  $Sp(2n)$ retracts onto $U(n)$ with $\pi_1 \simeq \mathbb{Z}$ (Proposition
+  5.6.9) --- the input to the Maslov index of Chapter 7 --- is a gap: $U(n)$ is
+  not available as a subgroup of $GL(2n;\mathbb{R})$.
+\end{proposition}
