@@ -1066,9 +1066,12 @@ theorem transpose_mul_J_eq {A : Matrix (l ⊕ l) (l ⊕ l) ℝ}
 /-- **Proposition 5.6.4.**  The characteristic polynomial of a symplectic matrix
 is symmetric: `det(A − λ Id) = λ^{2n} det(A − λ⁻¹ Id)`.
 
-The book's proof uses `A = −J ᵗA⁻¹ J`, `J² = −Id` and `det A = 1`.  Carrying it
-out formally needs the determinant of a conjugate and a fair amount of
-manipulation of `Matrix.nonsing_inv`; not done here. -/
+The book's proof uses `A = −J ᵗA⁻¹ J`, `J² = −Id` and `det A = 1`.
+
+**This is proved**, in exactly this shape, as `Chapter7.det_charpoly_symmetric`.
+It is left assumed *here* only because Chapter 7 imports Chapter 5 and not the
+other way round, so the proof cannot be cited from this file.  Use the Chapter 7
+declaration; the blueprint node for Proposition 5.6.4 points at it. -/
 theorem det_charpoly_symmetric {A : Matrix (l ⊕ l) (l ⊕ l) ℝ}
     (_hA : A ∈ Matrix.symplecticGroup l ℝ) {lam : ℝ} (_hlam : lam ≠ 0) :
     (A - lam • (1 : Matrix (l ⊕ l) (l ⊕ l) ℝ)).det

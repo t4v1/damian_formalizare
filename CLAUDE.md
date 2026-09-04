@@ -91,23 +91,43 @@ verifies every cited declaration still exists.
 |---|---|---|---|
 | `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
 | `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard), Morse lemma |
-| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | Prop 2.1.6, Cor 2.1.9, dim-1 classification, Brouwer |
+| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
-| `Part1/Ch4.lean` | 4 Morse homology | 8 | Morse inequalities and Poincaré duality proved |
-| `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | Darboux and six others; linear theory proved |
+| `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half |
+| `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | symplectic basis theorem proved in full |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 13 | critical points of the action = periodic orbits |
+| `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
+| `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |
+| `Part2/Ch10.lean` | 10 From Floer to Morse | 4 | the two complexes compared |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
-| `Part2/Ch16.lean` | 16 Analysis | 3 | Fredholm index stability |
+| `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
+| `Part2/Ch16.lean` | 16 Analysis | 3 | the Fredholm index, which Mathlib lacks |
 
-Part I is complete. Not yet started: Part II Chapters 6–13 and 15 — the Floer
-theory proper, plus the algebraic-topology appendix.
+Part I is complete. Remaining: Part II Chapters 9, 11, 12 and 13.
 
-One correction to the book is recorded in `Part1/Ch4.lean`: Proposition 4.3.2 as
-printed cannot be read literally over the integers, since the complex of `-f` is
-the transposed complex and computes cohomology. For real projective 3-space the
-integral complex gives first homology of order two but second homology zero,
-while the printed statement would equate them. The file states the true integral
-statement, duality of the free ranks; over a field there is no discrepancy and
-Proposition 4.3.1 is proved outright.
+### Two design devices worth keeping
+
+**Geometric input enters as a hypothesis, never as a fake theorem.** Chapter 3
+takes the trajectory counts as an abstract function plus a `BrokenPairs`
+hypothesis, and proves ∂∘∂ = 0 from it. Chapters 8 and 10 do the same for the
+Floer data. This is what lets the algebra be proved outright while the analysis
+Mathlib cannot express stays visibly assumed.
+
+**Where asserting a book theorem of arbitrary abstract data would be *false*, it
+is stated as a predicate the data may satisfy, not as a `sorry`ed theorem.**
+Chapter 8's `IsFredholmOfCZIndex` and Chapter 10's `IsFredholmOfIndex` are the
+examples. A `sorry`ed false statement would be worse than no statement.
+
+### Cross-chapter proofs
+
+Two results are proved in a later chapter than the one that states them, because
+the import order runs the other way:
+
+- Proposition 5.6.4 is assumed in `Part2/Ch5.lean` and proved in
+  `Part2/Ch7.lean` as `det_charpoly_symmetric`.
+- Künneth's algebraic half was proved in Chapter 15 and has been moved into
+  `Part1/Ch4.lean` as `brokenPairs_prod`, which is no longer assumed;
+  `Chapter15.tensor_brokenPairs` is now an alias for it.
 
 ### The gaps that matter most
 

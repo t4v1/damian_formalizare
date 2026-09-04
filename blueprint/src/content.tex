@@ -602,7 +602,10 @@ skeleton of the chapter --- is formalized and proved.
 
 \begin{proposition}[Proposition 4.2.1 and Corollaries 4.2.2, 4.2.3]
   \label{prop:4.2.1}
-  \lean{MorseFloer.Chapter4.brokenPairs_prod, MorseFloer.Chapter4.betti_prod}
+  \lean{MorseFloer.Chapter4.brokenPairs_prod,
+        MorseFloer.Chapter4.sum_critSet_prod,
+        MorseFloer.Chapter15.betti_prod_of_count_zero,
+        MorseFloer.Chapter4.betti_prod}
   \notready
   \uses{def:morseComplex, def:4.4}
   $\Phi$ is an isomorphism of complexes $C_\star(f+g) \cong C_\star(f)\otimes
@@ -785,7 +788,8 @@ formalized in depth while the manifold statements are gaps.
         MorseFloer.Chapter5.symplectic_of_orthogonal_of_complexLinear,
         MorseFloer.Chapter5.det_eq_one_of_symplectic,
         MorseFloer.Chapter5.transpose_mul_J_eq,
-        MorseFloer.Chapter5.exp_mem_symplecticGroup}
+        MorseFloer.Chapter5.exp_mem_symplecticGroup,
+        MorseFloer.Chapter7.det_charpoly_symmetric}
   \leanok
   \uses{prop:5.5}
   Mathlib's \texttt{Matrix.symplecticGroup} is the isometry group of the standard
@@ -795,4 +799,295 @@ formalized in depth while the manifold statements are gaps.
   $Sp(2n)$ retracts onto $U(n)$ with $\pi_1 \simeq \mathbb{Z}$ (Proposition
   5.6.9) --- the input to the Maslov index of Chapter 7 --- is a gap: $U(n)$ is
   not available as a subgroup of $GL(2n;\mathbb{R})$.
+\end{proposition}
+
+\chapter{Linearisation and transversality (Chapter 8)}
+
+Mathlib has no Sobolev spaces, so the Banach manifold $\mathcal{P}^{1,p}(x,y)$ of
+\S8.2 and the perturbation space of \S8.3 are gaps.  The chapter's actual payload
+--- the Fredholm index bookkeeping that gives the moduli spaces their dimension
+--- is formalized and proved.
+
+\begin{definition}[Abstract Floer data]
+  \label{def:8.floerdata}
+  \lean{MorseFloer.Chapter8.FloerData, MorseFloer.Chapter8.FloerData.IsRegular,
+        MorseFloer.Chapter8.FloerData.IsFredholmOfCZIndex,
+        MorseFloer.Chapter8.IsGenericallyRegular}
+  \leanok
+  \uses{def:16.2.a}
+  The orbits, their Conley--Zehnder index, the solution spaces and the linearised
+  operator, bundled as data, with regularity (the linearised operator is
+  surjective at every solution) as a predicate on it.  Where asserting a book
+  theorem of arbitrary such data would be \emph{false}, it is recorded as a
+  predicate the data may satisfy rather than as an assumed theorem: Theorem 8.1.1
+  is \texttt{IsGenericallyRegular} and Theorem 8.1.5 is
+  \texttt{IsFredholmOfCZIndex}.
+\end{definition}
+
+\begin{proposition}[Index bookkeeping]
+  \label{prop:8.index}
+  \lean{MorseFloer.Chapter8.fredholmIndex_eq_finrank_ker_of_surjective,
+        MorseFloer.Chapter8.fredholmIndex_prodMap,
+        MorseFloer.Chapter8.range_gammaOp}
+  \leanok
+  \uses{def:16.2.a}
+  For a surjective Fredholm operator the index is the dimension of the kernel;
+  the index of a direct sum is the sum of the indices; and the range of the
+  operator of Proposition 8.1.4 splits as stated.  Two module isomorphisms
+  Mathlib lacks were proved on the way.
+\end{proposition}
+
+\begin{theorem}[Theorem 8.1.2, linear form]
+  \label{thm:8.1.2}
+  \lean{MorseFloer.Chapter8.finrank_ker_eq_cz_sub_cz}
+  \leanok
+  \uses{prop:8.index, def:8.floerdata}
+  Fredholm, with index the difference of the Conley--Zehnder indices, plus
+  surjectivity gives $\dim\ker (dF)_u = \mu(x)-\mu(y)$.  This is the
+  transversality payload: it is what makes the moduli space of trajectories a
+  manifold of the expected dimension, and hence what lets the Floer differential
+  count the index-difference-one trajectories.
+\end{theorem}
+
+\begin{theorem}[Theorem 8.1.1, genericity]
+  \label{thm:8.1.1}
+  \lean{MorseFloer.Chapter8.isGenericallyRegular_iff,
+        MorseFloer.Chapter8.dense_regularSet}
+  \leanok
+  \uses{def:8.floerdata}
+  A residual set is a countable intersection of dense open sets, so by Baire the
+  regular perturbations are dense.  The genericity statement itself is a
+  predicate on the data, since the analysis producing it is unavailable.
+\end{theorem}
+
+\begin{proposition}[\S8.2--8.3, the analytic setting]
+  \label{prop:8.2}
+  \lean{MorseFloer.Chapter8.eLpNorm_mul_le_mul_ofReal,
+        MorseFloer.Chapter8.separableSpace_continuousMap,
+        MorseFloer.Chapter8.lemma_8_3_2, MorseFloer.Chapter8.prop_8_3_1,
+        MorseFloer.Chapter8.prop_8_3_4}
+  \notready
+  \uses{thm:16.4}
+  The second inequality of Lemma 8.2.4 and the $C^0$ half of Lemma 8.3.2 are
+  proved with Mathlib's $L^p$ and Stone--Weierstrass.  The $C^1$ statements of
+  \S8.3 are assumed, and Proposition 8.1.3, Definition 8.2.2, Proposition 8.2.3
+  and the whole Banach-manifold atlas of \S8.2.d carry no Lean statement: there
+  are no Sobolev spaces to give a structure to.
+\end{proposition}
+
+\chapter{The Arnold conjecture and the Floer equation (Chapter 6)}
+
+Developed in the standard model $\mathbb{R}^{2n}$ with Chapter 5's structures,
+which is the book's own Example 6.3.2 --- there the action functional is an
+honest integral and the chapter's hypotheses hold trivially.  Mathlib has no
+symplectic manifolds and no loop space, so the manifold-level statements are
+gaps.
+
+\begin{definition}[Periodic orbits and nondegeneracy, \S6.1]
+  \label{def:6.1}
+  \lean{MorseFloer.Chapter6.IsPeriodicOrbit, MorseFloer.Chapter6.IsFlow,
+        MorseFloer.Chapter6.isPeriodicOrbit_iff_flow_fixed,
+        MorseFloer.Chapter6.IsNondegenerateOrbit}
+  \leanok
+  \uses{def:5.4}
+  A $1$-periodic orbit through $p$ is exactly a fixed point of the time-$1$ map,
+  proved in both directions from ODE uniqueness; nondegeneracy is that $1$ is not
+  an eigenvalue of the linearised return map.
+\end{definition}
+
+\begin{proposition}[Proposition 6.3.4, the action functional]
+  \label{prop:6.3.4}
+  \lean{MorseFloer.Chapter6.action, MorseFloer.Chapter6.actionForm,
+        MorseFloer.Chapter6.actionForm_eq_zero_iff,
+        MorseFloer.Chapter6.integral_stdForm_byParts}
+  \leanok
+  \uses{def:6.1}
+  The critical points of $A_H$ are exactly the $1$-periodic Hamiltonian orbits.
+  This is the conceptual centre of Part II --- the analogue of ``critical points
+  of a Morse function'' --- and it is proved outright, including the integration
+  by parts on the circle that replaces the book's use of Stokes.
+\end{proposition}
+
+\begin{definition}[The Floer equation and its energy, \S6.4--6.5]
+  \label{def:6.4}
+  \lean{MorseFloer.Chapter6.IsFloerSolution, MorseFloer.Chapter6.floer_eq,
+        MorseFloer.Chapter6.energy, MorseFloer.Chapter6.energy_nonneg,
+        MorseFloer.Chapter6.hasDerivAt_action_of_floer,
+        MorseFloer.Chapter6.action_antitone}
+  \leanok
+  \uses{prop:6.3.4}
+  The Floer equation, the energy of a solution, and --- proved --- that the
+  action decreases along a solution, with derivative $-\int_0^1|\partial_s u|^2$.
+  This is the exact analogue of Chapter 2's ``$f$ decreases along a
+  pseudo-gradient trajectory'' (\ref{prop:2.1.traj}), and it is what makes the
+  Floer complex behave like the Morse complex.
+\end{definition}
+
+\begin{theorem}[Theorem 6.5.4, compactness; Conjecture 6.1.2]
+  \label{thm:6.5.4}
+  \lean{MorseFloer.Chapter6.compactness_of_energy_bounded,
+        MorseFloer.Chapter6.arnold_conjecture_torus}
+  \notready
+  \uses{def:6.4}
+  Solutions of bounded energy are compact up to breaking, and the Arnold
+  conjecture on the torus.  \emph{Assumed}: the compactness proof needs elliptic
+  bootstrapping, hence the Sobolev theory of \ref{thm:16.4}.
+\end{theorem}
+
+\chapter{The Maslov and Conley--Zehnder indices (Chapter 7)}
+
+\begin{definition}[The components of the symplectic group, \S7.1.c]
+  \label{def:7.1.c}
+  \lean{MorseFloer.Chapter7.symplecticStar, MorseFloer.Chapter7.symplecticPlus,
+        MorseFloer.Chapter7.symplecticMinus,
+        MorseFloer.Chapter7.symplecticGroup_eq_union,
+        MorseFloer.Chapter7.neg_one_mem_symplecticPlus}
+  \leanok
+  \uses{prop:5.6}
+  The symplectic matrices without eigenvalue $1$, split by the sign of
+  $\det(A-\mathrm{Id})$, with the reference matrix $-\mathrm{Id}$ in the positive
+  part.
+\end{definition}
+
+\begin{proposition}[Proposition 5.6.4, proved here]
+  \label{prop:5.6.4}
+  \lean{MorseFloer.Chapter7.det_sub_inv_smul,
+        MorseFloer.Chapter7.det_charpoly_symmetric,
+        MorseFloer.Chapter7.det_sub_smul_eq_zero_iff}
+  \leanok
+  \uses{def:7.1.c}
+  The characteristic polynomial of a symplectic matrix is symmetric under
+  $\lambda \mapsto \lambda^{-1}$, so its spectrum is.  Chapter 5 states this and
+  leaves it assumed only because it cannot import Chapter 7.
+\end{proposition}
+
+\begin{definition}[The Conley--Zehnder index, axiomatically]
+  \label{def:7.2}
+  \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
+        MorseFloer.Chapter7.exists_isConleyZehnderIndex,
+        MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
+        MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
+  \notready
+  \uses{def:7.1.c}
+  The index is characterised by its axioms rather than constructed: the
+  construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
+  $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
+  consequences \emph{are} proved, including Corollary 7.2.2, which relates the
+  index to the Morse index and is what makes the Floer grading agree with the
+  Morse grading in Chapter 10.
+\end{definition}
+
+\begin{proposition}[Dimension two, in full]
+  \label{prop:7.dim2}
+  \lean{MorseFloer.Chapter7.isSymplectic2_iff_det_eq_one,
+        MorseFloer.Chapter7.det_sub_one_fin_two_of_det_eq_one,
+        MorseFloer.Chapter7.det_sub_one_pos_iff,
+        MorseFloer.Chapter7.rot_mem_plus, MorseFloer.Chapter7.hyp_mem_minus}
+  \leanok
+  \uses{def:7.1.c}
+  $Sp(2) = SL(2;\mathbb{R})$, $\det(A-\mathrm{Id}) = 2 - \operatorname{tr} A$, and
+  the two components are $\operatorname{tr} A < 2$ and $\operatorname{tr} A > 2$,
+  with the rotation and the hyperbolic matrix as their representatives.
+\end{proposition}
+
+\chapter{From Floer to Morse (Chapter 10)}
+
+\begin{theorem}[Theorem 10.1.1, the comparison of the two complexes]
+  \label{thm:10.1.1}
+  \lean{MorseFloer.Chapter10.critShift, MorseFloer.Chapter10.chainShift,
+        MorseFloer.Chapter10.chainShift_dLin,
+        MorseFloer.Chapter10.brokenPairs_shift,
+        MorseFloer.Chapter10.floerHomology_eq_morseHomology}
+  \leanok
+  \uses{def:morseComplex, def:7.2}
+  For a $C^2$-small time-independent Hamiltonian the Floer complex is the Morse
+  complex with the grading shifted by $n$.  The shift is proved to intertwine the
+  two differentials and to transport the broken-trajectory hypothesis, so the two
+  homologies coincide.  \textbf{This is the step that identifies Floer homology
+  with Morse homology}, and with Chapter 11's invariance it is what proves the
+  Arnold conjecture; the geometric input (that the trajectories coincide) enters
+  as a hypothesis.
+\end{theorem}
+
+\begin{lemma}[Lemmas 10.2.4 and 10.2.5]
+  \label{lem:10.2.4}
+  \lean{MorseFloer.Chapter10.inner_estimate_of_symm,
+        MorseFloer.Chapter10.lemma_10_2_4_symbol,
+        MorseFloer.Chapter10.half_normSq_sub_le,
+        MorseFloer.Chapter10.lemma_10_2_5}
+  \leanok
+  The two matrix estimates behind the elliptic inequality, proved in full.  Note
+  that the book's intermediate claim $\lVert v\,\mathrm{Id} + B\rVert^2 =
+  u^2 + \lVert B\rVert^2$ is false for non-symmetric $B$: the cross terms cancel
+  precisely by the symmetry of $B$, so that hypothesis is genuinely needed.
+\end{lemma}
+
+\begin{proposition}[\S10.2.b--10.2.e]
+  \label{prop:10.2}
+  \lean{MorseFloer.Chapter10.eq_zero_of_bddAtBot,
+        MorseFloer.Chapter10.prop_10_2_8, MorseFloer.Chapter10.thm_10_1_5,
+        MorseFloer.Chapter10.eq_of_period_tendsto_zero}
+  \leanok
+  \uses{lem:10.2.4}
+  Exponential decay of a bounded solution, the index count
+  $\dim(U\cap S) - \dim(U+S)^\perp = \operatorname{Ind}x - \operatorname{Ind}y$,
+  the Morse--Smale criterion of Theorem 10.1.5, and the periodicity argument of
+  Proposition 10.1.9.
+\end{proposition}
+
+\begin{theorem}[Theorem 10.1.3 and the elliptic estimate]
+  \label{thm:10.1.3}
+  \lean{MorseFloer.Chapter10.IsFredholmOfIndex, MorseFloer.Chapter10.prop_10_2_3,
+        MorseFloer.Chapter10.prop_10_2_2, MorseFloer.Chapter10.lemma_10_4_1}
+  \notready
+  \uses{prop:10.2, thm:16.4}
+  That $L_u$ is Fredholm of the expected index.  Recorded as a \emph{predicate},
+  not an assumed theorem: $L_u$ lives on a Sobolev space Mathlib cannot form, so
+  quantifying over an arbitrary continuous linear map would make the statement
+  false.
+\end{theorem}
+
+\chapter{A little algebraic topology (Chapter 15)}
+
+\begin{proposition}[Proposition 15.1.1, K\"unneth]
+  \label{prop:15.1.1}
+  \lean{MorseFloer.Chapter15.tensor_brokenPairs,
+        MorseFloer.Chapter15.numCrit_prodIndex,
+        MorseFloer.Chapter15.betti_prod_of_count_zero,
+        MorseFloer.Chapter15.betti_tensor}
+  \notready
+  \uses{prop:4.2.1}
+  The tensor product of two complexes is a complex --- proved, and moved into
+  Chapter 4 so that \ref{prop:4.2.1}'s algebraic half is no longer assumed; the
+  cross terms cancel exactly because $2 = 0$, which is the book's footnote about
+  $\mathbb{Z}/2$.  The formula on the underlying graded spaces is proved, and the
+  K\"unneth formula itself whenever both differentials vanish, which covers every
+  example the book computes.  The general statement is assumed: Mathlib has no
+  K\"unneth theorem.
+\end{proposition}
+
+\begin{proposition}[\S15.1.b, the long exact sequence]
+  \label{prop:15.1.b}
+  \lean{MorseFloer.Chapter15.connecting,
+        MorseFloer.Chapter15.homologySequence_exact₂,
+        MorseFloer.Chapter15.exists_connecting,
+        MorseFloer.Chapter15.exists_isCompl_ker}
+  \leanok
+  \uses{def:morseComplex}
+  The connecting homomorphism and exactness, specialised from Mathlib's snake
+  lemma to the category the Morse complex lives in, with the book's own diagram
+  chase proved from scratch.  Remark 15.1.2 --- that over a field the kernel of
+  $\partial$ splits off --- is the step that fails over a ring.
+\end{proposition}
+
+\begin{proposition}[\S15.2, Chern classes]
+  \label{prop:15.2}
+  \lean{MorseFloer.Chapter15.finrank_exteriorPower_top,
+        MorseFloer.Chapter15.eq_of_contractible_of_discrete}
+  \notready
+  Only the two ingredients survive: $\Lambda^n$ of a rank-$n$ space is a line, and
+  a map from a contractible space to a discrete one is constant.
+  \emph{Not statable:} Mathlib has vector bundles but no exterior power of a
+  bundle, no Euler class and no $H^2(W;\mathbb{Z})$, so a definition of $c_1$
+  would be fictitious.
 \end{proposition}

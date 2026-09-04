@@ -275,6 +275,49 @@ otherwise.
 That is exactly the differential `∂_X ⊗ 1 + 1 ⊗ ∂_Y` of the tensor product of
 the two complexes, which is Proposition 4.2.1. -/
 
+/-! ### Sum bookkeeping for the product complex -/
+
+section Sums
+
+/-- A sum over the critical points of index `m` is the sum over all critical
+points of the function extended by zero. -/
+theorem sum_critSet_eq {Crit : Type*} [Fintype Crit] {M : Type*} [AddCommMonoid M]
+    (ind : Crit → ℕ) (m : ℕ) (f : Crit → M) :
+    ∑ c : CritSet ind m, f c.1 = ∑ c : Crit, if ind c = m then f c else 0 := by
+  have h1 : ∑ c ∈ Finset.univ.filter (fun c : Crit => ind c = m), f c
+      = ∑ c : CritSet ind m, f c.1 :=
+    Finset.sum_subtype _ (fun x => by simp) f
+  rw [← h1, Finset.sum_filter]
+
+/-- `cₖ(f)`, the number of critical points of index `k`, as a sum of indicators. -/
+theorem numCrit_eq_sum {Crit : Type*} [Fintype Crit] (ind : Crit → ℕ) (m : ℕ) :
+    numCrit ind m = ∑ c : Crit, if ind c = m then 1 else 0 := by
+  have h := sum_critSet_eq ind m (fun _ => (1 : ℕ))
+  have h2 : (∑ _c : CritSet ind m, (1 : ℕ)) = numCrit ind m := by
+    simp [numCrit, Finset.card_univ]
+  rw [← h2]
+  exact h
+
+private theorem sum_range_ite_mul (k p q : ℕ) :
+    (∑ i ∈ Finset.range (k + 1), (if p = i then (1 : ℕ) else 0) * (if q = k - i then 1 else 0))
+      = if p + q = k then 1 else 0 := by
+  by_cases hp : p ≤ k
+  · have h1 : (∑ i ∈ Finset.range (k + 1),
+        (if p = i then (1 : ℕ) else 0) * (if q = k - i then 1 else 0))
+        = (if p = p then (1 : ℕ) else 0) * (if q = k - p then 1 else 0) :=
+      Finset.sum_eq_single p (fun b _ hb => by rw [if_neg (Ne.symm hb), zero_mul])
+        (fun h => absurd (Finset.mem_range.mpr (by omega)) h)
+    rw [h1, if_pos rfl, one_mul]
+    by_cases hq : p + q = k
+    · rw [if_pos (show q = k - p by omega), if_pos hq]
+    · rw [if_neg (show ¬(q = k - p) by omega), if_neg hq]
+  · rw [if_neg (show ¬(p + q = k) by omega)]
+    refine Finset.sum_eq_zero fun i hi => ?_
+    have hi' := Finset.mem_range.mp hi
+    rw [if_neg (show ¬(p = i) by omega), zero_mul]
+
+end Sums
+
 section Kunneth
 
 variable {K : Type*} [Field K] {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Crit₂]
@@ -291,6 +334,28 @@ def prodCount (cnt₁ : Crit₁ → Crit₁ → K) (cnt₂ : Crit₂ → Crit₂
     Crit₁ × Crit₂ → Crit₁ × Crit₂ → K :=
   fun a b => (if a.1 = b.1 then cnt₂ a.2 b.2 else 0) + (if a.2 = b.2 then cnt₁ a.1 b.1 else 0)
 
+omit [Fintype Crit₁] [Fintype Crit₂] in
+/-- The coefficient of `∂_{C⊗D}` between two basis elements: `∂ ⊗ 1 + 1 ⊗ ∂`
+counts a connection in the second factor when the first is unchanged, and one in
+the first factor when the second is unchanged. -/
+theorem prodCount_apply (cnt₁ : Crit₁ → Crit₁ → K) (cnt₂ : Crit₂ → Crit₂ → K)
+    (a₁ b₁ : Crit₁) (a₂ b₂ : Crit₂) :
+    prodCount cnt₁ cnt₂ (a₁, a₂) (b₁, b₂)
+      = (if a₁ = b₁ then cnt₂ a₂ b₂ else 0) + (if a₂ = b₂ then cnt₁ a₁ b₁ else 0) := rfl
+
+/-- The same for the product complex: a sum over the critical points of `C ⊗ D`
+of total degree `m` is a double sum over the two factors, restricted to the
+pairs of degrees adding up to `m`.  This is the statement that
+`(C ⊗ D)ₘ = ⨁_{i+j=m} Cᵢ ⊗ Dⱼ` (§15.1.a), read on the canonical bases. -/
+theorem sum_critSet_prod {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Crit₂]
+    {M : Type*} [AddCommMonoid M] (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (m : ℕ)
+    (f : Crit₁ × Crit₂ → M) :
+    ∑ c : CritSet (prodIndex ind₁ ind₂) m, f c.1
+      = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂, if ind₁ c₁ + ind₂ c₂ = m then f (c₁, c₂) else 0 := by
+  have h := sum_critSet_eq (prodIndex ind₁ ind₂) m f
+  rw [Fintype.sum_prod_type] at h
+  exact h
+
 /-- **Proposition 4.2.1** (algebraic half).  `Φ(a ⊗ a') = (a, a')` identifies
 `(C⋆(f) ⊗ C⋆(g), ∂_X ⊗ 1 + 1 ⊗ ∂_Y)` with `(C⋆(f + g), ∂_(X,Y))`; in particular
 the product differential squares to zero.  As the book points out, without signs
@@ -298,13 +363,142 @@ this holds only in characteristic `2` — the cross terms `∂_X ⊗ ∂_Y` canc
 pairs there, which is why the passage to homology in Corollary 4.2.2 is stated
 over `Z/2`.
 
-Not proved: the identification is a finite but long computation with sums over
-subtypes of a product type, which is not attempted here. -/
+Proved: expanding `∂∂` gives four terms.  The two "square" terms vanish because
+`∂` does in each factor; the two cross terms are *equal*, so they cancel exactly
+when `2 = 0`, which is the book's footnote about `Z/2`. -/
 theorem brokenPairs_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
     (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0) :
     BrokenPairs (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) := by
-  sorry
+  intro k a b
+  obtain ⟨⟨a₁, a₂⟩, ha⟩ := a
+  obtain ⟨⟨b₁, b₂⟩, hb⟩ := b
+  simp only [prodIndex] at ha hb
+  show (∑ c : CritSet (prodIndex ind₁ ind₂) (k + 1),
+      prodCount cnt₁ cnt₂ (a₁, a₂) c.1 * prodCount cnt₁ cnt₂ c.1 (b₁, b₂)) = 0
+  have key : (∑ c : CritSet (prodIndex ind₁ ind₂) (k + 1),
+        prodCount cnt₁ cnt₂ (a₁, a₂) c.1 * prodCount cnt₁ cnt₂ c.1 (b₁, b₂))
+      = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+          if ind₁ c₁ + ind₂ c₂ = k + 1 then
+            prodCount cnt₁ cnt₂ (a₁, a₂) (c₁, c₂) * prodCount cnt₁ cnt₂ (c₁, c₂) (b₁, b₂)
+          else 0 :=
+    sum_critSet_prod ind₁ ind₂ (k + 1)
+      (fun c => prodCount cnt₁ cnt₂ (a₁, a₂) c * prodCount cnt₁ cnt₂ c (b₁, b₂))
+  have expand : ∀ (c₁ : Crit₁) (c₂ : Crit₂),
+      (if ind₁ c₁ + ind₂ c₂ = k + 1 then
+          prodCount cnt₁ cnt₂ (a₁, a₂) (c₁, c₂) * prodCount cnt₁ cnt₂ (c₁, c₂) (b₁, b₂) else 0)
+      = (if ind₁ c₁ + ind₂ c₂ = k + 1 then
+            (if a₁ = c₁ then cnt₂ a₂ c₂ else 0) * (if c₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0)
+        + (if ind₁ c₁ + ind₂ c₂ = k + 1 then
+            (if a₁ = c₁ then cnt₂ a₂ c₂ else 0) * (if c₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0)
+        + (if ind₁ c₁ + ind₂ c₂ = k + 1 then
+            (if a₂ = c₂ then cnt₁ a₁ c₁ else 0) * (if c₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0)
+        + (if ind₁ c₁ + ind₂ c₂ = k + 1 then
+            (if a₂ = c₂ then cnt₁ a₁ c₁ else 0) * (if c₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0) := by
+    intro c₁ c₂
+    simp only [prodCount_apply]
+    split_ifs <;> ring
+  have hS1 : (∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+      if ind₁ c₁ + ind₂ c₂ = k + 1 then
+        (if a₁ = c₁ then cnt₂ a₂ c₂ else 0) * (if c₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0) = 0 := by
+    rw [Finset.sum_eq_single a₁]
+    · show (∑ c₂ : Crit₂, if ind₁ a₁ + ind₂ c₂ = k + 1 then
+          (if a₁ = a₁ then cnt₂ a₂ c₂ else 0) * (if a₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0) = 0
+      by_cases hab : a₁ = b₁
+      · have hbb : ind₁ b₁ = ind₁ a₁ := by rw [hab]
+        have hsimp : ∀ c₂ : Crit₂,
+            (if ind₁ a₁ + ind₂ c₂ = k + 1 then
+              (if a₁ = a₁ then cnt₂ a₂ c₂ else 0) * (if a₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0)
+              = (if ind₂ c₂ = ind₂ b₂ + 1 then cnt₂ a₂ c₂ * cnt₂ c₂ b₂ else 0) := by
+          intro c₂
+          rw [if_pos hab, if_pos (rfl : a₁ = a₁)]
+          by_cases hc : ind₂ c₂ = ind₂ b₂ + 1
+          · rw [if_pos (show ind₁ a₁ + ind₂ c₂ = k + 1 by omega), if_pos hc]
+          · rw [if_neg (show ¬(ind₁ a₁ + ind₂ c₂ = k + 1) by omega), if_neg hc]
+        rw [Finset.sum_congr rfl fun c₂ _ => hsimp c₂]
+        have hconv : (∑ c₂ : Crit₂, if ind₂ c₂ = ind₂ b₂ + 1 then cnt₂ a₂ c₂ * cnt₂ c₂ b₂ else 0)
+            = ∑ c : CritSet ind₂ (ind₂ b₂ + 1), cnt₂ a₂ c.1 * cnt₂ c.1 b₂ :=
+          (sum_critSet_eq ind₂ (ind₂ b₂ + 1) (fun c => cnt₂ a₂ c * cnt₂ c b₂)).symm
+        rw [hconv]
+        exact h₂ (ind₂ b₂) ⟨a₂, by omega⟩ ⟨b₂, rfl⟩
+      · simp [hab]
+    · intro c₁ _ hc₁
+      simp [Ne.symm hc₁]
+    · intro h
+      exact absurd (Finset.mem_univ a₁) h
+  have hS4 : (∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+      if ind₁ c₁ + ind₂ c₂ = k + 1 then
+        (if a₂ = c₂ then cnt₁ a₁ c₁ else 0) * (if c₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0) = 0 := by
+    have hin : ∀ c₁ : Crit₁,
+        (∑ c₂ : Crit₂, if ind₁ c₁ + ind₂ c₂ = k + 1 then
+          (if a₂ = c₂ then cnt₁ a₁ c₁ else 0) * (if c₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0)
+        = (if ind₁ c₁ + ind₂ a₂ = k + 1 then
+            cnt₁ a₁ c₁ * (if a₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0) := by
+      intro c₁
+      rw [Finset.sum_eq_single a₂]
+      · simp
+      · intro c₂ _ hc₂
+        simp [Ne.symm hc₂]
+      · intro h
+        exact absurd (Finset.mem_univ a₂) h
+    rw [Finset.sum_congr rfl fun c₁ _ => hin c₁]
+    by_cases hab : a₂ = b₂
+    · have hbb : ind₂ b₂ = ind₂ a₂ := by rw [hab]
+      have hsimp : ∀ c₁ : Crit₁,
+          (if ind₁ c₁ + ind₂ a₂ = k + 1 then
+            cnt₁ a₁ c₁ * (if a₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0)
+          = (if ind₁ c₁ = ind₁ b₁ + 1 then cnt₁ a₁ c₁ * cnt₁ c₁ b₁ else 0) := by
+        intro c₁
+        rw [if_pos hab]
+        by_cases hc : ind₁ c₁ = ind₁ b₁ + 1
+        · rw [if_pos (show ind₁ c₁ + ind₂ a₂ = k + 1 by omega), if_pos hc]
+        · rw [if_neg (show ¬(ind₁ c₁ + ind₂ a₂ = k + 1) by omega), if_neg hc]
+      rw [Finset.sum_congr rfl fun c₁ _ => hsimp c₁]
+      have hconv : (∑ c₁ : Crit₁, if ind₁ c₁ = ind₁ b₁ + 1 then cnt₁ a₁ c₁ * cnt₁ c₁ b₁ else 0)
+          = ∑ c : CritSet ind₁ (ind₁ b₁ + 1), cnt₁ a₁ c.1 * cnt₁ c.1 b₁ :=
+        (sum_critSet_eq ind₁ (ind₁ b₁ + 1) (fun c => cnt₁ a₁ c * cnt₁ c b₁)).symm
+      rw [hconv]
+      exact h₁ (ind₁ b₁) ⟨a₁, by omega⟩ ⟨b₁, rfl⟩
+    · simp [hab]
+  have hS2 : (∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+      if ind₁ c₁ + ind₂ c₂ = k + 1 then
+        (if a₁ = c₁ then cnt₂ a₂ c₂ else 0) * (if c₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0)
+      = (if ind₁ a₁ + ind₂ b₂ = k + 1 then cnt₂ a₂ b₂ * cnt₁ a₁ b₁ else 0) := by
+    rw [Finset.sum_eq_single a₁]
+    · rw [Finset.sum_eq_single b₂]
+      · simp
+      · intro c₂ _ hc₂
+        simp [hc₂]
+      · intro h
+        exact absurd (Finset.mem_univ b₂) h
+    · intro c₁ _ hc₁
+      simp [Ne.symm hc₁]
+    · intro h
+      exact absurd (Finset.mem_univ a₁) h
+  have hS3 : (∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+      if ind₁ c₁ + ind₂ c₂ = k + 1 then
+        (if a₂ = c₂ then cnt₁ a₁ c₁ else 0) * (if c₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0)
+      = (if ind₁ b₁ + ind₂ a₂ = k + 1 then cnt₁ a₁ b₁ * cnt₂ a₂ b₂ else 0) := by
+    rw [Finset.sum_eq_single b₁]
+    · rw [Finset.sum_eq_single a₂]
+      · simp
+      · intro c₂ _ hc₂
+        simp [Ne.symm hc₂]
+      · intro h
+        exact absurd (Finset.mem_univ a₂) h
+    · intro c₁ _ hc₁
+      simp [hc₁]
+    · intro h
+      exact absurd (Finset.mem_univ b₁) h
+  rw [key, Finset.sum_congr rfl (fun c₁ _ => Finset.sum_congr rfl (fun c₂ _ => expand c₁ c₂))]
+  simp only [Finset.sum_add_distrib]
+  rw [hS1, hS4, hS2, hS3]
+  by_cases hC : ind₁ a₁ + ind₂ b₂ = k + 1
+  · rw [if_pos hC, if_pos (show ind₁ b₁ + ind₂ a₂ = k + 1 by omega), zero_add, add_zero,
+      show cnt₂ a₂ b₂ * cnt₁ a₁ b₁ + cnt₁ a₁ b₁ * cnt₂ a₂ b₂
+        = 2 * (cnt₂ a₂ b₂ * cnt₁ a₁ b₁) by ring, h2, zero_mul]
+  · rw [if_neg hC, if_neg (show ¬(ind₁ b₁ + ind₂ a₂ = k + 1) by omega)]
+    simp
 
 /-- **Corollaries 4.2.2 and 4.2.3 (the Künneth formula).**  Over `Z/2` — more
 generally over a field — the homology of the product complex is the tensor
