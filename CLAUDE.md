@@ -26,6 +26,8 @@ paraphrases and the Lean docstrings are original.
 
 ```sh
 lake build                          # build everything
+make blueprint                      # checkdecls + PDF + web + standalone graph SVG
+make blueprint-serve                # serve the web blueprint (needed for the live graph)
 lake build MorseFloer.Part1.Ch1     # build one chapter
 lake env lean MorseFloer/Part1/Ch1.lean   # type-check one file, no build lock
 ```
@@ -42,6 +44,17 @@ lake env lean MorseFloer/Part1/Ch1.lean   # type-check one file, no build lock
 - New chapter files must be imported from `MorseFloer.lean`.
 - To find exact Mathlib names, grep `.lake/packages/mathlib/Mathlib/` before
   guessing.
+
+### Viewing the dependency graph
+
+`blueprint/web/dep_graph_document.html` draws the graph in the browser with a
+WebAssembly build of Graphviz. Opening it as a `file://` URL shows a blank
+canvas: the browser gives each local file its own opaque origin and blocks the
+fetch of `js/graphvizlib.wasm`. Nothing is wrong with the blueprint. Either run
+`make blueprint-serve` and open the page over HTTP, or use
+`blueprint/web/dep_graph.svg`, which `make blueprint-graph` renders with the
+local `dot` and which opens straight from the filesystem.
+
 
 ## Architecture
 
