@@ -69,11 +69,11 @@ rank–nullity theorem is available, Remark 4.4.2), we define
 **Stated with `sorry`**, because the proof needs geometry Mathlib does not have,
 or bookkeeping that is not attempted here:
 
-* `brokenPairs_prod`, `betti_prod`, `poincarePoly_prod` — Proposition 4.2.1 and
+* `brokenPairs_prod`, `betti_prod` — Proposition 4.2.1 and
   Corollaries 4.2.2, 4.2.3 (Künneth).  The product complex is defined; that it
   is a complex is the algebraic half of Proposition 4.2.1 and holds only in
   characteristic `2` unless signs are inserted, as the book notes.
-* `betti_dual_int` — Proposition 4.3.2, duality over `ℤ` for an oriented
+* `homology_dual_int` — Proposition 4.3.2, duality over `ℤ` for an oriented
   manifold: over a ring that is not a field the rank argument fails and the
   statement needs the universal coefficient theorem.
 * `betti_sumComplex` — the additivity of §4.1 and Corollary 4.5.5 over a
@@ -125,6 +125,40 @@ Recall the indexing convention of Chapter 3: `dLin ind cnt k` is the
 differential `Cₖ₊₁ → Cₖ`, so `cycles ind cnt k` is the space of cycles in degree
 `k + 1` and `boundaries ind cnt k` the space of boundaries in degree `k`. -/
 
+section Complex
+
+variable {R : Type*} [CommRing R] {Crit : Type*} [Fintype Crit]
+  {ind : Crit → ℕ} {cnt : Crit → Crit → R}
+
+/-- `Zₖ`, the cycles in degree `k`.  Every chain of degree `0` is a cycle, since
+the differential leaving degree `0` is zero. -/
+noncomputable def cyclesAt (ind : Crit → ℕ) (cnt : Crit → Crit → R) :
+    ∀ k : ℕ, Submodule R (Chains R ind k)
+  | 0 => ⊤
+  | (k + 1) => cycles ind cnt k
+
+@[simp] theorem cyclesAt_zero (ind : Crit → ℕ) (cnt : Crit → Crit → R) :
+    cyclesAt ind cnt 0 = ⊤ := rfl
+
+@[simp] theorem cyclesAt_succ (ind : Crit → ℕ) (cnt : Crit → Crit → R) (k : ℕ) :
+    cyclesAt ind cnt (k + 1) = cycles ind cnt k := rfl
+
+/-- `Im ∂ₖ₊₁ ⊆ Ker ∂ₖ` in every degree, so the quotient below is the book's
+`Hₖ = Ker ∂ₖ / Im ∂ₖ₊₁`. -/
+theorem boundaries_le_cyclesAt (h : BrokenPairs ind cnt) (k : ℕ) :
+    boundaries ind cnt k ≤ cyclesAt ind cnt k := by
+  cases k with
+  | zero => exact le_top
+  | succ k => exact boundaries_le_cycles h k
+
+/-- `Bₖ` seen inside `Zₖ`, so that `HMₖ` is the quotient
+`cyclesAt ind cnt k ⧸ boundariesIn ind cnt k`. -/
+noncomputable def boundariesIn (ind : Crit → ℕ) (cnt : Crit → Crit → R) (k : ℕ) :
+    Submodule R (cyclesAt ind cnt k) :=
+  Submodule.comap (cyclesAt ind cnt k).subtype (boundaries ind cnt k)
+
+end Complex
+
 section Basic
 
 variable {K : Type*} [Field K] {Crit : Type*} [Fintype Crit]
@@ -136,32 +170,6 @@ def numCrit (ind : Crit → ℕ) (k : ℕ) : ℕ := Fintype.card (CritSet ind k)
 theorem finrank_chains (ind : Crit → ℕ) (k : ℕ) :
     Module.finrank K (Chains K ind k) = numCrit ind k :=
   Module.finrank_fintype_fun_eq_card K
-
-/-- `Zₖ`, the cycles in degree `k`.  Every chain of degree `0` is a cycle, since
-the differential leaving degree `0` is zero. -/
-noncomputable def cyclesAt (ind : Crit → ℕ) (cnt : Crit → Crit → K) :
-    ∀ k : ℕ, Submodule K (Chains K ind k)
-  | 0 => ⊤
-  | (k + 1) => cycles ind cnt k
-
-@[simp] theorem cyclesAt_zero (ind : Crit → ℕ) (cnt : Crit → Crit → K) :
-    cyclesAt ind cnt 0 = ⊤ := rfl
-
-@[simp] theorem cyclesAt_succ (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ) :
-    cyclesAt ind cnt (k + 1) = cycles ind cnt k := rfl
-
-/-- `Im ∂ₖ₊₁ ⊆ Ker ∂ₖ` in every degree, so the quotient below is the book's
-`Hₖ = Ker ∂ₖ / Im ∂ₖ₊₁`. -/
-theorem boundaries_le_cyclesAt (h : BrokenPairs ind cnt) (k : ℕ) :
-    boundaries ind cnt k ≤ cyclesAt ind cnt k := by
-  cases k with
-  | zero => exact le_top
-  | succ k => exact boundaries_le_cycles h k
-
-/-- `Bₖ` seen inside `Zₖ`. -/
-noncomputable def boundariesIn (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ) :
-    Submodule K (cyclesAt ind cnt k) :=
-  Submodule.comap (cyclesAt ind cnt k).subtype (boundaries ind cnt k)
 
 /-- `βₖ = dim HMₖ`, the `k`-th Betti number (§4.4): the dimension of
 `Ker ∂ₖ / Im ∂ₖ₊₁`. -/
@@ -208,6 +216,7 @@ theorem numCrit_succ_eq (h : BrokenPairs ind cnt) (k : ℕ) :
   have h2 := bdim_add_finrank_cyclesAt ind cnt k
   omega
 
+omit [Fintype Crit] in
 /-- Above the top index there are no critical points. -/
 theorem isEmpty_critSet {f : Crit → ℕ} {n m : ℕ} (hf : ∀ c, f c ≤ n) (hm : n < m) :
     IsEmpty (CritSet f m) :=
@@ -218,7 +227,7 @@ theorem bdim_eq_zero_of_isEmpty {k : ℕ} (hE : IsEmpty (CritSet ind (k + 1))) :
     bdim ind cnt k = 0 := by
   have h0 : dLin ind cnt k = 0 := by
     ext x b
-    haveI := hE
+    have := hE
     simp
   show Module.finrank K (LinearMap.range (dLin ind cnt k)) = 0
   rw [h0, LinearMap.range_zero, finrank_bot]
@@ -306,7 +315,7 @@ theorem betti_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0)
     (hP : BrokenPairs (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂)) (k : ℕ) :
     betti (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) k
-      = ∑ ij ∈ Finset.antidiagonal k, betti ind₁ cnt₁ ij.1 * betti ind₂ cnt₂ ij.2 := by
+      = ∑ i ∈ Finset.range (k + 1), betti ind₁ cnt₁ i * betti ind₂ cnt₂ (k - i) := by
   sorry
 
 end Kunneth
@@ -368,7 +377,7 @@ theorem bdim_dual (hn : ∀ c, ind c + ind' c = n) {k j : ℕ} (hkj : k + j + 1 
     bdim ind' (dualCount cnt) j = bdim ind cnt k := by
   rw [bdim_eq_rank, bdim_eq_rank,
     show diffMatrix ind' (dualCount cnt) j
-        = ((diffMatrix ind cnt k)ᵀ).submatrix
+        = (diffMatrix ind cnt k).transpose.submatrix
             (dualCritEquiv hn (show (k + 1) + j = n by omega))
             (dualCritEquiv hn (show k + (j + 1) = n by omega)) from rfl,
     Matrix.rank_submatrix, Matrix.rank_transpose]
@@ -434,11 +443,11 @@ Not proved: over `ℤ` the argument above breaks down — the rank of a transpos
 matrix over a ring is not enough to recover the homology, which has torsion, and
 one needs the universal coefficient theorem.  The statement is recorded for the
 free ranks only, which is all the present setting can express. -/
-theorem betti_dual_int {cntZ : Crit → Crit → ℤ}
+theorem homology_dual_int {cntZ : Crit → Crit → ℤ}
     (h : BrokenPairs ind cntZ) (h' : BrokenPairs ind' (fun a b => cntZ b a))
     (hn : ∀ c, ind c + ind' c = n) {k j : ℕ} (hkj : k + j = n) :
-    Module.finrank ℤ (LinearMap.range (dLin ind' (fun a b => cntZ b a) j))
-      = Module.finrank ℤ (LinearMap.range (dLin ind cntZ k)) := by
+    Nonempty ((cyclesAt ind' (fun a b => cntZ b a) j ⧸ boundariesIn ind' (fun a b => cntZ b a) j)
+      ≃ₗ[ℤ] (cyclesAt ind cntZ k ⧸ boundariesIn ind cntZ k)) := by
   sorry
 
 end Duality
@@ -473,7 +482,7 @@ theorem sum_alt_numCrit (h : BrokenPairs ind cnt) (N : ℕ) :
   induction N with
   | zero =>
       have hA : numCrit ind 0 = betti ind cnt 0 + bdim ind cnt 0 := numCrit_zero_eq h
-      simp only [Finset.sum_range_one, pow_zero, one_mul]
+      simp only [zero_add, Finset.sum_range_one, pow_zero, one_mul]
       exact_mod_cast hA
   | succ N ih =>
       have hB : numCrit ind (N + 1)
@@ -482,7 +491,8 @@ theorem sum_alt_numCrit (h : BrokenPairs ind cnt) (N : ℕ) :
       have hB' : (numCrit ind (N + 1) : ℤ)
           = (bdim ind cnt N : ℤ) + ((betti ind cnt (N + 1) : ℤ) + (bdim ind cnt (N + 1) : ℤ)) := by
         exact_mod_cast hB
-      rw [Finset.sum_range_succ, Finset.sum_range_succ, ih, hB']
+      rw [Finset.sum_range_succ (f := fun k => (-1 : ℤ) ^ k * (numCrit ind k : ℤ)),
+        Finset.sum_range_succ (f := fun k => (-1 : ℤ) ^ k * (betti ind cnt k : ℤ)), ih, hB']
       ring
 
 /-- The same telescoping without signs: `Σ cₖ = Σ βₖ + 2 Σ_{k<N} dim Bₖ + dim B_N`. -/
@@ -493,13 +503,15 @@ theorem sum_numCrit_eq (h : BrokenPairs ind cnt) (N : ℕ) :
   induction N with
   | zero =>
       have hA : numCrit ind 0 = betti ind cnt 0 + bdim ind cnt 0 := numCrit_zero_eq h
-      simp only [Finset.sum_range_one, Finset.range_zero, Finset.sum_empty, Nat.mul_zero]
+      simp only [zero_add, Finset.sum_range_one, Finset.range_zero, Finset.sum_empty,
+        Nat.mul_zero, Nat.add_zero]
       omega
   | succ N ih =>
       have hB : numCrit ind (N + 1)
           = bdim ind cnt N + (betti ind cnt (N + 1) + bdim ind cnt (N + 1)) :=
         numCrit_succ_eq h N
-      rw [Finset.sum_range_succ, Finset.sum_range_succ (f := fun k => betti ind cnt k),
+      rw [Finset.sum_range_succ (f := fun k => numCrit ind k),
+        Finset.sum_range_succ (f := fun k => betti ind cnt k),
         Finset.sum_range_succ (f := fun k => bdim ind cnt k), ih, hB]
       ring
 
@@ -522,7 +534,7 @@ taken modulo `2`, depends only on the homology — hence only on the manifold an
 not on the function. -/
 theorem card_crit_modEq (h : BrokenPairs ind cnt) {N : ℕ} (hN : ∀ c, ind c ≤ N) :
     Nat.ModEq 2 (Fintype.card Crit) (∑ k ∈ Finset.range (N + 1), betti ind cnt k) := by
-  have hcard := card_eq_sum_numCrit (cnt := cnt) hN
+  have hcard := card_eq_sum_numCrit (ind := ind) hN
   have hsum := sum_numCrit_eq h N
   have hb : bdim ind cnt N = 0 :=
     bdim_eq_zero_of_isEmpty (cnt := cnt) (isEmpty_critSet hN (Nat.lt_succ_self N))
@@ -533,7 +545,7 @@ theorem card_crit_modEq (h : BrokenPairs ind cnt) {N : ℕ} (hN : ∀ c, ind c �
 `Σ βₖ` critical points. -/
 theorem sum_betti_le_card (h : BrokenPairs ind cnt) {N : ℕ} (hN : ∀ c, ind c ≤ N) :
     (∑ k ∈ Finset.range (N + 1), betti ind cnt k) ≤ Fintype.card Crit := by
-  have hcard := card_eq_sum_numCrit (cnt := cnt) hN
+  have hcard := card_eq_sum_numCrit (ind := ind) hN
   have hsum := sum_numCrit_eq h N
   omega
 
@@ -582,7 +594,7 @@ noncomputable def poincarePoly (ind : Crit → ℕ) (cnt : Crit → Crit → K) 
 characteristic (§4.4). -/
 theorem poincarePoly_eval_neg_one (ind : Crit → ℕ) (cnt : Crit → Crit → K) (N : ℕ) :
     (poincarePoly ind cnt N).eval (-1) = eulerChar ind cnt N := by
-  simp only [poincarePoly, eulerChar, Polynomial.eval_finset_sum, Polynomial.eval_mul,
+  simp only [poincarePoly, eulerChar, Polynomial.eval_finsetSum, Polynomial.eval_mul,
     Polynomial.eval_pow, Polynomial.eval_C, Polynomial.eval_X]
   exact Finset.sum_congr rfl fun k _ => mul_comm _ _
 
@@ -750,10 +762,8 @@ theorem numCrit_projIndex (n k : ℕ) (hk : k ≤ n) : numCrit (projIndex n) k =
 
 /-- **Theorem 4.8.2.**  `HMₖ(Pⁿ(ℝ); Z/2) ≅ Z/2` for `0 ≤ k ≤ n`. -/
 theorem betti_proj (n k : ℕ) (hk : k ≤ n) : betti (projIndex n) (projCount n) k = 1 := by
-  have h : betti (projIndex n) (projCount n) k = numCrit (projIndex n) k := by
-    simp only [projCount]
-    exact betti_of_count_zero (projIndex n) k
-  rw [h, numCrit_projIndex n k hk]
+  have hz : projCount n = fun _ _ => (0 : ZMod 2) := rfl
+  rw [hz, betti_of_count_zero (projIndex n) k, numCrit_projIndex n k hk]
 
 /-! ### §4.4 examples: the torus
 
@@ -764,15 +774,18 @@ maximum and, all its counts being even, a vanishing mod `2` differential
 critical points. -/
 
 theorem betti_torus_zero : betti Chapter3.torusIndex Chapter3.torusCount 0 = 1 := by
-  rw [betti_of_count_zero Chapter3.torusIndex 0]
+  have hz : Chapter3.torusCount = fun _ _ => (0 : ZMod 2) := rfl
+  rw [hz, betti_of_count_zero Chapter3.torusIndex 0]
   decide
 
 theorem betti_torus_one : betti Chapter3.torusIndex Chapter3.torusCount 1 = 2 := by
-  rw [betti_of_count_zero Chapter3.torusIndex 1]
+  have hz : Chapter3.torusCount = fun _ _ => (0 : ZMod 2) := rfl
+  rw [hz, betti_of_count_zero Chapter3.torusIndex 1]
   decide
 
 theorem betti_torus_two : betti Chapter3.torusIndex Chapter3.torusCount 2 = 1 := by
-  rw [betti_of_count_zero Chapter3.torusIndex 2]
+  have hz : Chapter3.torusCount = fun _ _ => (0 : ZMod 2) := rfl
+  rw [hz, betti_of_count_zero Chapter3.torusIndex 2]
   decide
 
 /-- **Example 4.4.4.**  The Betti numbers of `T²` sum to `4`, so by Proposition
@@ -813,7 +826,7 @@ theorem borsuk_ulam_of_odd (n : ℕ)
     (hodd : ∀ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, ψ (-x) = -ψ x) :
     ∃ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, ψ x = 0 := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have hne : ∀ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, ‖ψ x‖ ≠ 0 := by
     intro x hx
     exact norm_ne_zero_iff.mpr (hcon x hx)
@@ -825,14 +838,13 @@ theorem borsuk_ulam_of_odd (n : ℕ)
   refine borsuk_ulam n ⟨fun x => ‖ψ x‖⁻¹ • ψ x, ?_, ?_, ?_⟩
   · exact (hcont.norm.inv₀ hne).smul hcont
   · intro x hx
-    rw [Set.mem_setOf_eq] at hx
-    have hx' : x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 := hx
+    show ‖ψ x‖⁻¹ • ψ x ∈ Metric.sphere 0 1
     rw [mem_sphere_zero_iff_norm, norm_smul, norm_inv, norm_norm]
-    exact inv_mul_cancel₀ (hne x hx')
+    exact inv_mul_cancel₀ (hne x hx)
   · intro x hx
     have hxn := hodd x hx
-    have hnorm : ‖ψ (-x)‖ = ‖ψ x‖ := by rw [hxn, norm_neg]
-    rw [hxn, hnorm, smul_neg]
+    show ‖ψ (-x)‖⁻¹ • ψ (-x) = -(‖ψ x‖⁻¹ • ψ x)
+    rw [hxn, norm_neg, smul_neg]
 
 /-- **Corollary 4.8.5 (the temperature–pressure theorem).**  Every continuous
 map `Sⁿ → ℝⁿ` takes the same value at some pair of antipodal points; apply
@@ -844,10 +856,9 @@ theorem exists_eq_antipode (n : ℕ)
   have hneg : Set.MapsTo (fun x : EuclideanSpace ℝ (Fin (n + 1)) => -x)
       (Metric.sphere 0 1) (Metric.sphere 0 1) := by
     intro x hx
-    rw [Set.mem_setOf_eq] at hx
-    have hx' : x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 := hx
+    show -x ∈ Metric.sphere 0 1
     rw [mem_sphere_zero_iff_norm, norm_neg]
-    exact mem_sphere_zero_iff_norm.mp hx'
+    exact mem_sphere_zero_iff_norm.mp hx
   have hcont' : ContinuousOn (fun x => ψ x - ψ (-x)) (Metric.sphere 0 1) :=
     hcont.sub (hcont.comp (continuous_neg.continuousOn) hneg)
   have hodd : ∀ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1,

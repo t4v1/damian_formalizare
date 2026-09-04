@@ -68,6 +68,40 @@ results are proved and which are assumed. Most chapter content is stated in the
 that is where the book's proofs actually live; the manifold-level definitions
 sit in `Basic.lean`.
 
+## Chapter status
+
+`lake build` is green; every `sorry` below is a deliberate, documented
+assumption. Blueprint nodes carry the status, and `python3 blueprint/checkdecls.py`
+verifies every cited declaration still exists.
+
+| File | Book chapter | `sorry` | Notes |
+|---|---|---|---|
+| `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
+| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard), Morse lemma |
+| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | Prop 2.1.6, Cor 2.1.9, dim-1 classification, Brouwer |
+| `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
+| `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | Darboux and six others; linear theory proved |
+| `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
+| `Part2/Ch16.lean` | 16 Analysis | 3 | Fredholm index stability |
+
+Not yet started: Part I Chapter 4, and Part II Chapters 6–13 and 15.
+
+### The gaps that matter most
+
+Three missing Mathlib pieces account for nearly every assumption and for every
+result recorded in the blueprint with no Lean statement at all:
+
+1. **Sard's theorem for manifolds.** Forces Proposition 1.2.1 and every
+   transversality genericity result in the book.
+2. **Submanifolds** as a type carrying its own smooth structure, with tubular
+   neighbourhoods and transversality. Without it there is no space of
+   trajectories, so all of §3.2 and the Smale condition are unstatable, and
+   Chapter 3 has to take the broken-trajectory count as a hypothesis.
+3. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
+   symplectic manifolds (only the linear theory is reachable in Chapter 5); the
+   second blocks the elliptic regularity of Chapters 12 and 13.
+
+
 ## What Mathlib does and does not have
 
 Checked against this pinned checkout, and worth knowing before planning a proof:
@@ -107,6 +141,10 @@ These are specific to this Mathlib version and were each hit during the build:
   `Filter.EventuallyEq`; state the hypothesis with `=ᶠ[𝓝 x]`. Likewise a `have`
   whose type is still a metavariable cannot take a projection — write
   `HasFDerivAt.fderiv hcomp` rather than `hcomp.fderiv`.
+- `Matrix` notation is **scoped**: `*ᵥ`, `ᵥ*` and `ᵀ` need `open scoped Matrix`,
+  while `dotProduct` and friends sit at the root namespace.
+- `LinearMap.IsAlt.neg` is shadowed by a `BilinForm.IsAlt.neg` that means
+  something else; derive skew-symmetry from `self_eq_zero (v + w)` instead.
 - `Manifold.IsSmoothEmbedding` is in namespace `Manifold`; `open scoped Manifold`
   does not bring it into scope.
 
