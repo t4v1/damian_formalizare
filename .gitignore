@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Lean/Lake build artifacts
+.lake/
+*.log
+
+# The copyrighted textbook is kept out of version control
+parts/
+
+# Blueprint build artifacts (regenerate with `make blueprint`)
+blueprint/web/
+blueprint/print/
+blueprint/CheckDecls.lean
+blueprint/lean_decls
+blueprint/src/*.paux
