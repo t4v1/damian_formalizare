@@ -8,7 +8,9 @@ import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Ch6
 import MorseFloer.Part2.Ch7
 import MorseFloer.Part2.Ch8
+import MorseFloer.Part2.Ch9
 import MorseFloer.Part2.Ch10
+import MorseFloer.Part2.Ch11
 import MorseFloer.Part2.Ch14
 import MorseFloer.Part2.Ch15
 import MorseFloer.Part2.Ch16

@@ -98,12 +98,21 @@ verifies every cited declaration still exists.
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 13 | critical points of the action = periodic orbits |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |
+| `Part2/Ch9.lean` | 9 Spaces of trajectories | 0 | the Floer complex, ∂∘∂ = 0 |
 | `Part2/Ch10.lean` | 10 From Floer to Morse | 4 | the two complexes compared |
+| `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
 | `Part2/Ch16.lean` | 16 Analysis | 3 | the Fredholm index, which Mathlib lacks |
 
-Part I is complete. Remaining: Part II Chapters 9, 11, 12 and 13.
+Part I is complete. Remaining: Part II Chapters 12 and 13, the elliptic
+regularity of the Floer operator, which are blocked on Sobolev spaces.
+
+Chapters 9 and 11 carry the two results that, together, prove the Arnold
+conjecture: Chapter 9 builds the Floer complex and proves its differential
+squares to zero, and Chapter 11 proves Floer homology does not depend on the
+pair `(H, J)`. Chapter 10 supplies the other half, that for a small
+time-independent Hamiltonian the Floer complex *is* the Morse complex.
 
 ### Two design devices worth keeping
 

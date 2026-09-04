@@ -729,7 +729,8 @@ def idCount (R : Type*) [CommRing R] (O : Type*) [DecidableEq O] : O → O → R
 identity. -/
 theorem transfer_idCount {O : Type*} [Fintype O] [DecidableEq O] (μ : O → ℤ) (k : ℤ) :
     transfer μ μ (idCount R O) k k = LinearMap.id := by
-  ext c z
+  refine LinearMap.ext fun c => ?_
+  funext z
   show (∑ x : OrbSet μ k, c x * idCount R O x.1 z.1) = c z
   have key : ∀ b : OrbSet μ k, b ≠ z → c b * idCount R O b.1 z.1 = 0 := by
     intro b hb
@@ -808,11 +809,11 @@ theorem transfer_homotopy [Fintype Oa] [Fintype Ob] {μa : Oa → ℤ} {μb : Ob
       = transfer μa μb m (k - 1) k (dLin μa cnta k (k - 1) c)
         + dLin μb cntb (k + 1) k (transfer μa μb m k (k + 1) c) := by
   funext z
-  simp only [Pi.sub_apply, Pi.add_apply, transfer_apply]
+  simp only [Pi.sub_apply, Pi.add_apply]
   rw [show (dLin μa cnta k (k - 1)) = transfer μa μa cnta k (k - 1) from rfl,
-    show (dLin μb cntb (k + 1) k) = transfer μb μb cntb (k + 1) k from rfl]
-  rw [transfer_comp_apply, transfer_comp_apply, ← Finset.sum_sub_distrib,
-    ← Finset.sum_add_distrib]
+    show (dLin μb cntb (k + 1) k) = transfer μb μb cntb (k + 1) k from rfl,
+    transfer_comp_apply, transfer_comp_apply, transfer_apply, transfer_apply,
+    ← Finset.sum_sub_distrib, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [← mul_sub, ← mul_add, h k x z]
 
@@ -989,7 +990,7 @@ homologies isomorphic. -/
 def Hgy.equivOfCompEqId {M N : Type*} [AddCommGroup M] [Module R M]
     [AddCommGroup N] [Module R N] (u : M →ₗ[R] N) (v : N →ₗ[R] M)
     (h1 : v.comp u = LinearMap.id) (h2 : u.comp v = LinearMap.id) : M ≃ₗ[R] N :=
-  LinearEquiv.ofLinear u v h2 h1
+  LinearEquiv.ofLinearMap u v h2 h1
 
 end Homology
 
@@ -1046,6 +1047,7 @@ noncomputable def floerHomologyEquiv [DecidableEq Oa] [DecidableEq Ob]
       (transfer μa μa ma k (k + 1)) (transfer μa μa ma (k - 1) k) fun x => ?_
     have key := transfer_homotopy hba k x
     rw [transfer_idCount] at key
+    simp only [LinearMap.id_apply] at key
     have hcomp : transfer μa μa (concat μa μb n' n'') k k x
         = transfer μb μa n'' k k (transfer μa μb n' k k x) := by
       rw [← transfer_comp_concat]
@@ -1057,6 +1059,7 @@ noncomputable def floerHomologyEquiv [DecidableEq Oa] [DecidableEq Ob]
       (transfer μb μb mb k (k + 1)) (transfer μb μb mb (k - 1) k) fun x => ?_
     have key := transfer_homotopy hab k x
     rw [transfer_idCount] at key
+    simp only [LinearMap.id_apply] at key
     have hcomp : transfer μb μb (concat μb μa n'' n') k k x
         = transfer μa μb n' k k (transfer μb μa n'' k k x) := by
       rw [← transfer_comp_concat]

@@ -160,6 +160,7 @@ the boundary as the union over `μ(x) < μ(y) < μ(z)`, which is empty since
 
 open Filter Topology Set
 open CategoryTheory
+open scoped NNReal
 
 namespace MorseFloer
 namespace Chapter9
@@ -183,9 +184,11 @@ variable {S : Type*} [TopologicalSpace S] [AddAction ℝ S]
 /-- The projection `π : M(x,y) → L(x,y)` sending a solution to its trajectory. -/
 def proj (u : S) : Traj S := Quotient.mk (AddAction.orbitRel ℝ S) u
 
+omit [TopologicalSpace S] in
 theorem proj_surjective : Function.Surjective (proj : S → Traj S) :=
   Quotient.mk_surjective
 
+omit [TopologicalSpace S] in
 /-- Two solutions define the same trajectory exactly when they differ by a time
 shift. -/
 theorem proj_eq_iff {u v : S} : (proj u : Traj S) = proj v ↔ ∃ σ : ℝ, σ +ᵥ v = u := by
@@ -196,6 +199,7 @@ theorem proj_eq_iff {u v : S} : (proj u : Traj S) = proj v ↔ ∃ σ : ℝ, σ 
   · rintro ⟨σ, rfl⟩
     exact Quotient.sound (AddAction.mem_orbit_iff.mpr ⟨σ, rfl⟩)
 
+omit [TopologicalSpace S] in
 @[simp]
 theorem proj_vadd (σ : ℝ) (u : S) : (proj (σ +ᵥ u) : Traj S) = proj u :=
   proj_eq_iff.mpr ⟨σ, rfl⟩
@@ -238,6 +242,7 @@ free.  Stated as a predicate, because it fails for the constant solutions
 def IsFreeShift (S : Type*) [AddAction ℝ S] : Prop :=
   ∀ (σ : ℝ) (u : S), σ +ᵥ u = u → σ = 0
 
+omit [TopologicalSpace S] in
 /-- A free action means distinct times give distinct solutions: the orbit map
 `σ ↦ u · σ` is injective. -/
 theorem injective_vadd (h : IsFreeShift S) (u : S) :
@@ -636,14 +641,14 @@ theorem smoothStep_le_one (a b s : ℝ) : smoothStep a b s ≤ 1 := Real.smoothT
 noncomputable def cutoffPos (ε : ℝ) : ℝ → ℝ := smoothStep ε 1
 
 /-- **The cut-off `β⁻` of §9.3**: smooth, `1` for `s ≤ −1` and `0` for
-`s ≥ −ε`.  It is `β⁺` read backwards, `β⁻(s) = 1 − β⁺(−s)`. -/
-noncomputable def cutoffNeg (ε : ℝ) : ℝ → ℝ := fun s => 1 - cutoffPos ε (-s)
+`s ≥ −ε`.  It is `β⁺` read backwards, `β⁻(s) = β⁺(−s)`. -/
+noncomputable def cutoffNeg (ε : ℝ) : ℝ → ℝ := fun s => cutoffPos ε (-s)
 
 theorem contDiff_cutoffPos (ε : ℝ) {n : ℕ∞} : ContDiff ℝ n (cutoffPos ε) :=
   contDiff_smoothStep _ _
 
 theorem contDiff_cutoffNeg (ε : ℝ) {n : ℕ∞} : ContDiff ℝ n (cutoffNeg ε) :=
-  contDiff_const.sub ((contDiff_cutoffPos ε).comp contDiff_neg)
+  (contDiff_cutoffPos ε).comp contDiff_neg
 
 theorem cutoffPos_eq_zero {ε s : ℝ} (hε : ε < 1) (hs : s ≤ ε) : cutoffPos ε s = 0 :=
   smoothStep_eq_zero hε hs
@@ -662,11 +667,8 @@ theorem cutoffNeg_eq_zero {ε s : ℝ} (hε : ε < 1) (hs : -ε ≤ s) : cutoffN
   have h : cutoffPos ε (-s) = 0 := cutoffPos_eq_zero hε (by linarith)
   simp [cutoffNeg, h]
 
-theorem cutoffNeg_mem_Icc (ε s : ℝ) : cutoffNeg ε s ∈ Icc (0 : ℝ) 1 := by
-  have h := cutoffPos_mem_Icc ε (-s)
-  constructor
-  · simp only [cutoffNeg]; linarith [h.2]
-  · simp only [cutoffNeg]; linarith [h.1]
+theorem cutoffNeg_mem_Icc (ε s : ℝ) : cutoffNeg ε s ∈ Icc (0 : ℝ) 1 :=
+  cutoffPos_mem_Icc ε (-s)
 
 end Cutoffs
 
@@ -781,7 +783,8 @@ theorem newtonPicard [CompleteSpace X] (F : X → Y) (L : X →L[ℝ] Y) (G : Y 
       rw [h2] at h3
       linarith
     simpa [hB] using this
-  have hBcomplete : IsComplete B := Metric.isClosed_ball.isComplete
+  have hBcomplete : IsComplete B := by
+    rw [hB]; exact Metric.isClosed_closedBall.isComplete
   have hcontract : ContractingWith (1 / 2 : ℝ≥0) (hmaps.restrict (npMap F L G) B B) := by
     refine ⟨by norm_num, ?_⟩
     apply LipschitzWith.of_dist_le_mul
@@ -917,14 +920,13 @@ theorem exists_subseq_tendsto_ker (D : E →L[ℝ] F) (D' : F →L[ℝ] E) (K : 
   have h1 : Tendsto (fun n => D (x (φ n))) atTop (𝓝 0) := h0.comp hφ.tendsto_atTop
   have hDD : Tendsto (fun n => D' (D (x (φ n)))) atTop (𝓝 0) := by
     have h2 := (D'.continuous.tendsto (0 : F)).comp h1
-    simpa using h2
+    simpa [Function.comp_def] using h2
   have key : ∀ n, x (φ n) = D' (D (x (φ n))) - K (x (φ n)) := by
     intro n
     rw [hquasi]
     abel
-  have hlim : Tendsto (fun n => x (φ n)) atTop (𝓝 (0 - b)) := by
-    simp only [key]
-    exact hDD.sub hbφ
+  have hlim : Tendsto (fun n => x (φ n)) atTop (𝓝 (0 - b)) :=
+    (hDD.sub hbφ).congr fun n => (key n).symm
   refine ⟨0 - b, φ, hφ, ?_, hlim⟩
   have hD1 : Tendsto (fun n => D (x (φ n))) atTop (𝓝 (D (0 - b))) :=
     (D.continuous.tendsto _).comp hlim
