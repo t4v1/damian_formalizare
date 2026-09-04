@@ -80,11 +80,21 @@ verifies every cited declaration still exists.
 | `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard), Morse lemma |
 | `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | Prop 2.1.6, Cor 2.1.9, dim-1 classification, Brouwer |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
+| `Part1/Ch4.lean` | 4 Morse homology | 8 | Morse inequalities and Poincaré duality proved |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | Darboux and six others; linear theory proved |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
 | `Part2/Ch16.lean` | 16 Analysis | 3 | Fredholm index stability |
 
-Not yet started: Part I Chapter 4, and Part II Chapters 6–13 and 15.
+Part I is complete. Not yet started: Part II Chapters 6–13 and 15 — the Floer
+theory proper, plus the algebraic-topology appendix.
+
+One correction to the book is recorded in `Part1/Ch4.lean`: Proposition 4.3.2 as
+printed cannot be read literally over the integers, since the complex of `-f` is
+the transposed complex and computes cohomology. For real projective 3-space the
+integral complex gives first homology of order two but second homology zero,
+while the printed statement would equate them. The file states the true integral
+statement, duality of the free ranks; over a field there is no discrepancy and
+Proposition 4.3.1 is proved outright.
 
 ### The gaps that matter most
 

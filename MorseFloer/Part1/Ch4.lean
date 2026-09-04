@@ -73,9 +73,12 @@ or bookkeeping that is not attempted here:
   Corollaries 4.2.2, 4.2.3 (Künneth).  The product complex is defined; that it
   is a complex is the algebraic half of Proposition 4.2.1 and holds only in
   characteristic `2` unless signs are inserted, as the book notes.
-* `homology_dual_int` — Proposition 4.3.2, duality over `ℤ` for an oriented
-  manifold: over a ring that is not a field the rank argument fails and the
-  statement needs the universal coefficient theorem.
+* `finrank_homology_dual_int` — Proposition 4.3.2, duality over `ℤ` for an
+  oriented manifold.  Note that the book's statement `HM_{n−k}(V; Z) ≅ HMₖ(V; Z)`
+  cannot be taken literally: the complex of `−f` is the transposed complex, whose
+  homology is *cohomology*, and over `ℤ` the two differ by torsion — for `P³(ℝ)`,
+  `HM₁ = Z/2` while `HM₂ = 0`.  What is recorded here is the duality of the free
+  ranks; over a field, which is Proposition 4.3.1, there is no discrepancy.
 * `betti_sumComplex` — the additivity of §4.1 and Corollary 4.5.5 over a
   disjoint union.
 * `brouwer_fixedPoint`, `no_retraction_closedBall`, `borsuk_ulam` — §4.8.b and
@@ -436,18 +439,29 @@ theorem betti_dual (h : BrokenPairs ind cnt) (h' : BrokenPairs ind' (dualCount c
           have hB' := numCrit_succ_eq h' (ind := ind') (cnt := dualCount cnt) j₀
           omega
 
-/-- **Proposition 4.3.2 (Poincaré duality over `ℤ`).**  For a closed *oriented*
-manifold of dimension `n`, `HMₖ(V; Z)` and `HM_{n−k}(V; Z)` are isomorphic.
+/-- **Proposition 4.3.2 (Poincaré duality for oriented manifolds).**  For a
+closed oriented manifold of dimension `n`, the homology of the complex of `−f`
+in degree `n − k` is dual to the homology of the complex of `f` in degree `k`.
 
-Not proved: over `ℤ` the argument above breaks down — the rank of a transposed
-matrix over a ring is not enough to recover the homology, which has torsion, and
-one needs the universal coefficient theorem.  The statement is recorded for the
-free ranks only, which is all the present setting can express. -/
-theorem homology_dual_int {cntZ : Crit → Crit → ℤ}
+A word of care is needed over `ℤ`, and it is the reason this statement is about
+*ranks*.  The proof of §4.3 identifies `C_{n−k}(−f)` with the dual `Cₖ(f)⋆` and
+`∂_{−X}` with the transpose `ᵗ∂_X`; the homology of the transposed complex is
+therefore the *cohomology* of the original one, and over `ℤ` cohomology differs
+from homology by a shift of the torsion (universal coefficients).  It really
+does differ: for `P³(ℝ)`, whose integral Morse complex is
+`ℤ →⁰ ℤ →² ℤ →⁰ ℤ`, one has `H₁ = Z/2` and `H₂ = 0`, so no isomorphism
+`HM₂ ≅ HM₁` can hold, although `n − 1 = 2`.  Over a field — the setting of
+Proposition 4.3.1, and of `betti_dual` above — the difficulty disappears, and
+over `ℤ` what survives is the duality of the free ranks, stated here.
+
+Not proved: it follows from `betti_dual` over `ℚ` together with the flatness of
+`ℚ` over `ℤ`, which is not carried out. -/
+theorem finrank_homology_dual_int {cntZ : Crit → Crit → ℤ}
     (h : BrokenPairs ind cntZ) (h' : BrokenPairs ind' (fun a b => cntZ b a))
     (hn : ∀ c, ind c + ind' c = n) {k j : ℕ} (hkj : k + j = n) :
-    Nonempty ((cyclesAt ind' (fun a b => cntZ b a) j ⧸ boundariesIn ind' (fun a b => cntZ b a) j)
-      ≃ₗ[ℤ] (cyclesAt ind cntZ k ⧸ boundariesIn ind cntZ k)) := by
+    Module.finrank ℤ
+        (cyclesAt ind' (fun a b => cntZ b a) j ⧸ boundariesIn ind' (fun a b => cntZ b a) j)
+      = Module.finrank ℤ (cyclesAt ind cntZ k ⧸ boundariesIn ind cntZ k) := by
   sorry
 
 end Duality

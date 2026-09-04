@@ -526,6 +526,121 @@ skeleton of the chapter --- is formalized and proved.
   those steps through the geometry and is not statable for abstract count data.
 \end{theorem}
 
+\chapter{Morse homology and applications (Chapter 4)}
+
+\section{\S4.4 Euler characteristic, Poincar\'e polynomial, Morse inequalities}
+
+\begin{definition}[Betti numbers, Euler characteristic, Poincar\'e polynomial]
+  \label{def:4.4}
+  \lean{MorseFloer.Chapter4.numCrit, MorseFloer.Chapter4.betti,
+        MorseFloer.Chapter4.eulerChar, MorseFloer.Chapter4.poincarePoly,
+        MorseFloer.Chapter4.poincarePoly_eval_neg_one}
+  \leanok
+  \uses{def:morseComplex}
+  $c_k$ is the number of critical points of index $k$, $\beta_k$ the dimension of
+  $H_k$, and $P_V(-1) = \chi(V)$.
+\end{definition}
+
+\begin{proposition}[Proposition 4.4.3, the Morse inequalities]
+  \label{prop:4.4.3}
+  \lean{MorseFloer.Chapter4.betti_le_numCrit,
+        MorseFloer.Chapter4.sum_betti_le_card,
+        MorseFloer.Chapter4.strong_morse_inequality}
+  \leanok
+  \uses{def:4.4}
+  $\beta_k \le c_k$: a Morse function has at least as many critical points of
+  index $k$ as the $k$-th Betti number, and at least $\sum_k \beta_k$ in total.
+  The strong alternating form holds too, with defect exactly $\dim B_m$.
+  Proved outright: this is rank--nullity applied to the complex, and it is the
+  centrepiece of the chapter.
+\end{proposition}
+
+\begin{corollary}[Corollary 4.4.1 and Remark 4.4.2, the Euler characteristic]
+  \label{cor:4.4.1}
+  \lean{MorseFloer.Chapter4.eulerChar_eq_alt_sum_numCrit,
+        MorseFloer.Chapter4.card_crit_modEq,
+        MorseFloer.Chapter4.eulerChar_eq_zero_of_odd}
+  \leanok
+  \uses{prop:4.4.3}
+  $\sum_k (-1)^k c_k = \chi(V)$, so the number of critical points is congruent to
+  $\chi(V)$ modulo $2$, and $\chi$ vanishes in odd dimension.
+\end{corollary}
+
+\section{\S4.3 Poincar\'e duality}
+
+\begin{proposition}[Proposition 4.3.1]
+  \label{prop:4.3.1}
+  \lean{MorseFloer.Chapter4.dualCount, MorseFloer.Chapter4.numCrit_dual,
+        MorseFloer.Chapter4.betti_dual}
+  \leanok
+  \uses{prop:1.3.3, def:4.4}
+  Over a field, $\beta_j(-f) = \beta_k(f)$ whenever $k + j = n$.  Proved from the
+  index duality of Remark 1.3.3 together with the fact that the complex of $-f$
+  is the transposed complex.
+\end{proposition}
+
+\begin{proposition}[Proposition 4.3.2, corrected]
+  \label{prop:4.3.2}
+  \lean{MorseFloer.Chapter4.finrank_homology_dual_int}
+  \notready
+  \uses{prop:4.3.1}
+  As printed, the integral statement $HM_{n-k}(V;\mathbb{Z}) \cong
+  HM_k(V;\mathbb{Z})$ cannot be taken literally: the complex of $-f$ is the
+  transposed complex, whose homology is \emph{cohomology}, and over $\mathbb{Z}$
+  the two differ by torsion.  For $P^3(\mathbb{R})$, with integral complex
+  $\mathbb{Z}\to^0\mathbb{Z}\to^2\mathbb{Z}\to^0\mathbb{Z}$, one has
+  $HM_1 = \mathbb{Z}/2$ but $HM_2 = 0$ while $n-1 = 2$.  What is stated here is
+  the true integral statement, duality of the free ranks.  Over a field there is
+  no discrepancy and \ref{prop:4.3.1} is proved outright.
+\end{proposition}
+
+\section{\S4.2 The K\"unneth formula}
+
+\begin{proposition}[Proposition 4.2.1 and Corollaries 4.2.2, 4.2.3]
+  \label{prop:4.2.1}
+  \lean{MorseFloer.Chapter4.brokenPairs_prod, MorseFloer.Chapter4.betti_prod}
+  \notready
+  \uses{def:morseComplex}
+  $\Phi$ is an isomorphism of complexes $C_\star(f+g) \cong C_\star(f)\otimes
+  C_\star(g)$, whence the K\"unneth formula.  \emph{Assumed}; the algebraic half
+  needs characteristic $2$, as the book notes.
+\end{proposition}
+
+\section{\S4.8 Applications}
+
+\begin{theorem}[Theorem 4.8.2, the mod 2 homology of real projective space]
+  \label{thm:4.8.2}
+  \lean{MorseFloer.Chapter4.projIndex, MorseFloer.Chapter4.projCount,
+        MorseFloer.Chapter4.betti_proj}
+  \leanok
+  \uses{def:4.4}
+  $HM_k(P^n(\mathbb{R});\mathbb{Z}/2) \cong \mathbb{Z}/2$ for $0 \le k \le n$,
+  computed from the explicit complex with vanishing differential.
+\end{theorem}
+
+\begin{theorem}[Theorem 4.8.3 and Corollaries 4.8.4--4.8.6, Borsuk--Ulam]
+  \label{thm:4.8.3}
+  \lean{MorseFloer.Chapter4.borsuk_ulam, MorseFloer.Chapter4.borsuk_ulam_of_odd,
+        MorseFloer.Chapter4.exists_eq_antipode}
+  \notready
+  There is no continuous odd map $S^n \to S^{n-1}$; hence every map
+  $S^n\to\mathbb{R}^n$ identifies an antipodal pair.  Borsuk--Ulam itself is
+  assumed --- it is \emph{not} in this Mathlib --- but the corollaries are
+  derived from it.  Brouwer (\S4.8.b) is likewise stated rather than cited.
+\end{theorem}
+
+\begin{theorem}[\S4.6 functoriality and \S4.7 the long exact sequence]
+  \label{thm:4.6}
+  \notready
+  \uses{def:morseComplex}
+  Theorems 4.6.1 and 4.6.2 (functoriality and homotopy invariance),
+  Proposition 4.6.3, Lemma 4.6.6, and the long exact sequence.
+  \emph{Not statable:} these speak about smooth maps between manifolds and about
+  $HM_\star$ \emph{of a manifold}, which abstract count data cannot express.
+  Mathlib's \texttt{ShortComplex.ShortExact} and \texttt{HomologySequence} supply
+  the reusable half of \S4.7.
+\end{theorem}
+
 \chapter{A little analysis (Chapter 16)}
 
 \begin{theorem}[Theorem 16.1.1, Ascoli]

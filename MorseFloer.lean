@@ -3,6 +3,7 @@ import MorseFloer.Basic
 import MorseFloer.Part1.Ch1
 import MorseFloer.Part1.Ch2
 import MorseFloer.Part1.Ch3
+import MorseFloer.Part1.Ch4
 import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Ch14
 import MorseFloer.Part2.Ch16
