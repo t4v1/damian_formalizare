@@ -131,7 +131,7 @@ theorem isCriticalPt_distSq_iff (p x : F) : IsCriticalPt (distSq p) x ↔ x = p 
     have h' : fderiv ℝ (distSq p) x = 0 := h
     have h2 : fderiv ℝ (distSq p) x (x - p) = 0 := by rw [h']; simp
     rw [fderiv_distSq] at h2
-    simp only [ContinuousLinearMap.smul_apply, innerSL_apply_apply, smul_eq_mul] at h2
+    simp only [smul_apply, innerSL_apply_apply] at h2
     have h3 : (inner ℝ (x - p) (x - p) : ℝ) = 0 := by simpa using h2
     exact sub_eq_zero.mp (inner_self_eq_zero.mp h3)
   · rintro rfl
