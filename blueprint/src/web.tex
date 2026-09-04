@@ -1,0 +1,25 @@
+% Web version of the blueprint (compiled by plasTeX).
+\documentclass{report}
+
+\usepackage{amssymb, amsthm, amsmath}
+\usepackage{hyperref}
+\usepackage[showmore, dep_graph]{blueprint}
+
+% Theorem environments are defined inline, NOT via \input: plasTeX loses the
+% label and the \lean/\uses metadata when \newtheorem comes from an input file,
+% which silently empties the dependency graph.
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\input{macros/web}
+
+\title{Audin--Damian, \emph{Th\'eorie de Morse et homologie de Floer}: a formalization blueprint}
+\author{}
+
+\begin{document}
+\maketitle
+\input{content}
+\end{document}

@@ -1,0 +1,27 @@
+% Printable version of the blueprint (compile with tectonic).
+\documentclass[a4paper]{report}
+
+\usepackage{geometry}
+\usepackage{expl3}
+\usepackage{amssymb, amsthm, mathtools}
+\usepackage[unicode,colorlinks=true,linkcolor=blue,urlcolor=magenta,citecolor=blue]{hyperref}
+\usepackage[warnings-off={mathtools-colon,mathtools-overbracket}]{unicode-math}
+
+% Theorem environments inline, not via \input (plasTeX quirk; kept in sync
+% with web.tex so the two documents number identically).
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\input{macros/print}
+
+\title{Audin--Damian, \emph{Th\'eorie de Morse et homologie de Floer}: a formalization blueprint}
+\author{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\input{content}
+\end{document}

@@ -1,0 +1,211 @@
+% Blueprint content: one node per definition or numbered result of the book.
+%
+% Conventions used throughout:
+%   \lean{...}   the Lean declaration(s) realising this node
+%   \leanok      the Lean statement exists AND is proved with no `sorry`
+%   \notready    stated in Lean but assumed (`sorry`), or not statable at all
+% A node with no \lean{} is one today's Mathlib cannot even express; the text
+% says what is missing.  Statements are original paraphrases, never the book's
+% own wording.
+
+\chapter{Foundations}
+
+\begin{definition}[Second differential]
+  \label{def:sndFDeriv}
+  \lean{MorseFloer.sndFDeriv}
+  \leanok
+  For $f$ on a normed space, $(d^2f)_x$ is the derivative of $x \mapsto (df)_x$,
+  read as a continuous bilinear map.
+\end{definition}
+
+\begin{theorem}[Transformation rule for second differentials]
+  \label{thm:sndFDeriv_comp}
+  \lean{MorseFloer.sndFDeriv_comp}
+  \leanok
+  \uses{def:sndFDeriv}
+  Under a change of coordinates $\varphi$,
+  \[ d^2(f\circ\varphi)_x(h,k) = d^2f_{\varphi(x)}(d\varphi\, h, d\varphi\, k)
+     + df_{\varphi(x)}\bigl(d^2\varphi_x(h,k)\bigr). \]
+  The correction term lies in the image of $df$, which is exactly why the second
+  differential is not chart-independent in general.
+\end{theorem}
+
+\begin{corollary}[Tensoriality at a critical point]
+  \label{cor:sndFDeriv_critical}
+  \lean{MorseFloer.sndFDeriv_comp_of_critical}
+  \leanok
+  \uses{thm:sndFDeriv_comp}
+  Where $df$ vanishes the correction term disappears, so $d^2f$ transforms as a
+  bilinear form.  This is what makes the Hessian of a function on a manifold well
+  defined at its critical points, and nowhere else.
+\end{corollary}
+
+\begin{definition}[Hessian, critical point, Morse function]
+  \label{def:hessian}
+  \lean{MorseFloer.hessian, MorseFloer.IsCriticalPoint, MorseFloer.IsNondegenerate,
+        MorseFloer.IsMorseFunction}
+  \leanok
+  \uses{cor:sndFDeriv_critical}
+  On a manifold, $x$ is critical for $f$ when $d f_x = 0$; the Hessian is the
+  second differential of $f$ read in the preferred extended chart at $x$; the
+  critical point is nondegenerate when that bilinear form is; and $f$ is a Morse
+  function when all its critical points are nondegenerate.
+\end{definition}
+
+\begin{definition}[Index of a critical point]
+  \label{def:index}
+  \lean{MorseFloer.index, MorseFloer.morseIndex}
+  \leanok
+  \uses{def:hessian}
+  The index is the largest dimension of a subspace on which the Hessian quadratic
+  form is negative definite, i.e.\ \texttt{sigNeg} of that form.
+\end{definition}
+
+\begin{proposition}[The index is well defined]
+  \label{prop:index_invariant}
+  \lean{MorseFloer.index_eq_of_equivalent}
+  \leanok
+  \uses{def:index}
+  Equivalent quadratic forms have the same index.  This is Sylvester's law of
+  inertia, already available in Mathlib, and it is what makes the index
+  independent of the coordinates used to compute it.
+\end{proposition}
+
+\chapter{Morse functions (Chapter 1)}
+
+\section{\S1.1 Definition of Morse functions}
+
+\begin{proposition}[Symmetry of the Hessian]
+  \label{prop:hessian_symm}
+  \lean{MorseFloer.Chapter1.hessian_symm}
+  \leanok
+  \uses{def:hessian}
+  The Hessian is a symmetric bilinear form.  The book derives this from
+  $X\cdot(Y\cdot f) - Y\cdot(X\cdot f) = [X,Y]\cdot f = df([X,Y]) = 0$; in a chart
+  it is the symmetry of the second derivative of a $C^2$ function.
+\end{proposition}
+
+\begin{proposition}[Chart-independence at a critical point]
+  \label{prop:hessian_chart}
+  \lean{MorseFloer.Chapter1.hessian_chart_independent}
+  \leanok
+  \uses{cor:sndFDeriv_critical}
+  Remark 1.1.2 and Exercise 1: the Hessian at a critical point does not depend on
+  the chart used to compute it.
+\end{proposition}
+
+\section{\S1.2 Existence and multitude of Morse functions}
+
+\begin{definition}[Squared distance to a point]
+  \label{def:distSq}
+  \lean{MorseFloer.Chapter1.distSq}
+  \leanok
+  The function $f_p(x) = \lVert x - p\rVert^2$ of \S1.2.a.
+\end{definition}
+
+\begin{proposition}[Differential of the squared distance]
+  \label{prop:fderiv_distSq}
+  \lean{MorseFloer.Chapter1.hasFDerivAt_distSq, MorseFloer.Chapter1.fderiv_distSq,
+        MorseFloer.Chapter1.isCriticalPt_distSq_iff}
+  \leanok
+  \uses{def:distSq}
+  $(df_p)_x(\xi) = 2\langle x-p, \xi\rangle$.  On a submanifold $V$ this says $x$
+  is critical for $f_p$ exactly when $x-p \perp T_xV$, the characterisation the
+  book feeds to Sard's theorem through the normal bundle.
+\end{proposition}
+
+\begin{proposition}[Proposition 1.2.1]
+  \label{prop:1.2.1}
+  \lean{MorseFloer.Chapter1.ae_isMorseFunction_distSq}
+  \notready
+  \uses{prop:fderiv_distSq}
+  For almost every $p \in \mathbb{R}^n$, the function $f_p$ restricted to a
+  submanifold $V \subseteq \mathbb{R}^n$ is a Morse function.
+  \emph{Assumed:} the proof applies Sard's theorem to the endpoint map of the
+  normal bundle, and Sard's theorem for manifolds is not in Mathlib.
+\end{proposition}
+
+\begin{lemma}[Lemma 1.2.2]
+  \label{lem:1.2.2}
+  \notready
+  The normal bundle $N = \{(x,v) \in V\times\mathbb{R}^n : v \perp T_xV\}$ is a
+  submanifold of $V\times\mathbb{R}^n$, and $p = x+v$ is a critical value of the
+  endpoint map $E(x,v) = x+v$ exactly when the second-derivative matrix of $f_p$
+  fails to be invertible.
+  \emph{Not statable:} Mathlib has no normal bundle of a submanifold and no
+  general submanifold type to carry it.
+\end{lemma}
+
+\begin{proposition}[Proposition 1.2.4]
+  \label{prop:1.2.4}
+  \notready
+  Any $C^\infty$ function on a manifold embeddable in $\mathbb{R}^n$ can be
+  approximated, uniformly on compact sets together with its derivatives of order
+  $\le k$, by Morse functions.
+  \emph{Not statable:} needs the $C^k$ topology on $C^\infty(V;\mathbb{R})$,
+  which Mathlib does not define.
+\end{proposition}
+
+\begin{theorem}[Theorem 1.2.5]
+  \label{thm:1.2.5}
+  \notready
+  \uses{prop:1.2.4}
+  On a compact manifold the Morse functions form an open dense subset of
+  $C^\infty(V;\mathbb{R})$.
+  \emph{Not statable:} same missing topology as Proposition 1.2.4.
+\end{theorem}
+
+\section{\S1.3 The Morse lemma, index of a critical point}
+
+\begin{theorem}[Theorem 1.3.1, the Morse lemma]
+  \label{thm:1.3.1}
+  \lean{MorseFloer.Chapter1.morse_lemma}
+  \notready
+  \uses{def:hessian}
+  Near a nondegenerate critical point $c$ there are coordinates in which $f$
+  equals its quadratic model: a chart $\varphi$ centred at $c$ with
+  $f(y) = f(c) + \tfrac12 d^2f_c(\varphi y, \varphi y)$.  Diagonalising by
+  Sylvester's law gives the book's normal form
+  $f(c) - \sum_{j\le i} x_j^2 + \sum_{j>i} x_j^2$.
+  \emph{Assumed:} the book's proof is an induction on dimension via the implicit
+  function theorem; not yet carried out in Lean.
+\end{theorem}
+
+\begin{corollary}[Corollary 1.3.2]
+  \label{cor:1.3.2}
+  \lean{MorseFloer.Chapter1.isolated_of_nondegenerate}
+  \leanok
+  \uses{def:hessian}
+  Nondegenerate critical points are isolated.  Proved as Exercise 2 asks,
+  \emph{without} the Morse lemma: $df$ has an invertible strict derivative at
+  $c$, so the inverse function theorem makes it a local homeomorphism and $c$ is
+  its only nearby zero.
+\end{corollary}
+
+\begin{proposition}[Remark 1.3.3]
+  \label{prop:1.3.3}
+  \lean{MorseFloer.Chapter1.index_neg_add_index}
+  \leanok
+  \uses{def:index}
+  A critical point of index $i$ for $f$ has index $n-i$ for $-f$.
+\end{proposition}
+
+\section{\S1.4 Examples of Morse functions}
+
+\begin{proposition}[The torus function, \S1.4.c]
+  \label{prop:1.4.c}
+  \lean{MorseFloer.Chapter1.cosFactor,
+        MorseFloer.Chapter1.deriv_cosFactor,
+        MorseFloer.Chapter1.deriv_deriv_cosFactor,
+        MorseFloer.Chapter1.deriv_cosFactor_eq_zero_iff,
+        MorseFloer.Chapter1.deriv_deriv_cosFactor_ne_zero,
+        MorseFloer.Chapter1.deriv_deriv_cosFactor_int,
+        MorseFloer.Chapter1.deriv_deriv_cosFactor_half_odd}
+  \leanok
+  \uses{def:index}
+  The one-variable factor $t \mapsto \cos 2\pi t$ has critical points exactly the
+  half-integers, all nondegenerate, with second derivative $-4\pi^2$ at the
+  integers and $+4\pi^2$ at the half-odd-integers.  Summing two copies gives the
+  four critical points of $\cos 2\pi x + \cos 2\pi y$ on the torus, of indices
+  $0, 1, 1, 2$.
+\end{proposition}
