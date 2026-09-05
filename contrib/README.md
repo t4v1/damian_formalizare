@@ -8,6 +8,31 @@ unchanged. They are **not** imported from `MorseFloer.lean` and are not built by
 lake env lean contrib/Mathlib/Analysis/FunctionalSpaces/MorreyInequality.lean
 ```
 
+## LinearAlgebra/Prod.lean
+
+Two isomorphisms about products of submodules that Mathlib does not have:
+`Submodule.prodEquiv` (`↥(p × q) ≃ₗ ↥p × ↥q`) and `Submodule.quotientProdEquiv`
+(`(M × N) ⧸ (p × q) ≃ₗ (M ⧸ p) × (N ⧸ q)`). Together they split a rank
+computation on `f.prodMap g` into one on each factor.
+
+**State.** Complete, no `sorry`. The first belongs in
+`Mathlib/LinearAlgebra/Prod.lean` beside `Submodule.prod`; the second needs
+`Mathlib.LinearAlgebra.Isomorphisms`, so it may prefer to live there.
+
+## LinearAlgebra/FiniteDimensional/CompIndex.lean
+
+`LinearMap.finrank_ker_sub_finrank_coker_comp`: the quantity
+`dim (ker f) − dim (coker f)` is additive under composition. For continuous
+linear maps between Banach spaces this is the additivity of the Fredholm index,
+but nothing here is topological, so it is stated for bare linear maps.
+
+The usual proof needs the six-term exact sequence and an alternating-sum count.
+This one avoids it: four applications of rank–nullity to four explicitly
+constructed maps give the identity directly.
+
+**State.** Complete, no `sorry`. Belongs beside
+`LinearMap.finrank_range_add_finrank_ker`.
+
 ## MorreyInequality.lean
 
 Morrey's inequality — the Sobolev embedding `W^{1,p} ↪ L^∞` for `p > n`, and the
