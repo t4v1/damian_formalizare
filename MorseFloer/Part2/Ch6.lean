@@ -52,6 +52,12 @@ Proved here:
   map of the flow (`isPeriodicOrbit_iff_flow_fixed`), from Mathlib's uniqueness
   theorem for ODEs; and the elementary consequence of Definition 5.4.4 that a
   nondegenerate orbit has no nonzero fixed tangent vector;
+* the **elementary half of Proposition 6.1.5**
+  (`isConst_of_isPeriodicOrbit_of_lipschitz_lt_four`): a `K`-Lipschitz vector
+  field with `K < 4` has only constant `1`-periodic orbits.  No Fourier analysis
+  and no hypothesis on the norm: the velocity has zero mean over a period, so it
+  is the average of its own increments over the circle seen from `t`, and the
+  mean distance along that circle is `1/4` (`integral_abs_sub_half`);
 * Hamilton's equations in the standard model, `X_t = J₀ · grad H_t`
   (`hamField_eq_stdJ_grad`), and the `1`-periodicity of `X_t` in `t` when `H` is;
 * the algebra of `stdForm` and `stdJ` used throughout: `ω(X, J₀ Y) = X ⬝ᵥ Y`,
@@ -91,8 +97,12 @@ Proved here:
 Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 
 * **Proposition 6.1.5** — a `2π`-Lipschitz vector field has only constant
-  `1`-periodic orbits; the proof is Wirtinger's inequality (Parseval for the
-  Fourier series of a loop), which Mathlib does not have;
+  `1`-periodic orbits.  The proof is Wirtinger's inequality (Parseval for the
+  Fourier series of a loop), which Mathlib does not have; and the constant `2π`
+  is in any case only correct for a Euclidean norm on `E`, so the statement as
+  written is false for a general norm.  The elementary bound valid for every
+  norm, `K < 4`, is proved in full as
+  `isConst_of_isPeriodicOrbit_of_lipschitz_lt_four`;
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
@@ -240,17 +250,181 @@ theorem IsNondegenerateOrbit.eq_zero_of_fixed {ψ : ℝ → E → E} {p : E}
   refine h.1 ?_
   simp [hv]
 
+/-- The average, over one period, of the distance from a point of the circle to
+the rest of it: `∫_{s−½}^{s+½} |s − r| dr = 1/4`.  This is the only computation
+in the elementary form of Proposition 6.1.5 below, and it is where the constant
+`4` comes from. -/
+theorem integral_abs_sub_half (s : ℝ) :
+    (∫ r in (s - 1 / 2)..(s + 1 / 2), |s - r|) = 1 / 4 := by
+  have hint : ∀ a b : ℝ, IntervalIntegrable (fun r => |s - r|) MeasureTheory.volume a b :=
+    fun a b => ((continuous_const.sub continuous_id).abs).intervalIntegrable a b
+  have hlow : (∫ r in (s - 1 / 2)..s, |s - r|) = 1 / 8 := by
+    have hc : Set.EqOn (fun r => |s - r|) (fun r => s - r) (Set.uIcc (s - 1 / 2) s) := by
+      intro r hr
+      rw [Set.uIcc_of_le (by linarith)] at hr
+      exact abs_of_nonneg (by linarith [hr.2])
+    rw [intervalIntegral.integral_congr hc,
+      intervalIntegral.integral_sub (μ := MeasureTheory.volume) (f := fun _ : ℝ => s)
+        (g := fun r : ℝ => r) intervalIntegrable_const (continuous_id'.intervalIntegrable _ _),
+      intervalIntegral.integral_const, integral_id, smul_eq_mul]
+    ring
+  have hhigh : (∫ r in s..(s + 1 / 2), |s - r|) = 1 / 8 := by
+    have hc : Set.EqOn (fun r => |s - r|) (fun r => r - s) (Set.uIcc s (s + 1 / 2)) := by
+      intro r hr
+      rw [Set.uIcc_of_le (by linarith)] at hr
+      show |s - r| = r - s
+      rw [abs_of_nonpos (by linarith [hr.1])]
+      ring
+    rw [intervalIntegral.integral_congr hc,
+      intervalIntegral.integral_sub (μ := MeasureTheory.volume) (f := fun r : ℝ => r)
+        (g := fun _ : ℝ => s) (continuous_id'.intervalIntegrable _ _) intervalIntegrable_const,
+      intervalIntegral.integral_const, integral_id, smul_eq_mul]
+    ring
+  rw [← intervalIntegral.integral_add_adjacent_intervals (b := s) (hint _ _) (hint _ _),
+    hlow, hhigh]
+  norm_num
+
+/-- **Proposition 6.1.5, the elementary bound.**  A `K`-Lipschitz vector field
+with `K < 4` has only constant `1`-periodic orbits.
+
+No Fourier analysis is involved and no hypothesis is made on the norm of `E`, so
+this is the form of the statement that is true for *every* normed space.  Write
+`y = ẋ`.  It is continuous and `1`-periodic, so `M = max ‖y‖` exists, and its
+mean over a period vanishes, `∫_{t−½}^{t+½} y = x(t+½) − x(t−½) = 0`.  Hence
+for every `t`
+
+`y(t) = ∫_{t−½}^{t+½} (y(t) − y(r)) dr`,
+
+and since `X` is `K`-Lipschitz and `x` is `M`-Lipschitz (mean value inequality),
+
+`‖y(t)‖ ≤ K ∫_{t−½}^{t+½} ‖x(t) − x(r)‖ dr ≤ K M ∫_{t−½}^{t+½} |t − r| dr = K M / 4`
+
+by `integral_abs_sub_half`.  Taking for `t` a point where `‖y‖` is maximal gives
+`M ≤ (K/4) M`, so `M = 0` and `x` is constant.  Geometrically the centred
+interval is the circle `ℝ/ℤ` seen from `t`, and `1/4` is the mean of the distance
+along it — which is why the elementary constant is `4`.
+
+The sharp constant in a Euclidean `E` is `2π`; see
+`isConst_of_isPeriodicOrbit_of_lipschitz` for what that needs and why it is not
+available. -/
+theorem isConst_of_isPeriodicOrbit_of_lipschitz_lt_four {X : E → E} {K : ℝ≥0}
+    (hX : LipschitzWith K X) (hK : (K : ℝ) < 4) {x : ℝ → E}
+    (hx : IsPeriodicOrbit (fun _ => X) x) (t : ℝ) : x t = x 0 := by
+  have hxd : ∀ s, HasDerivAt x (X (x s)) s := hx.hasDerivAt
+  have hxc : Continuous x := continuous_iff_continuousAt.2 fun s => (hxd s).continuousAt
+  have hyc : Continuous fun s => X (x s) := hX.continuous.comp hxc
+  have hyper : Function.Periodic (fun s => X (x s)) 1 := by
+    intro s
+    show X (x (s + 1)) = X (x s)
+    rw [hx.periodic s]
+  obtain ⟨t₀, -, ht₀⟩ := isCompact_Icc.exists_isMaxOn
+    (Set.nonempty_Icc.2 (zero_le_one : (0 : ℝ) ≤ 1)) (f := fun s => ‖X (x s)‖)
+    hyc.norm.continuousOn
+  set M : ℝ := ‖X (x t₀)‖ with hMdef
+  have hM0 : 0 ≤ M := norm_nonneg _
+  have hMle : ∀ s : ℝ, ‖X (x s)‖ ≤ M := by
+    intro s
+    obtain ⟨u, hu, hsu⟩ := hyper.exists_mem_Ico₀ one_pos s
+    have hsu' : X (x s) = X (x u) := hsu
+    rw [hsu']
+    exact ht₀ (Set.Ico_subset_Icc_self hu)
+  -- `x` is `M`-Lipschitz, by the mean value inequality
+  have hlip : ∀ a b : ℝ, ‖x b - x a‖ ≤ M * |b - a| := by
+    have key : ∀ a b : ℝ, a ≤ b → ‖x b - x a‖ ≤ M * (b - a) := by
+      intro a b hab
+      exact norm_image_sub_le_of_norm_deriv_le_segment' (f := x) (f' := fun s => X (x s))
+        (C := M) (a := a) (b := b) (fun s _ => (hxd s).hasDerivWithinAt) (fun s _ => hMle s) b
+        (Set.right_mem_Icc.2 hab)
+    intro a b
+    rcases le_total a b with h | h
+    · rw [abs_of_nonneg (by linarith)]
+      exact key a b h
+    · rw [abs_of_nonpos (by linarith), neg_sub, norm_sub_rev]
+      exact key b a h
+  -- the mean of the velocity over a period vanishes
+  have hzero : ∀ s : ℝ, (∫ r in (s - 1 / 2)..(s + 1 / 2), X (x r)) = 0 := by
+    intro s
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (f := x) (f' := fun r => X (x r))
+      (fun r _ => hxd r) (hyc.intervalIntegrable _ _)]
+    have hp := hx.periodic (s - 1 / 2)
+    have e : s - 1 / 2 + 1 = s + 1 / 2 := by ring
+    rw [e] at hp
+    rw [hp, sub_self]
+  -- the key estimate: the speed is at most `K M / 4`
+  have hrep : ∀ s : ℝ, ‖X (x s)‖ ≤ (K : ℝ) * M * (1 / 4) := by
+    intro s
+    have e1 : s + 1 / 2 - (s - 1 / 2) = (1 : ℝ) := by ring
+    have hsplit : (∫ r in (s - 1 / 2)..(s + 1 / 2), (X (x s) - X (x r))) = X (x s) := by
+      rw [intervalIntegral.integral_sub intervalIntegrable_const (hyc.intervalIntegrable _ _),
+        hzero s, sub_zero, intervalIntegral.integral_const, e1, one_smul]
+    have hb1 : ‖∫ r in (s - 1 / 2)..(s + 1 / 2), (X (x s) - X (x r))‖
+        ≤ ∫ r in (s - 1 / 2)..(s + 1 / 2), ‖X (x s) - X (x r)‖ :=
+      intervalIntegral.norm_integral_le_integral_norm (by linarith)
+    have hb2 : (∫ r in (s - 1 / 2)..(s + 1 / 2), ‖X (x s) - X (x r)‖)
+        ≤ ∫ r in (s - 1 / 2)..(s + 1 / 2), (K : ℝ) * M * |s - r| := by
+      refine intervalIntegral.integral_mono_on (by linarith)
+        (((continuous_const.sub hyc).norm).intervalIntegrable _ _)
+        ((continuous_const.mul ((continuous_const.sub continuous_id).abs)).intervalIntegrable _ _)
+        ?_
+      intro r _
+      have hd := hX.dist_le_mul (x s) (x r)
+      rw [dist_eq_norm, dist_eq_norm] at hd
+      calc ‖X (x s) - X (x r)‖ ≤ (K : ℝ) * ‖x s - x r‖ := hd
+        _ ≤ (K : ℝ) * (M * |s - r|) := mul_le_mul_of_nonneg_left (hlip r s) K.coe_nonneg
+        _ = (K : ℝ) * M * |s - r| := by ring
+    have hb3 : (∫ r in (s - 1 / 2)..(s + 1 / 2), (K : ℝ) * M * |s - r|)
+        = (K : ℝ) * M * (1 / 4) := by
+      rw [intervalIntegral.integral_const_mul, integral_abs_sub_half]
+    rw [← hsplit, ← hb3]
+    exact hb1.trans hb2
+  -- hence the speed vanishes identically
+  have hMzero : M = 0 := by
+    have h := hrep t₀
+    rw [← hMdef] at h
+    rcases le_or_gt M 0 with hle | hpos
+    · exact le_antisymm hle hM0
+    · exfalso
+      have h4 : (K : ℝ) * M < 4 * M := mul_lt_mul_of_pos_right hK hpos
+      linarith
+  have hz := hlip 0 t
+  rw [hMzero, zero_mul] at hz
+  exact eq_of_sub_eq_zero (norm_le_zero_iff.mp hz)
+
 /-- **Proposition 6.1.5.**  If the vector field is `2π`-Lipschitz (the book
 assumes `‖dX_H‖_{L²} < 2π`, and remarks that a Lipschitz bound suffices), then
 the only `1`-periodic solutions are the constant ones, i.e. the critical points
 of `H`.
 
-The book's proof expands a periodic solution in Fourier series and applies
-Parseval: `‖ẋ‖_{L²} ≤ (1/2π) ‖ẍ‖_{L²}` because `ẋ` has zero mean.  This is
-Wirtinger's inequality, which Mathlib does not have (it has the Fourier basis of
-`L²(S¹)` but not the Sobolev estimate). -/
-theorem isConst_of_isPeriodicOrbit_of_lipschitz {X : E → E} {K : ℝ≥0}
-    (_hX : LipschitzWith K X) (_hK : (K : ℝ) < 2 * Real.pi) {x : ℝ → E}
+Assumed, for two independent reasons.
+
+**What is missing in Mathlib.**  The book's proof expands `ẋ` in Fourier series
+and applies Parseval: `‖ẋ‖_{L²} ≤ (1/2π) ‖ẍ‖_{L²}` because `ẋ` has zero mean.
+That is Wirtinger's inequality.  Mathlib has the Fourier–Hilbert basis of
+`L²(S¹)` (`fourierBasis`) and Parseval (`tsum_sq_fourierCoeff`), but it has no
+lemma relating the Fourier coefficients of a function to those of its
+derivative — the integration by parts `ĝ′(n) = 2πin·ĝ(n)` — and that is precisely
+the step Wirtinger needs, so the inequality cannot be assembled from what is
+there.  (Its Fourier material is also `ℂ`-valued, so an `E`-valued statement
+would need a further reduction to coordinates.)
+
+**Why the inner product is a hypothesis here.**  The constant `2π` is Yorke's,
+and Yorke's theorem is a Hilbert space statement.  For a general Banach norm the
+sharp bound is *not* `2π` but `6`: Busenberg, Fisher and Martelli prove `KT ≥ 6`
+for a nonconstant `T`-periodic orbit of a `K`-Lipschitz field, and exhibit an
+example attaining it (Proc. AMS **98** (1986) 376–378; Amer. Math. Monthly **96**
+(1989) 5–17).  Since `6 < 2π`, the statement is **false** for a general norm, and
+an earlier version of this file stated it that way.  The hypothesis
+`[InnerProductSpace ℝ V]` below restores Yorke's setting, and is what the book
+has: it works on `ℝ^{2n}` with the Euclidean structure throughout.  Note this
+strengthens the hypotheses, so nothing is lost.
+
+What *is* proved, for every norm and with the elementary constant `4`, is
+`isConst_of_isPeriodicOrbit_of_lipschitz_lt_four` just above; `4 < 6 ≤` the sharp
+Banach bound, so it is a correct, if not optimal, general statement. -/
+theorem isConst_of_isPeriodicOrbit_of_lipschitz
+    {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V]
+    {X : V → V} {K : ℝ≥0}
+    (_hX : LipschitzWith K X) (_hK : (K : ℝ) < 2 * Real.pi) {x : ℝ → V}
     (_hx : IsPeriodicOrbit (fun _ => X) x) (t : ℝ) : x t = x 0 := by
   sorry
 

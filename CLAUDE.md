@@ -246,6 +246,9 @@ These are specific to this Mathlib version and were each hit during the build:
   million-heartbeat `isDefEq` timeout into an instant check. If you find
   yourself raising `maxHeartbeats`, split the declaration instead.
 - `ContDiff.differentiable` takes `n ≠ 0`, like `ContDiffAt.differentiableAt`.
+- `le_or_lt` does not exist in this Mathlib; it is `le_or_gt`. And `push_neg` is
+  deprecated in favour of `push Not` — it emits a warning, which breaks the
+  project's warning-clean build.
 - `Manifold.IsSmoothEmbedding` is in namespace `Manifold`; `open scoped Manifold`
   does not bring it into scope.
 

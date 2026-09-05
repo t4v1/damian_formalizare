@@ -902,12 +902,24 @@ gaps.
   \label{def:6.1}
   \lean{MorseFloer.Chapter6.IsPeriodicOrbit, MorseFloer.Chapter6.IsFlow,
         MorseFloer.Chapter6.isPeriodicOrbit_iff_flow_fixed,
-        MorseFloer.Chapter6.IsNondegenerateOrbit}
+        MorseFloer.Chapter6.IsNondegenerateOrbit,
+        MorseFloer.Chapter6.isConst_of_isPeriodicOrbit_of_lipschitz_lt_four}
   \leanok
   \uses{def:5.4}
   A $1$-periodic orbit through $p$ is exactly a fixed point of the time-$1$ map,
   proved in both directions from ODE uniqueness; nondegeneracy is that $1$ is not
   an eigenvalue of the linearised return map.
+
+  Proposition 6.1.5 --- that a sufficiently Lipschitz field has only constant
+  $1$-periodic orbits --- is proved here \emph{for every norm}, with the
+  elementary constant $4$: the mean of $\dot x$ over a period vanishes, so
+  $\dot x(t)$ is an average of differences of $X$ along the orbit, bounded by $K$
+  times the mean distance on the circle, which is $\tfrac14$.  The book's sharp
+  constant $2\pi$ is Yorke's theorem and needs Wirtinger's inequality, which
+  Mathlib lacks; it also needs the norm to come from an inner product, since for a
+  general Banach norm the sharp bound is $6 < 2\pi$ (Busenberg--Fisher--Martelli).
+  The statement carrying $2\pi$ was corrected to assume an inner product and
+  remains assumed.
 \end{definition}
 
 \begin{proposition}[Proposition 6.3.4, the action functional]
