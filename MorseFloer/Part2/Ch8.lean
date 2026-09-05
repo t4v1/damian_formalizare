@@ -303,7 +303,7 @@ assumes. -/
 
 /-- Composing on the left with an isomorphism does not change the index.  Uses
 Chapter 16's assumed additivity `fredholmIndex_comp`. -/
-theorem fredholmIndex_comp_of_bijective_left [CompleteSpace E] [CompleteSpace F]
+theorem fredholmIndex_comp_of_bijective_left [CompleteSpace 𝕜] [CompleteSpace E] [CompleteSpace F]
     [CompleteSpace G] {u : E →L[𝕜] F} {v : F →L[𝕜] G}
     (hu : ContinuousLinearMap.IsFredholm u) (hv : ContinuousLinearMap.IsFredholm v)
     (hvb : Function.Bijective v) :
@@ -311,7 +311,7 @@ theorem fredholmIndex_comp_of_bijective_left [CompleteSpace E] [CompleteSpace F]
   rw [(Chapter16.fredholmIndex_comp hu hv).2, fredholmIndex_eq_zero_of_bijective hvb, zero_add]
 
 /-- Composing on the right with an isomorphism does not change the index. -/
-theorem fredholmIndex_comp_of_bijective_right [CompleteSpace E] [CompleteSpace F]
+theorem fredholmIndex_comp_of_bijective_right [CompleteSpace 𝕜] [CompleteSpace E] [CompleteSpace F]
     [CompleteSpace G] {u : E →L[𝕜] F} {v : F →L[𝕜] G}
     (hu : ContinuousLinearMap.IsFredholm u) (hv : ContinuousLinearMap.IsFredholm v)
     (hub : Function.Bijective u) :
@@ -322,7 +322,8 @@ theorem fredholmIndex_comp_of_bijective_right [CompleteSpace E] [CompleteSpace F
 Lemma 8.8.4 uses: two operators differing by a compact operator are
 simultaneously Fredholm with the same index.  Uses Chapter 16's assumed
 `fredholmIndex_add_compact`. -/
-theorem isFredholm_and_fredholmIndex_eq_of_sub_compact [CompleteSpace E] [CompleteSpace F]
+theorem isFredholm_and_fredholmIndex_eq_of_sub_compact [CompleteSpace 𝕜] [CompleteSpace E]
+    [CompleteSpace F]
     {u v : E →L[𝕜] F} (hu : ContinuousLinearMap.IsFredholm u)
     (hk : IsCompactOperator (v - u)) :
     ContinuousLinearMap.IsFredholm v

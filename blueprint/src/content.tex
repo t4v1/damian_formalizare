@@ -711,17 +711,46 @@ skeleton of the chapter --- is formalized and proved.
 
 \begin{theorem}[Theorems 16.2.9, 16.2.10 and Proposition 16.2.7]
   \label{thm:16.2.stability}
-  \lean{MorseFloer.Chapter16.fredholmIndex_locally_constant,
-        MorseFloer.Chapter16.fredholmIndex_comp,
-        MorseFloer.Chapter16.fredholmIndex_add_compact}
-  \notready
+  \lean{MorseFloer.Chapter16.fredholmIndex_comp,
+        MorseFloer.Chapter16.fredholmIndex_locally_constant,
+        MorseFloer.Chapter16.fredholmIndex_eq_of_fredholmPackage,
+        MorseFloer.Chapter16.finrank_ker_sub_finrank_coker_comp,
+        MorseFloer.Chapter16.eventually_isFredholm,
+        MorseFloer.Chapter16.exists_isQuasiInverse_add_of_norm_lt}
+  \leanok
   \uses{def:16.2.a, thm:16.1.1}
-  The index is locally constant, additive under composition, and unchanged by a
-  compact perturbation.  \emph{Assumed:} standard, but their proofs need
-  operator theory Mathlib does not yet carry.  Chapter 8 uses the compact-
-  perturbation statement to reduce the linearised Floer operator to a
-  constant-coefficient model whose index is computable.
+  \textbf{Both are now proved.}  The bridge is
+  \texttt{fredholmIndex\_eq\_of\_fredholmPackage}: read off a Fredholm
+  decomposition, the index is $\dim E_0 - \dim F_0$.  Additivity then avoids the
+  six-term exact sequence entirely --- four rank--nullity counts on explicitly
+  constructed maps give the identity, as pure linear algebra with no topology, so
+  \texttt{finrank\_ker\_sub\_finrank\_coker\_comp} is reusable on its own.
+
+  Local constancy follows, but not by perturbing a decomposition: a package's
+  $X_0$ is forced to be $\ker u$, whose dimension drops under perturbation.
+  Instead, quasi-inverses have opposite indices, and the Neumann-series
+  quasi-inverse of a nearby $w$ has the shape $p\circ v$ with $p$ invertible, so
+  its index equals that of $v$, hence $\operatorname{ind} w = \operatorname{ind} u$.
+  Openness itself is \texttt{eventually\_isFredholm}.
 \end{theorem}
+
+\begin{proposition}[Proposition 16.2.7, compact perturbations]
+  \label{prop:16.2.7}
+  \lean{MorseFloer.Chapter16.fredholmIndex_add_compact,
+        MorseFloer.Chapter16.isFredholm_add_and_fredholmIndex_eq_of_hasNoetherianRange}
+  \notready
+  \uses{thm:16.2.stability}
+  Adding a compact operator changes neither the Fredholm property nor the index.
+  The \emph{finite-rank} case is proved outright.  Compactness is the wall:
+  $q(u+k) = 1 + (qu-1) + qk$ has $qk$ compact but not of finite rank, and a
+  compact operator need not be a limit of finite-rank ones in a general Banach
+  space.  What is needed is Riesz--Schauder, that $1+c$ is Fredholm of index
+  zero; Mathlib's compact-operator file gives only the spectral dichotomy, which
+  yields nothing about closed range in the eigenvalue branch.  Chapter 8 uses
+  this statement to reduce the linearised Floer operator to a
+  constant-coefficient model whose index is computable.
+\end{proposition}
+
 
 \begin{theorem}[\S16.3--16.4: distributions and Sobolev spaces]
   \label{thm:16.4}

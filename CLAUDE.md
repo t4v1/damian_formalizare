@@ -105,7 +105,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
-| `Part2/Ch16.lean` | 16 Analysis | 3 | the Fredholm index, which Mathlib lacks |
+| `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index, which Mathlib lacks; additivity and local constancy proved |
 
 **All sixteen chapters of the book are now formalized.**
 
