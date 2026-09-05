@@ -161,7 +161,10 @@
 
 \begin{theorem}[Theorem 1.3.1, the Morse lemma]
   \label{thm:1.3.1}
-  \lean{MorseFloer.Chapter1.morse_lemma}
+  \lean{MorseFloer.Chapter1.morse_lemma,
+        MorseFloer.Chapter1.morse_lemma_real,
+        MorseFloer.Chapter1.morse_lemma_dim_one,
+        MorseFloer.Chapter1.exists_analyticAt_sq_factor}
   \notready
   \uses{def:hessian}
   Near a nondegenerate critical point $c$ there are coordinates in which $f$
@@ -169,8 +172,20 @@
   $f(y) = f(c) + \tfrac12 d^2f_c(\varphi y, \varphi y)$.  Diagonalising by
   Sylvester's law gives the book's normal form
   $f(c) - \sum_{j\le i} x_j^2 + \sum_{j>i} x_j^2$.
-  \emph{Assumed:} the book's proof is an induction on dimension via the implicit
-  function theorem; not yet carried out in Lean.
+  \emph{Partially proved.}  \textbf{Dimension one is done}:
+  \texttt{morse\_lemma\_real} is this very statement with $E = \mathbb{R}$,
+  proved outright, and it is the base case of the book's induction.  It goes
+  through analyticity rather than through a Taylor theorem with integral
+  remainder: Mathlib's expansion for analytic functions of one variable supplies
+  the order-three factorisation $f(y) = f(c) + (y-c)^2 g(y)$, and the chart is
+  $y \mapsto (y-c)\sqrt{2g(y)/f''(c)}$, whose derivative at $c$ is $1$.
+
+  What blocks the general case is the first step, Hadamard's lemma: writing
+  $f(c+x) = R_x(x,x)$ for a smooth family of symmetric forms needs a
+  \emph{multivariable} Taylor expansion with integral remainder, and Mathlib's
+  analytic expansion is one-variable only.  The second step, an analytic square
+  root of an operator near the identity depending smoothly on a parameter, is
+  the remaining crux.
 \end{theorem}
 
 \begin{corollary}[Corollary 1.3.2]

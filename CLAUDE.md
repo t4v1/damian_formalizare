@@ -90,7 +90,7 @@ verifies every cited declaration still exists.
 | File | Book chapter | `sorry` | Notes |
 |---|---|---|---|
 | `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
-| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard), Morse lemma |
+| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard); Morse lemma proved in dimension one |
 | `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half |

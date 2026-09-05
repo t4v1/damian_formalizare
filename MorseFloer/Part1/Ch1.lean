@@ -29,8 +29,18 @@ i.e. *without* the Morse lemma, as Exercise 2 asks), the index/coindex duality
 of Remark 1.3.3, the differential of the squared distance function, and the full
 critical-point analysis of the factor `cos 2πt` behind the torus example.
 
-Assumed (`sorry`): the Morse lemma (Theorem 1.3.1) and Proposition 1.2.1, which
-needs Sard's theorem.  Lemma 1.2.2, Proposition 1.2.4 and Theorem 1.2.5 need the
+Also proved here, as the base case of the Morse lemma's induction: Hadamard's
+lemma in one variable (`exists_analyticAt_sq_factor`), the dictionary between
+`sndFDeriv` and the iterated `deriv` on `ℝ` (`sndFDeriv_real_apply`), and the
+Morse lemma in dimension one (`morse_lemma_dim_one`, and in the exact form of
+`morse_lemma` as `morse_lemma_real`).
+
+Assumed (`sorry`): the Morse lemma in dimension `> 1` (Theorem 1.3.1) and
+Proposition 1.2.1, which needs Sard's theorem.  The Morse lemma's docstring says
+which of its three steps is out of reach and why: Mathlib has neither a
+multivariable Taylor expansion with integral remainder nor a smoothly
+parametrised square root of an operator near the identity.  Lemma 1.2.2,
+Proposition 1.2.4 and Theorem 1.2.5 need the
 normal bundle as a submanifold and the `Cᵏ` topology on `C^∞(V; ℝ)`; neither is
 expressible with today's Mathlib, so they appear in the blueprint with no Lean
 statement rather than as a fictitious one.
@@ -171,13 +181,216 @@ book's normal form `f(c) − Σ_{j≤i} x_j² + Σ_{j>i} x_j²`, whose integer `
 index of the critical point.
 
 The book proves this by induction on the dimension using the implicit function
-theorem. -/
+theorem; the analyst's proof, which is the one that can be formalized, goes in
+three steps.
+
+1. **Hadamard's lemma**: `f (c + x) = R x (x, x)` for a smooth family `R` of
+   symmetric bilinear forms with `R 0 = ½ d²f_c`.
+2. **Smooth diagonalisation**: for `x` small there is an invertible `A x`,
+   depending smoothly on `x` with `A 0 = id`, such that
+   `R x (v, v) = R 0 (A x v, A x v)`.  Classically `A x` is the square root of
+   `(R 0)⁻¹ ∘ R x`, an operator near the identity, obtained from the binomial
+   series.
+3. `φ : x ↦ A x x` has derivative `id` at `0`, so the inverse function theorem
+   turns it into a chart.
+
+**What is missing.**  Step 1 is proved below in dimension one
+(`exists_analyticAt_sq_factor`); in dimension `> 1` it needs a multivariable
+Taylor expansion with integral remainder, which Mathlib does not have (its
+`Analysis/Calculus/Taylor.lean` covers only `f : ℝ → ℝ` with a Lagrange
+remainder, and there is no Hadamard lemma).  Step 2 needs the analytic square
+root of an operator near the identity — the continuous functional calculus
+provides a square root of a positive self-adjoint element, but not its
+smoothness in a parameter.  Step 3 alone is available
+(`HasStrictFDerivAt.toOpenPartialHomeomorph`).
+
+The one-dimensional case — the base case of the book's induction — is proved in
+full below as `morse_lemma_dim_one`, and in the exact form of this statement as
+`morse_lemma_real`. -/
 theorem morse_lemma [FiniteDimensional ℝ E] [CompleteSpace E] {f : E → ℝ} {c : E}
     (_hf : ContDiffAt ℝ ω f c) (_hcrit : IsCriticalPt f c)
     (_hnd : IsNondegenerate (sndFDeriv f c)) :
     ∃ φ : OpenPartialHomeomorph E E, c ∈ φ.source ∧ φ c = 0 ∧
       ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) := by
   sorry
+
+/-! ### The Morse lemma in dimension one
+
+The base case of the book's induction, proved here in full.  Everything the
+argument needs is in Mathlib once one works with an analytic `f`: the analytic
+order of vanishing supplies Hadamard's factorisation, `Real.sqrt` is analytic
+away from `0`, and the inverse function theorem does the rest. -/
+
+/-- **Hadamard's lemma in one variable.**
+
+If `f` is analytic at a critical point `c` then
+`f y = f c + (y − c)² g y` near `c` for a function `g` analytic at `c` with
+`g c = ½ f''(c)`.
+
+This is the one-dimensional case of step 1 of the Morse lemma.  The proof is
+Taylor's formula for analytic functions to order three
+(`AnalyticAt.exists_eventuallyEq_sum_add_pow_mul`), whose remainder `z³ H z`
+gets absorbed into `g`; the linear term vanishes because `c` is critical.
+Mathlib has no Hadamard lemma, in one variable or in several. -/
+theorem exists_analyticAt_sq_factor {f : ℝ → ℝ} {c : ℝ}
+    (hf : ContDiffAt ℝ ω f c) (hcrit : deriv f c = 0) :
+    ∃ g : ℝ → ℝ, AnalyticAt ℝ g c ∧ g c = deriv (deriv f) c / 2 ∧
+      ∀ᶠ y in 𝓝 c, f y = f c + (y - c) ^ 2 * g y := by
+  have hA : AnalyticAt ℝ f c := hf.analyticAt
+  have hadd : AnalyticAt ℝ (fun z : ℝ => c + z) 0 := analyticAt_const.fun_add analyticAt_id
+  have hshift : AnalyticAt ℝ (fun z : ℝ => f (c + z)) 0 := hA.fun_comp_of_eq hadd (by simp)
+  obtain ⟨H, hH, hHeq⟩ := hshift.exists_eventuallyEq_sum_add_pow_mul 3
+  -- The iterated derivatives of the shifted function are those of `f` at `c`.
+  have hd : ∀ n : ℕ, iteratedDeriv n (fun z : ℝ => f (c + z)) 0 = iteratedDeriv n f c := by
+    intro n
+    have h := congrFun (iteratedDeriv_comp_const_add n f c) 0
+    simpa using h
+  have h2 : iteratedDeriv 2 f c = deriv (deriv f) c := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+  have hsub : AnalyticAt ℝ (fun y : ℝ => y - c) c := analyticAt_id.fun_sub analyticAt_const
+  -- Taylor to order three, with the linear term killed by criticality.
+  have hgoal0 : ∀ᶠ z in 𝓝 (0 : ℝ),
+      f (c + z) = f c + z ^ 2 * (deriv (deriv f) c / 2 + z * H z) := by
+    filter_upwards [hHeq] with z hz
+    have hz' : f (c + z) = (∑ i ∈ Finset.range 3,
+        (z ^ i / (Nat.factorial i : ℝ)) • iteratedDeriv i (fun w : ℝ => f (c + w)) 0)
+        + z ^ 3 • H z := hz
+    rw [hz']
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, hd]
+    simp only [iteratedDeriv_zero, iteratedDeriv_one, h2, hcrit, smul_eq_mul,
+      Nat.factorial_zero, Nat.factorial_one, Nat.factorial_two, Nat.cast_one, Nat.cast_ofNat]
+    ring
+  have hmap : Filter.Tendsto (fun y : ℝ => y - c) (𝓝 c) (𝓝 0) := by
+    have h : Filter.Tendsto (fun y : ℝ => y - c) (𝓝 c) (𝓝 (c - c)) :=
+      (continuous_id.sub continuous_const).tendsto c
+    simpa using h
+  refine ⟨fun y => deriv (deriv f) c / 2 + (y - c) * H (y - c), ?_, by simp, ?_⟩
+  · exact analyticAt_const.fun_add (hsub.fun_mul (hH.fun_comp_of_eq hsub (by simp)))
+  · filter_upwards [hmap.eventually hgoal0] with y hy
+    have hy' : f (c + (y - c))
+        = f c + (y - c) ^ 2 * (deriv (deriv f) c / 2 + (y - c) * H (y - c)) := hy
+    rwa [show c + (y - c) = y from by ring] at hy'
+
+/-- **The second differential of a function of one real variable.**
+
+`d²f_c (v, w) = f''(c) · v · w`.  This is the dictionary between `sndFDeriv`,
+in which the Morse lemma is stated, and the iterated `deriv` in which the
+one-dimensional statement is naturally proved. -/
+theorem sndFDeriv_real_apply {f : ℝ → ℝ} {c : ℝ}
+    (hf : DifferentiableAt ℝ (fderiv ℝ f) c) (v w : ℝ) :
+    sndFDeriv f c v w = deriv (deriv f) c * v * w := by
+  have hD : HasDerivAt (fderiv ℝ f) (deriv (fderiv ℝ f) c) c := hf.hasDerivAt
+  have h1 : sndFDeriv f c
+      = ContinuousLinearMap.toSpanSingleton ℝ (deriv (fderiv ℝ f) c) := by
+    rw [sndFDeriv_def]
+    exact (hasDerivAt_iff_hasFDerivAt.mp hD).fderiv
+  have h2 : deriv (deriv f) c = (deriv (fderiv ℝ f) c) 1 := by
+    have h : HasDerivAt (deriv f) ((deriv (fderiv ℝ f) c) 1 + (fderiv ℝ f c) 0) c :=
+      hD.clm_apply (hasDerivAt_const c (1 : ℝ))
+    rw [h.deriv]
+    simp
+  have h3 : (deriv (fderiv ℝ f) c) w = w * (deriv (fderiv ℝ f) c) 1 := by
+    have h := (deriv (fderiv ℝ f) c).map_smul w (1 : ℝ)
+    simpa using h
+  rw [h1]
+  simp only [ContinuousLinearMap.toSpanSingleton_apply, _root_.smul_apply, smul_eq_mul]
+  rw [h3, h2]
+  ring
+
+/-- **The Morse lemma in dimension one** (Theorem 1.3.1, the base case of the
+book's induction), proved in full.
+
+At a nondegenerate critical point `c` of `f : ℝ → ℝ` there is a chart `φ`
+centred at `c` with `f = f c + ½ f''(c) · φ²` on its source — that is,
+`f = f c ± φ²` up to the positive constant `½|f''(c)|`, the sign being that of
+`f''(c)`.
+
+The chart is `φ y = (y − c) √(2 g y / f''(c))` for the `g` of
+`exists_analyticAt_sq_factor`: the square root is analytic because its argument
+equals `1` at `c`, and `φ'(c) = 1`, so the inverse function theorem makes `φ` a
+local homeomorphism.  It is then restricted to an open set on which both the
+factorisation and the positivity of the radicand hold. -/
+theorem morse_lemma_dim_one {f : ℝ → ℝ} {c : ℝ}
+    (hf : ContDiffAt ℝ ω f c) (hcrit : deriv f c = 0) (hnd : deriv (deriv f) c ≠ 0) :
+    ∃ φ : OpenPartialHomeomorph ℝ ℝ, c ∈ φ.source ∧ φ c = 0 ∧
+      ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * deriv (deriv f) c * φ y ^ 2 := by
+  obtain ⟨g, hg, hgc, hfact⟩ := exists_analyticAt_sq_factor hf hcrit
+  -- `u` is the radicand; it is analytic and equals `1` at `c`.
+  obtain ⟨u, hudef⟩ : ∃ u : ℝ → ℝ, u = fun y => 2 / deriv (deriv f) c * g y := ⟨_, rfl⟩
+  have hua : AnalyticAt ℝ u c := by rw [hudef]; exact analyticAt_const.fun_mul hg
+  have huc : u c = 1 := by
+    simp only [hudef, hgc]
+    field_simp
+  have hne : u c ≠ 0 := by rw [huc]; norm_num
+  -- The chart `y ↦ (y − c) √(u y)` has strict derivative `1` at `c`.
+  have hustrict : HasStrictDerivAt u (deriv u c) c := hua.hasStrictDerivAt
+  have hsq : HasStrictDerivAt (fun y : ℝ => Real.sqrt (u y))
+      (deriv u c / (2 * Real.sqrt (u c))) c := hustrict.sqrt hne
+  have hlin : HasStrictDerivAt (fun y : ℝ => y - c) (1 - 0) c :=
+    (hasStrictDerivAt_id c).fun_sub (hasStrictDerivAt_const c c)
+  have hmul : HasStrictDerivAt (fun y : ℝ => (y - c) * Real.sqrt (u y))
+      (((1 : ℝ) - 0) * Real.sqrt (u c)
+        + (c - c) * (deriv u c / (2 * Real.sqrt (u c)))) c := hlin.fun_mul hsq
+  have hval : ((1 : ℝ) - 0) * Real.sqrt (u c)
+      + (c - c) * (deriv u c / (2 * Real.sqrt (u c))) = 1 := by
+    rw [huc, Real.sqrt_one]; ring
+  rw [hval] at hmul
+  have hid : ContinuousLinearMap.toSpanSingleton ℝ (1 : ℝ)
+      = ((ContinuousLinearEquiv.refl ℝ ℝ : ℝ ≃L[ℝ] ℝ) : ℝ →L[ℝ] ℝ) := by
+    ext; simp
+  have hstrictF : HasStrictFDerivAt (fun y : ℝ => (y - c) * Real.sqrt (u y))
+      ((ContinuousLinearEquiv.refl ℝ ℝ : ℝ ≃L[ℝ] ℝ) : ℝ →L[ℝ] ℝ) c := by
+    have h := hasStrictDerivAt_iff_hasStrictFDerivAt.mp hmul
+    rwa [hid] at h
+  -- An open set on which the factorisation holds and the radicand is positive.
+  have hpos : ∀ᶠ y in 𝓝 c, 0 < u y :=
+    hua.continuousAt.eventually (eventually_gt_nhds (by rw [huc]; norm_num))
+  obtain ⟨V, hVsub, hVopen, hcV⟩ :=
+    mem_nhds_iff.mp (Filter.eventually_iff.mp (hfact.and hpos))
+  refine ⟨(hstrictF.toOpenPartialHomeomorph
+    (fun y : ℝ => (y - c) * Real.sqrt (u y))).restrOpen V hVopen, ?_, ?_, ?_⟩
+  · rw [OpenPartialHomeomorph.restrOpen_source]
+    exact Set.mem_inter hstrictF.mem_toOpenPartialHomeomorph_source hcV
+  · simp only [OpenPartialHomeomorph.coe_restrOpen,
+      HasStrictFDerivAt.toOpenPartialHomeomorph_coe]
+    simp
+  · intro y hy
+    rw [OpenPartialHomeomorph.restrOpen_source] at hy
+    obtain ⟨hy1, hy2⟩ := hVsub hy.2
+    simp only [OpenPartialHomeomorph.coe_restrOpen,
+      HasStrictFDerivAt.toOpenPartialHomeomorph_coe]
+    rw [hy1, mul_pow, Real.sq_sqrt hy2.le]
+    simp only [hudef]
+    field_simp
+    try ring
+
+/-- **The Morse lemma for `E = ℝ`**, in the exact form of `morse_lemma`.
+
+This is `morse_lemma_dim_one` translated through `sndFDeriv_real_apply`; it
+records that the statement of `morse_lemma` is proved in dimension one. -/
+theorem morse_lemma_real {f : ℝ → ℝ} {c : ℝ}
+    (hf : ContDiffAt ℝ ω f c) (hcrit : IsCriticalPt f c)
+    (hnd : IsNondegenerate (sndFDeriv f c)) :
+    ∃ φ : OpenPartialHomeomorph ℝ ℝ, c ∈ φ.source ∧ φ c = 0 ∧
+      ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) := by
+  have hf2 : ContDiffAt ℝ 2 f c := hf.of_le le_top
+  have hdiff : DifferentiableAt ℝ (fderiv ℝ f) c :=
+    (hf2.fderiv_right (m := 1) (by norm_num)).differentiableAt (by norm_num)
+  have hcrit' : deriv f c = 0 := by
+    have h : fderiv ℝ f c = 0 := hcrit
+    show (fderiv ℝ f c) 1 = 0
+    rw [h]; simp
+  have hnd' : deriv (deriv f) c ≠ 0 := by
+    intro h0
+    have h1 : (1 : ℝ) = 0 := by
+      refine hnd 1 fun w => ?_
+      rw [sndFDeriv_real_apply hdiff, h0]
+      ring
+    norm_num at h1
+  obtain ⟨φ, hs, h0, hy⟩ := morse_lemma_dim_one hf hcrit' hnd'
+  refine ⟨φ, hs, h0, fun y hyv => ?_⟩
+  rw [hy y hyv, sndFDeriv_real_apply hdiff]
+  ring
 
 /-- **Corollary 1.3.2: nondegenerate critical points are isolated.**
 
