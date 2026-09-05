@@ -75,6 +75,14 @@ Proved here:
   integrand agree on a solution (`energyDensity_eq_of_floer`), a solution with
   vanishing `∂u/∂s` is a periodic orbit and conversely
   (`isPeriodicOrbit_of_dS_eq_zero`, `isFloerSolution_of_isPeriodicOrbit`);
+* the **first variation of the action** (`hasDerivAt_action`), the analytic
+  half of Proposition 6.3.4: `d/dσ A_H(u_σ) = (α_H)_{u_s}(∂u/∂s)`.  It is
+  obtained by differentiating under the integral sign with Mathlib's
+  `intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le`, the
+  dominating bound coming from the continuity of the `σ`-derivative of the
+  integrand on the compact `[s-1, s+1] × [0,1]`, and then integrating by parts
+  on the circle.  The computation uses the mixed partial `∂²u/∂σ∂t`, which is
+  why it is stated for `IsSmoothLoopVariation` rather than `IsLoopVariation`;
 * the **decrease of the action along a Floer trajectory**, the analogue of the
   fact that `f` decreases along a pseudo-gradient trajectory (Chapter 2):
   `d/ds A_H(u_s) = −∫_{S¹} |∂u/∂s|² dt ≤ 0` (`hasDerivAt_action_of_floer`) and
@@ -85,11 +93,6 @@ Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 * **Proposition 6.1.5** — a `2π`-Lipschitz vector field has only constant
   `1`-periodic orbits; the proof is Wirtinger's inequality (Parseval for the
   Fourier series of a loop), which Mathlib does not have;
-* the **first variation of the action** (`hasDerivAt_action`), i.e. the
-  analytic half of Proposition 6.3.4: differentiating under the integral sign
-  along a variation.  Its two algebraic inputs — integration by parts and the
-  defining property of `X_H` — are proved here; what is missing is a usable
-  differentiation-under-the-integral lemma for a `C¹` family;
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
@@ -644,6 +647,27 @@ structure IsLoopVariation (u : ℝ → ℝ → F) : Prop where
   /-- `∂u/∂t` is continuous. -/
   continuous_t : Continuous fun p : ℝ × ℝ => dT u p.1 p.2
 
+/-- A **smooth** `1`-parameter family of `1`-periodic loops: an
+`IsLoopVariation` whose mixed second partial derivative also exists, is
+continuous, and is symmetric.
+
+`IsLoopVariation` records only the two first-order partials, which is all the
+statement of the Floer equation needs.  The first variation of the action
+(`hasDerivAt_action`) needs strictly more: differentiating
+`σ ↦ ∫₀¹ ½ ω(u(σ,t), ∂u/∂t(σ,t)) dt` under the integral sign produces the term
+`ω(u, ∂²u/∂σ∂t)`, and the integration by parts that removes it needs
+`∂²u/∂σ∂t = ∂²u/∂t∂σ` together with the continuity of that mixed partial.  The
+book's variations are `C^∞` families, so assuming this is faithful rather than
+a weakening; it is recorded as a separate structure so that the definition of
+the Floer equation itself keeps the weaker hypothesis. -/
+structure IsSmoothLoopVariation (u : ℝ → ℝ → F) : Prop extends IsLoopVariation u where
+  /-- `∂²u/∂σ∂t` exists. -/
+  hasDerivAt_st : ∀ s t, HasDerivAt (fun σ => dT u σ t) (dS (dT u) s t) s
+  /-- `∂²u/∂t∂σ` exists and the two mixed partials agree (Schwarz). -/
+  hasDerivAt_ts : ∀ s t, HasDerivAt (dS u s) (dS (dT u) s t) t
+  /-- The mixed partial is continuous. -/
+  continuous_st : Continuous fun p : ℝ × ℝ => dS (dT u) p.1 p.2
+
 end Partials
 
 /-! ## §6.4 The gradient of the action functional, and the Floer equation
@@ -662,7 +686,7 @@ variable {l : Type*} [DecidableEq l] [Fintype l]
 /-- **§6.4, the Floer equation.**  A solution is a smooth family of loops
 `u : ℝ × S¹ → ℝ^{2n}` satisfying `∂u/∂s + J₀(∂u/∂t) + grad H_t(u) = 0`. -/
 structure IsFloerSolution (H : ((l ⊕ l) → ℝ) → ℝ → ℝ) (u : ℝ → ℝ → ((l ⊕ l) → ℝ)) : Prop
-    extends IsLoopVariation u where
+    extends IsSmoothLoopVariation u where
   /-- The Floer equation. -/
   floer : ∀ s t, dS u s t + stdJ l (dT u s t) + hamGrad H t (u s t) = 0
 
@@ -706,7 +730,18 @@ theorem isFloerSolution_of_isPeriodicOrbit (H : ((l ⊕ l) → ℝ) → ℝ → 
     simp [dS]
   have hcx : Continuous x :=
     continuous_iff_continuousAt.mpr fun t => (hx.hasDerivAt t).differentiableAt.continuousAt
-  refine ⟨⟨fun s => hx.periodic, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
+  have hconst : ∀ t : ℝ, (fun _ : ℝ => dT (fun (_ : ℝ) (t : ℝ) => x t) 0 t)
+      = fun σ : ℝ => dT (fun (_ : ℝ) (t : ℝ) => x t) σ t := by
+    intro t
+    exact funext fun σ => by rw [hdT σ t, hdT 0 t]
+  have hdST : ∀ s t, dS (dT fun (_ : ℝ) (t : ℝ) => x t) s t = 0 := by
+    intro s t
+    show deriv (fun σ => dT (fun (_ : ℝ) (t : ℝ) => x t) σ t) s = 0
+    rw [← hconst t]
+    exact deriv_const s _
+  have hdSfun : ∀ s : ℝ, dS (fun (_ : ℝ) (t : ℝ) => x t) s
+      = fun _ : ℝ => (0 : (l ⊕ l) → ℝ) := fun s => funext fun t => hdS s t
+  refine ⟨⟨⟨fun s => hx.periodic, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩, ?_⟩
   · intro s t
     rw [hdS s t]
     exact hasDerivAt_const s (x t)
@@ -718,6 +753,14 @@ theorem isFloerSolution_of_isPeriodicOrbit (H : ((l ⊕ l) → ℝ) → ℝ → 
     exact continuous_const
   · simp only [hdT]
     exact hXcont.comp continuous_snd
+  · intro s t
+    rw [hdST s t, ← hconst t]
+    exact hasDerivAt_const s _
+  · intro s t
+    rw [hdST s t, hdSfun s]
+    exact hasDerivAt_const t _
+  · simp only [hdST]
+    exact continuous_const
   · intro s t
     rw [hdS, hdT, hamField_eq_stdJ_grad, (stdJ_isCalibrated l).sq]
     abel
@@ -755,7 +798,13 @@ theorem IsFloerSolution.translate {H : ((l ⊕ l) → ℝ) → ℝ → ℝ} {u :
     simp only [dS]
     exact deriv_comp_add_const (fun s => u s t) σ s
   have hdT : ∀ s t, dT (fun s t => u (s + σ) t) s t = dT u (s + σ) t := fun s t => rfl
-  refine ⟨⟨fun s => hu.periodic (s + σ), ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
+  have hdST : ∀ s t, dS (dT fun s t => u (s + σ) t) s t = dS (dT u) (s + σ) t := by
+    intro s t
+    simp only [dS]
+    exact deriv_comp_add_const (fun s' => dT u s' t) σ s
+  have hdSfun : ∀ s : ℝ, dS (fun s t => u (s + σ) t) s = dS u (s + σ) :=
+    fun s => funext fun t => hdS s t
+  refine ⟨⟨⟨fun s => hu.periodic (s + σ), ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩, ?_⟩
   · intro s t
     rw [hdS s t]
     exact HasDerivAt.comp_add_const s σ (hu.hasDerivAt_s (s + σ) t)
@@ -767,6 +816,14 @@ theorem IsFloerSolution.translate {H : ((l ⊕ l) → ℝ) → ℝ → ℝ} {u :
     exact hu.continuous_s.comp ((continuous_fst.add continuous_const).prodMk continuous_snd)
   · simp only [hdT]
     exact hu.continuous_t.comp ((continuous_fst.add continuous_const).prodMk continuous_snd)
+  · intro s t
+    rw [hdST s t]
+    exact HasDerivAt.comp_add_const s σ (hu.hasDerivAt_st (s + σ) t)
+  · intro s t
+    rw [hdST s t, hdSfun s]
+    exact hu.hasDerivAt_ts (s + σ) t
+  · simp only [hdST]
+    exact hu.continuous_st.comp ((continuous_fst.add continuous_const).prodMk continuous_snd)
   · intro s t
     rw [hdS s t, hdT s t]
     exact hu.floer (s + σ) t
@@ -850,23 +907,265 @@ section Variation
 
 variable {l : Type*} [DecidableEq l] [Fintype l]
 
+/-! ### Auxiliary continuity and differentiability lemmas
+
+The lemmas of §6.3 above are stated for curves `ℝ → ℝ^{2n}`; differentiating
+under the integral sign needs the same facts jointly in `(σ, t)`, so they are
+restated here over an arbitrary topological parameter space. -/
+
+omit [DecidableEq l] in
+private theorem continuous_dot₂ {α : Type*} [TopologicalSpace α] {x y : α → ((l ⊕ l) → ℝ)}
+    (hx : Continuous x) (hy : Continuous y) : Continuous fun a => x a ⬝ᵥ y a := by
+  simp only [dotProduct]
+  exact continuous_finsetSum _ fun i _ =>
+    ((continuous_apply i).comp hx).mul ((continuous_apply i).comp hy)
+
+omit [DecidableEq l] in
+private theorem continuous_mulVec₂ {α : Type*} [TopologicalSpace α]
+    (M : Matrix (l ⊕ l) (l ⊕ l) ℝ) {y : α → ((l ⊕ l) → ℝ)} (hy : Continuous y) :
+    Continuous fun a => M *ᵥ y a := by
+  refine continuous_pi fun i => ?_
+  simp only [Matrix.mulVec, dotProduct]
+  exact continuous_finsetSum _ fun j _ => continuous_const.mul ((continuous_apply j).comp hy)
+
+private theorem continuous_stdForm₂ {α : Type*} [TopologicalSpace α] {x y : α → ((l ⊕ l) → ℝ)}
+    (hx : Continuous x) (hy : Continuous y) :
+    Continuous fun a => stdForm l (x a) (y a) := by
+  simp only [stdForm_apply]
+  exact continuous_dot₂ hx (continuous_mulVec₂ _ hy)
+
+omit [DecidableEq l] in
+/-- A `C¹` time-dependent Hamiltonian is differentiable in the space variable at
+each fixed time, with differential the restriction of `dH` to the first factor. -/
+private theorem hasFDerivAt_partial {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x : (l ⊕ l) → ℝ) (t : ℝ) :
+    HasFDerivAt (fun y : (l ⊕ l) → ℝ => H y t)
+      ((fderiv ℝ (fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x, t)).comp
+        (ContinuousLinearMap.inl ℝ ((l ⊕ l) → ℝ) ℝ)) x := by
+  have hin : HasFDerivAt (fun y : (l ⊕ l) → ℝ => (y, t))
+      (ContinuousLinearMap.inl ℝ ((l ⊕ l) → ℝ) ℝ) x := hasFDerivAt_prodMk_left x t
+  have hG : HasFDerivAt (fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+      (fderiv ℝ (fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x, t)) (x, t) :=
+    (hH.differentiable one_ne_zero (x, t)).hasFDerivAt
+  have hcomp := hG.comp x hin
+  exact hcomp
+
+omit [DecidableEq l] in
+private theorem differentiableAt_partial {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x : (l ⊕ l) → ℝ) (t : ℝ) :
+    DifferentiableAt ℝ (fun y => H y t) x := (hasFDerivAt_partial hH x t).differentiableAt
+
+private theorem hamGrad_apply_eq {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (t : ℝ) (x : (l ⊕ l) → ℝ)
+    (i : l ⊕ l) :
+    hamGrad H t x i
+      = fderiv ℝ (fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x, t)
+          ((Pi.single i 1 : (l ⊕ l) → ℝ), (0 : ℝ)) := by
+  show fderiv ℝ (fun y => H y t) x (Pi.single i 1) = _
+  rw [(hasFDerivAt_partial hH x t).fderiv]
+  simp
+
+/-- `X_t(x)` is jointly continuous in `(t, x)` when `H` is `C¹`. -/
+private theorem continuous_hamField {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {α : Type*} [TopologicalSpace α] {x : α → ((l ⊕ l) → ℝ)} {τ : α → ℝ}
+    (hx : Continuous x) (hτ : Continuous τ) :
+    Continuous fun a => hamField H (τ a) (x a) := by
+  have hfd : Continuous (fderiv ℝ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) :=
+    hH.continuous_fderiv one_ne_zero
+  have hg : Continuous fun a => hamGrad H (τ a) (x a) := by
+    refine continuous_pi fun i => ?_
+    simp only [hamGrad_apply_eq hH]
+    have h1 : Continuous fun a => fderiv ℝ (fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) (x a, τ a) :=
+      hfd.comp (hx.prodMk hτ)
+    exact h1.clm_apply continuous_const
+  simp only [hamField_eq_stdJ_grad, stdJ_apply]
+  exact continuous_mulVec₂ _ hg
+
+/-- Joint continuity of the `σ`-derivative of that integrand. -/
+private theorem continuous_actionIntegrandDeriv {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) :
+    Continuous fun p : ℝ × ℝ => stdForm l (dS u p.1 p.2) (hamField H p.2 (u p.1 p.2))
+      - 1 / 2 * (stdForm l (dS u p.1 p.2) (dT u p.1 p.2)
+          + stdForm l (u p.1 p.2) (dS (dT u) p.1 p.2)) :=
+  (continuous_stdForm₂ hu.continuous_s
+      (continuous_hamField hH hu.continuous continuous_snd)).sub
+    (continuous_const.mul ((continuous_stdForm₂ hu.continuous_s hu.continuous_t).add
+      (continuous_stdForm₂ hu.continuous hu.continuous_st)))
+
+/-- The `σ`-derivative of the integrand of the action, pointwise in `t`:
+`dH_t(∂u/∂s) − ½ ω(∂u/∂s, ∂u/∂t) − ½ ω(u, ∂²u/∂σ∂t)`, with the first term
+rewritten as `ω(∂u/∂s, X_t(u))` by `stdForm_hamField`. -/
+private theorem hasDerivAt_actionIntegrand {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) (σ t : ℝ) :
+    HasDerivAt (fun σ' => H (u σ' t) t - 1 / 2 * stdForm l (u σ' t) (dT u σ' t))
+      (stdForm l (dS u σ t) (hamField H t (u σ t))
+        - 1 / 2 * (stdForm l (dS u σ t) (dT u σ t)
+            + stdForm l (u σ t) (dS (dT u) σ t))) σ := by
+  have h1 : HasDerivAt (fun σ' => H (u σ' t) t)
+      (stdForm l (dS u σ t) (hamField H t (u σ t))) σ := by
+    rw [stdForm_hamField]
+    have hc := ((differentiableAt_partial hH (u σ t) t).hasFDerivAt).comp_hasDerivAt σ
+      (hu.hasDerivAt_s σ t)
+    exact hc
+  have h2 : HasDerivAt (fun σ' => stdForm l (u σ' t) (dT u σ' t))
+      (stdForm l (dS u σ t) (dT u σ t) + stdForm l (u σ t) (dS (dT u) σ t)) σ :=
+    hasDerivAt_stdForm (hu.hasDerivAt_s σ t) (hu.hasDerivAt_st σ t)
+  have h3 := h1.sub (HasDerivAt.const_mul (1 / 2 : ℝ) h2)
+  exact h3
+
+/-- The integration by parts that turns the `σ`-derivative of the action
+integrand into the action form.  With `x = u_s` and `Y = ∂u/∂s`,
+`integral_stdForm_byParts` gives `∫ ω(ẋ, Y) + ∫ ω(x, Ẏ) = 0`; since
+`Ẏ = ∂²u/∂σ∂t` by the symmetry of the mixed partials, this turns
+`−½ ∫ ω(∂u/∂s, ∂u/∂t) − ½ ∫ ω(u, ∂²u/∂σ∂t)` into `∫ ω(∂u/∂t, ∂u/∂s)`. -/
+private theorem actionForm_eq_integral (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) (s : ℝ) :
+    actionForm H (u s) (dS u s)
+      = ∫ t in (0:ℝ)..1, (stdForm l (dS u s t) (hamField H t (u s t))
+          - 1 / 2 * (stdForm l (dS u s t) (dT u s t)
+              + stdForm l (u s t) (dS (dT u) s t))) := by
+  have hp : Continuous fun t : ℝ => ((s : ℝ), t) := continuous_const.prodMk continuous_id
+  have hcu1 : Continuous (u s) := hu.continuous.comp hp
+  have hcs1 : Continuous (dS u s) := hu.continuous_s.comp hp
+  have hct1 : Continuous (dT u s) := hu.continuous_t.comp hp
+  have hcst1 : Continuous (dS (dT u) s) := hu.continuous_st.comp hp
+  have hcX1 : Continuous fun t : ℝ => hamField H t (u s t) :=
+    (continuous_hamField hH hu.continuous continuous_snd).comp hp
+  have hper1 : Function.Periodic (dS u s) 1 := by
+    intro t
+    have he : (fun σ => u σ (t + 1)) = fun σ => u σ t := funext fun σ => hu.periodic σ t
+    show deriv (fun σ => u σ (t + 1)) s = deriv (fun σ => u σ t) s
+    rw [he]
+  have hbp := integral_stdForm_byParts (x := u s) (y := dS u s) (x' := dT u s)
+    (y' := dS (dT u) s) (hu.hasDerivAt_t s) (hu.hasDerivAt_ts s) hcu1 hcs1 hct1 hcst1
+    (hu.periodic s) hper1
+  have hskew : (∫ t in (0:ℝ)..1, stdForm l (dT u s t) (dS u s t))
+      = -∫ t in (0:ℝ)..1, stdForm l (dS u s t) (dT u s t) := by
+    rw [← intervalIntegral.integral_neg]
+    exact intervalIntegral.integral_congr fun t _ => (stdForm_isSymplectic l).skew _ _
+  rw [hskew] at hbp
+  have hcb : (∫ t in (0:ℝ)..1, stdForm l (u s t) (dS (dT u) s t))
+      = ∫ t in (0:ℝ)..1, stdForm l (dS u s t) (dT u s t) := by linarith
+  have hIa : IntervalIntegrable (fun t => stdForm l (dS u s t) (hamField H t (u s t)))
+      MeasureTheory.volume 0 1 := (continuous_stdForm₂ hcs1 hcX1).intervalIntegrable 0 1
+  have hIb : IntervalIntegrable (fun t => stdForm l (dS u s t) (dT u s t))
+      MeasureTheory.volume 0 1 := (continuous_stdForm₂ hcs1 hct1).intervalIntegrable 0 1
+  have hIc : IntervalIntegrable (fun t => stdForm l (u s t) (dS (dT u) s t))
+      MeasureTheory.volume 0 1 := (continuous_stdForm₂ hcu1 hcst1).intervalIntegrable 0 1
+  have hI2 : IntervalIntegrable (fun t => 1 / 2 * (stdForm l (dS u s t) (dT u s t)
+      + stdForm l (u s t) (dS (dT u) s t))) MeasureTheory.volume 0 1 :=
+    (continuous_const.mul ((continuous_stdForm₂ hcs1 hct1).add
+      (continuous_stdForm₂ hcu1 hcst1))).intervalIntegrable 0 1
+  have hlhs : actionForm H (u s) (dS u s)
+      = ∫ t in (0:ℝ)..1, (stdForm l (dS u s t) (hamField H t (u s t))
+          - stdForm l (dS u s t) (dT u s t)) := by
+    simp only [actionForm]
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    show stdForm l (dT u s t - hamField H t (u s t)) (dS u s t)
+        = stdForm l (dS u s t) (hamField H t (u s t)) - stdForm l (dS u s t) (dT u s t)
+    rw [(stdForm_isSymplectic l).skew (dT u s t - hamField H t (u s t)) (dS u s t)]
+    simp only [map_sub]
+    ring
+  rw [hlhs, intervalIntegral.integral_sub hIa hIb, intervalIntegral.integral_sub hIa hI2,
+    intervalIntegral.integral_const_mul, intervalIntegral.integral_add hIb hIc, hcb]
+  ring
+
+/-- The integrand of the action, at a fixed value of the parameter. -/
+private theorem continuous_actionIntegrand_at {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsLoopVariation u) (σ : ℝ) :
+    Continuous fun t : ℝ => H (u σ t) t - 1 / 2 * stdForm l (u σ t) (dT u σ t) := by
+  have hp : Continuous fun t : ℝ => ((σ : ℝ), t) := continuous_const.prodMk continuous_id
+  have h0 : Continuous fun t : ℝ => u σ t := hu.continuous.comp hp
+  have h1 : Continuous fun t : ℝ => dT u σ t := hu.continuous_t.comp hp
+  have h2 : Continuous fun t : ℝ => H (u σ t) t :=
+    hH.continuous.comp (h0.prodMk continuous_id)
+  exact h2.sub (continuous_const.mul (continuous_stdForm₂ h0 h1))
+
+/-- Its `σ`-derivative, at a fixed value of the parameter. -/
+private theorem continuous_actionIntegrandDeriv_at {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) (σ : ℝ) :
+    Continuous fun t : ℝ => stdForm l (dS u σ t) (hamField H t (u σ t))
+      - 1 / 2 * (stdForm l (dS u σ t) (dT u σ t) + stdForm l (u σ t) (dS (dT u) σ t)) := by
+  have hp : Continuous fun t : ℝ => ((σ : ℝ), t) := continuous_const.prodMk continuous_id
+  have h0 : Continuous fun t : ℝ => u σ t := hu.continuous.comp hp
+  have h1 : Continuous fun t : ℝ => dS u σ t := hu.continuous_s.comp hp
+  have h2 : Continuous fun t : ℝ => dT u σ t := hu.continuous_t.comp hp
+  have h3 : Continuous fun t : ℝ => dS (dT u) σ t := hu.continuous_st.comp hp
+  have h4 : Continuous fun t : ℝ => hamField H t (u σ t) :=
+    continuous_hamField (τ := fun t : ℝ => t) hH h0 continuous_id
+  exact (continuous_stdForm₂ h1 h4).sub
+    (continuous_const.mul ((continuous_stdForm₂ h1 h2).add (continuous_stdForm₂ h0 h3)))
+
+/-- The dominating bound required by the differentiation-under-the-integral
+lemma: the `σ`-derivative of the integrand is continuous, hence bounded on the
+compact set `[s−1, s+1] × [0,1]`. -/
+private theorem exists_bound_actionIntegrandDeriv {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) (s : ℝ) :
+    ∃ C : ℝ, ∀ t : ℝ, t ∈ Set.uIoc (0 : ℝ) 1 → ∀ σ ∈ Metric.ball s 1,
+      ‖stdForm l (dS u σ t) (hamField H t (u σ t))
+        - 1 / 2 * (stdForm l (dS u σ t) (dT u σ t)
+            + stdForm l (u σ t) (dS (dT u) σ t))‖ ≤ C := by
+  obtain ⟨C, hC⟩ := (IsCompact.prod (isCompact_Icc (a := s - 1) (b := s + 1))
+    (isCompact_Icc (a := (0 : ℝ)) (b := (1 : ℝ)))).exists_bound_of_continuousOn
+      (continuous_actionIntegrandDeriv hH hu).continuousOn
+  refine ⟨C, fun t ht σ hσ => ?_⟩
+  rw [Set.uIoc_of_le zero_le_one] at ht
+  rw [Metric.mem_ball, Real.dist_eq, abs_lt] at hσ
+  exact hC (σ, t) ⟨⟨by linarith [hσ.1], by linarith [hσ.2]⟩, ⟨ht.1.le, ht.2⟩⟩
+
 /-- **Proposition 6.3.4** (the analytic half): the first variation of the action
 functional along a smooth family of loops is the action form,
 `d/ds A_H(u_s) = ∫₀¹ ω(∂u/∂t − X_t(u), ∂u/∂s) dt`.
 
-Both algebraic ingredients of the book's computation are proved above: the
-integration by parts `∫ ω(x, Ẏ) = −∫ ω(ẋ, Y)` (`integral_stdForm_byParts`) and
-the defining property `dH_t(Y) = ω(Y, X_t)` (`stdForm_hamField`).  What is
-missing is the analytic step of differentiating under the integral sign along
-the family, for which Mathlib's hypotheses
-(`hasDerivAt_integral_of_dominated_loc_of_lip` and friends) would have to be
-verified for the interval integral of a `C¹` family; that has not been done
-here. -/
+The proof is the book's computation.  Differentiating under the integral sign
+(Mathlib's `intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le`,
+the dominating bound coming from the continuity of the `σ`-derivative of the
+integrand on the compact set `[s−1, s+1] × [0,1]`) gives
+
+`d/dσ A_H(u_σ)|_{σ=s} = ∫₀¹ (dH_t(∂u/∂s) − ½ ω(∂u/∂s, ∂u/∂t) − ½ ω(u, ∂²u/∂σ∂t))`.
+
+The first term is `ω(∂u/∂s, X_t(u))` by `stdForm_hamField`, and integration by
+parts on the circle (`integral_stdForm_byParts`, applied to the loop `u_s` and
+the vector field `∂u/∂s` along it) turns `∫ ω(u, ∂²u/∂σ∂t)` into
+`∫ ω(∂u/∂s, ∂u/∂t)`, so that the last two terms add up to
+`−∫ ω(∂u/∂s, ∂u/∂t) = ∫ ω(∂u/∂t, ∂u/∂s)`.
+
+Note the hypothesis: `IsSmoothLoopVariation`, not `IsLoopVariation`.  The term
+`ω(u, ∂²u/∂σ∂t)` produced by the differentiation is meaningless unless the
+mixed partial exists, and the integration by parts that cancels it needs both
+its continuity and its symmetry `∂²u/∂σ∂t = ∂²u/∂t∂σ`.  The book's variations
+are `C^∞` families of loops, so this is exactly what it assumes; stating the
+result for `IsLoopVariation` would be stating something the book does not
+prove. -/
 theorem hasDerivAt_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsLoopVariation u) (s : ℝ) :
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsSmoothLoopVariation u) (s : ℝ) :
     HasDerivAt (fun σ => action H (u σ)) (actionForm H (u s) (dS u s)) s := by
-  sorry
+  obtain ⟨C, hbound⟩ := exists_bound_actionIntegrandDeriv hH hu s
+  have key := intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := MeasureTheory.volume) (a := (0 : ℝ)) (b := (1 : ℝ)) (x₀ := s)
+      (bound := fun _ => C) (s := Metric.ball s 1)
+      (F := fun σ t => H (u σ t) t - 1 / 2 * stdForm l (u σ t) (dT u σ t))
+      (F' := fun σ t => stdForm l (dS u σ t) (hamField H t (u σ t))
+        - 1 / 2 * (stdForm l (dS u σ t) (dT u σ t) + stdForm l (u σ t) (dS (dT u) σ t)))
+      (Metric.ball_mem_nhds s one_pos)
+      (Filter.Eventually.of_forall fun σ =>
+        (continuous_actionIntegrand_at hH hu.toIsLoopVariation σ).aestronglyMeasurable)
+      ((continuous_actionIntegrand_at hH hu.toIsLoopVariation s).intervalIntegrable 0 1)
+      (continuous_actionIntegrandDeriv_at hH hu s).aestronglyMeasurable
+      (MeasureTheory.ae_of_all _ hbound) intervalIntegrable_const
+      (MeasureTheory.ae_of_all _ fun t _ σ _ => hasDerivAt_actionIntegrand hH hu σ t)
+  have haction : (fun σ => action H (u σ)) = fun σ => ∫ t in (0:ℝ)..1,
+      (H (u σ t) t - 1 / 2 * stdForm l (u σ t) (dT u σ t)) := rfl
+  rw [haction, actionForm_eq_integral H hH hu s]
+  exact key.2
 
 /-- **§6.5.a.**  Along a Floer trajectory the action decreases at the rate
 `d/ds A_H(u_s) = −∫_{S¹} |∂u/∂s|² dt = −‖grad A_H‖²`.
@@ -879,7 +1178,7 @@ theorem hasDerivAt_action_of_floer (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
     (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
     {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) (s : ℝ) :
     HasDerivAt (fun σ => action H (u σ)) (-∫ t in (0:ℝ)..1, energyDensity u s t) s := by
-  have h := hasDerivAt_action H hH hu.toIsLoopVariation s
+  have h := hasDerivAt_action H hH hu.toIsSmoothLoopVariation s
   have hcong : (∫ t in (0:ℝ)..1, stdForm l (deriv (u s) t - hamField H t (u s t)) (dS u s t))
       = -∫ t in (0:ℝ)..1, energyDensity u s t := by
     rw [← intervalIntegral.integral_neg]

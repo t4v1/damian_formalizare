@@ -899,13 +899,22 @@ gaps.
   \label{prop:6.3.4}
   \lean{MorseFloer.Chapter6.action, MorseFloer.Chapter6.actionForm,
         MorseFloer.Chapter6.actionForm_eq_zero_iff,
-        MorseFloer.Chapter6.integral_stdForm_byParts}
+        MorseFloer.Chapter6.integral_stdForm_byParts,
+        MorseFloer.Chapter6.IsSmoothLoopVariation,
+        MorseFloer.Chapter6.hasDerivAt_action}
   \leanok
   \uses{def:6.1}
   The critical points of $A_H$ are exactly the $1$-periodic Hamiltonian orbits.
   This is the conceptual centre of Part II --- the analogue of ``critical points
   of a Morse function'' --- and it is proved outright, including the integration
   by parts on the circle that replaces the book's use of Stokes.
+
+  The \emph{first variation} itself, $\tfrac{d}{ds}A_H(u_s) = (\alpha_H)_{u_s}
+  (\partial_s u)$, is also proved, by differentiating under the integral sign.
+  It needs the mixed partial $\partial_s\partial_t u$ to exist, be continuous
+  and commute, which the book's smooth variations supply and which
+  \texttt{IsSmoothLoopVariation} records; the weaker
+  \texttt{IsLoopVariation} is genuinely insufficient.
 \end{proposition}
 
 \begin{definition}[The Floer equation and its energy, \S6.4--6.5]

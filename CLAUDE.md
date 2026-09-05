@@ -95,7 +95,7 @@ verifies every cited declaration still exists.
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | symplectic basis theorem proved in full |
-| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 13 | critical points of the action = periodic orbits |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |
 | `Part2/Ch9.lean` | 9 Spaces of trajectories | 0 | the Floer complex, ∂∘∂ = 0 |
@@ -224,6 +224,12 @@ These are specific to this Mathlib version and were each hit during the build:
   while `dotProduct` and friends sit at the root namespace.
 - `LinearMap.IsAlt.neg` is shadowed by a `BilinForm.IsAlt.neg` that means
   something else; derive skew-symmetry from `self_eq_zero (v + w)` instead.
+- **`Continuous.comp` against a large goal function is where defeq blows up.**
+  Building a sectional continuity statement directly from small pieces, instead
+  of composing a big joint statement with `fun t => (σ, t)`, turned a
+  million-heartbeat `isDefEq` timeout into an instant check. If you find
+  yourself raising `maxHeartbeats`, split the declaration instead.
+- `ContDiff.differentiable` takes `n ≠ 0`, like `ContDiffAt.differentiableAt`.
 - `Manifold.IsSmoothEmbedding` is in namespace `Manifold`; `open scoped Manifold`
   does not bring it into scope.
 
