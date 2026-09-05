@@ -36,8 +36,11 @@ assumed: they are true and standard, but proving them needs a serious chunk of
 operator theory that is not yet in Mathlib.
 
 Sections 16.3 and 16.4 are recorded in the blueprint without Lean statements.
-Mathlib has neither the space of distributions with its weak derivatives and
-convolution, nor Sobolev spaces `W^{k,p}(U)` on a domain, so the extension
+Mathlib *does* have distributions — test functions `𝓓^{n}(Ω, F)` on an open
+`Ω`, the space `𝓓'^{n}(Ω, F)` and the distributional derivative — and it has
+Bessel-potential Sobolev spaces of tempered distributions on all of `ℝⁿ`, defined
+through the Fourier transform.  What it does not have is `W^{k,p}(U)` on a
+domain with its norm, so the extension
 (16.4.1), trace, Poincaré (16.4.3), Sobolev embedding (16.4.4) and Rellich
 (16.4.6) theorems have nothing to be stated about.  This is the gap that makes
 Chapters 12 and 13 — elliptic regularity for the Floer operator — inaccessible.

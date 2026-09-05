@@ -101,12 +101,13 @@ verifies every cited declaration still exists.
 | `Part2/Ch9.lean` | 9 Spaces of trajectories | 0 | the Floer complex, ∂∘∂ = 0 |
 | `Part2/Ch10.lean` | 10 From Floer to Morse | 4 | the two complexes compared |
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
+| `Part2/Ch12.lean` | 12 Elliptic regularity | 1 | Cauchy–Riemann regularity, the bootstrapping recursion |
+| `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
 | `Part2/Ch16.lean` | 16 Analysis | 3 | the Fredholm index, which Mathlib lacks |
 
-Part I is complete. Remaining: Part II Chapters 12 and 13, the elliptic
-regularity of the Floer operator, which are blocked on Sobolev spaces.
+**All sixteen chapters of the book are now formalized.**
 
 Chapters 9 and 11 carry the two results that, together, prove the Arnold
 conjecture: Chapter 9 builds the Floer complex and proves its differential
@@ -138,6 +139,18 @@ the import order runs the other way:
   `Part1/Ch4.lean` as `brokenPairs_prod`, which is no longer assumed;
   `Chapter15.tensor_brokenPairs` is now an alias for it.
 
+### Contributing Sobolev spaces upstream
+
+The single gap that blocks the most is `W^{k,p}` on a domain. A worked plan for
+closing it as a Mathlib contribution — what already exists upstream, why the
+cylinder `ℝ × S¹` does not fit the designs in flight, and which PR to write
+first — is at https://claude.ai/code/artifact/6128ff05-9235-473b-beb9-9f0a2614767a
+
+Its conclusion in one line: **Morrey's inequality (the `p > n` Sobolev
+embedding) is absent from Mathlib**, is self-contained enough to state for
+compactly supported `C¹` functions without settling the space design, and is
+exactly the input Chapter 13 assumes repeatedly.
+
 ### The gaps that matter most
 
 Three missing Mathlib pieces account for nearly every assumption and for every
@@ -165,10 +178,24 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   (`sigPos`/`sigNeg`, at *root* namespace, not `QuadraticMap.`), Fredholm
   operators, `Matrix.SymplecticGroup`, Sobolev-adjacent analysis, homological
   algebra and homology of complexes.
+- **Also has, and this was wrong in earlier notes**: distributions. Bundled
+  test functions `𝓓^{n}(Ω, F)` on an open `Ω` with the LF topology, the space
+  `𝓓'^{n}(Ω, F)`, and the distributional directional derivative
+  (`Analysis/Distribution/TestFunction.lean`, `Distribution.lean`). Also
+  Bessel-potential Sobolev spaces `H^{s,p}` of *tempered* distributions defined
+  through the Fourier transform (`Analysis/Distribution/Sobolev.lean`), the
+  Gagliardo–Nirenberg–Sobolev inequality for compactly supported `C¹` functions
+  (`Analysis/FunctionalSpaces/SobolevInequality.lean`), harmonic functions with
+  the mean value property and analyticity, and the Cauchy–Riemann criterion
+  `differentiableAt_complex_iff_differentiableAt_real`.
 - **Does not have**: Morse theory of any kind, Sard's theorem for manifolds,
   the Hessian on a manifold, tubular neighbourhoods, the `Cᵏ` topology on
   `C^∞(V;ℝ)`, symplectic manifolds (only the linear symplectic group), Floer
-  homology, elliptic regularity for the Floer operator.
+  homology, and — the one that blocks Part II hardest — `W^{k,p}(V)` or
+  `W^{k,p}_loc(U)` **on a domain**, with their norms. The Bessel spaces above
+  are global on all of `ℝⁿ` and admit no restriction to a relatively compact
+  `V`, and the GNS inequality is stated only for `p < finrank ℝ E`. There is no
+  Sobolev embedding into `L^∞`, no Poincaré, no Rellich.
 
 ## Lean gotchas that cost real time here
 

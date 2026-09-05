@@ -1235,3 +1235,121 @@ argument is proved in full}, which is the chapter's logical skeleton.
   and the index formula for the linearised operator.  The compactness theorems
   11.1.10 and 11.1.13 need the Sobolev setting.
 \end{theorem}
+
+\chapter{Elliptic regularity of the Floer operator (Chapter 12)}
+
+Almost every statement of this chapter is an inequality between
+$W^{k,p}$-norms on a domain, and Mathlib has no such spaces --- see the note on
+Mathlib's actual Sobolev holdings in \ref{thm:16.4}.  What survives is the
+classical form of the regularity lemma, the chapter's logical architecture, and
+the exponent arithmetic of the bootstrap.
+
+\begin{lemma}[Lemma 12.1.1, classical form]
+  \label{lem:12.1.1}
+  \lean{MorseFloer.Chapter12.IsCauchyRiemann,
+        MorseFloer.Chapter12.contDiffOn_of_isCauchyRiemann,
+        MorseFloer.Chapter12.isCauchyRiemann_iff_differentiableOn}
+  \leanok
+  \uses{def:6.4}
+  A solution of the Floer equation for $J = J_0$ and $H = 0$ is a solution of the
+  Cauchy--Riemann equation, hence smooth.  Proved from Mathlib's criterion
+  \texttt{differentiableAt\_complex\_iff\_differentiableAt\_real} together with
+  analyticity of holomorphic functions.
+\end{lemma}
+
+\begin{lemma}[Lemma 12.1.1, distributional form: Weyl's lemma]
+  \label{lem:12.1.1w}
+  \lean{MorseFloer.Chapter12.IsWeakCauchyRiemann,
+        MorseFloer.Chapter12.exists_differentiable_of_isWeakCauchyRiemann}
+  \notready
+  \uses{lem:12.1.1}
+  A locally integrable weak solution of $\bar\partial u = 0$ agrees almost
+  everywhere with a holomorphic function.  \emph{Assumed}: Mathlib has
+  distributions, so the weak formulation is expressible and is written out here,
+  but it has no elliptic regularity for them.
+\end{lemma}
+
+\begin{definition}[\S12.1.c, the thread of Ariadne]
+  \label{def:12.1.c}
+  \lean{MorseFloer.Chapter12.ArianeThread,
+        MorseFloer.Chapter12.ArianeThread.of_calderonZygmund}
+  \leanok
+  The eight regularity statements of the chapter and the seven implications
+  between them, recorded as a structure.  All eight follow from
+  Calder\'on--Zygmund.  This preserves the chapter's logical architecture exactly,
+  even though the individual statements are about spaces that cannot be formed.
+\end{definition}
+
+\begin{proposition}[\S12.4, the bootstrap recursion]
+  \label{prop:12.4}
+  \lean{MorseFloer.Chapter12.bootstrapExp, MorseFloer.Chapter12.inv_bootstrapExp,
+        MorseFloer.Chapter12.bootstrapExp_sub_two,
+        MorseFloer.Chapter12.exists_two_le_of_bootstrap}
+  \leanok
+  \uses{def:12.1.c}
+  On reciprocal exponents the Sobolev bootstrap is translation by
+  $\tfrac12 - \tfrac1p$ --- which is exactly where the hypothesis $p > 2$ enters
+  --- and the recursion escapes the interval $(1,2)$ in finitely many steps.
+  Proved in full, together with the book's closed form for $r' - 2$.
+\end{proposition}
+
+\begin{proposition}[\S12.2--12.3, the surviving estimates]
+  \label{prop:12.3}
+  \lean{MorseFloer.Chapter12.rpow_add_le_two_rpow_mul,
+        MorseFloer.Chapter12.le_two_mul_of_absorb,
+        MorseFloer.Chapter12.contDiffOn_of_harmonicOnNhd,
+        MorseFloer.Chapter12.fundSol,
+        MorseFloer.Chapter12.hasDerivAt_fundSol_fst}
+  \leanok
+  The elementary inequalities behind the summation over $\mathbb{Z}$-translates
+  and the absorption step, the harmonic first step of Proposition 12.3.1, and the
+  fundamental solution with its two partial derivatives off the origin.
+\end{proposition}
+
+\chapter{The second derivative of the Floer operator (Chapter 13)}
+
+Everything phrased in $W^{1,p}(\mathbb{R}\times S^1)$ is unstatable, so the two
+lemmas the chapter exists to prove --- Lemmas 9.4.8 and 9.4.16 --- carry no Lean
+statement.  Their \emph{abstract skeletons}, however, mention no Sobolev space
+at all, and those are proved in full.  There is no \texttt{sorry} in the file.
+
+\begin{lemma}[Lemma 13.4.1]
+  \label{lem:13.4.1}
+  \lean{MorseFloer.Chapter13.norm_fderiv_comp_sub_le,
+        MorseFloer.Chapter13.norm_fderiv_comp₃_sub_le,
+        MorseFloer.Chapter13.norm_fderiv_bilinear_sub_le}
+  \leanok
+  \uses{thm:sndFDeriv_comp}
+  For $\varphi$ and $\psi$ between normed spaces satisfying four estimates on a
+  ball, $\lVert d(\psi\circ\varphi)_Z - d(\psi\circ\varphi)_0\rVert \le k\lVert
+  Z\rVert$ with the explicit constant $k = k_3(k_1r_0+k_2)^2 + k_4k_1$.  The
+  constant is stated explicitly rather than existentially because the whole point
+  is that it must not depend on the gluing parameter $\rho$.  A bounded bilinear
+  map satisfies hypothesis (3) automatically, which is why Lemma 13.4.2 holds.
+\end{lemma}
+
+\begin{lemma}[Lemma 13.5.1]
+  \label{lem:13.5.1}
+  \lean{MorseFloer.Chapter13.norm_parDeriv_comp_sub_le,
+        MorseFloer.Chapter13.parDeriv, MorseFloer.Chapter13.hasDerivAt_comp_param}
+  \leanok
+  \uses{lem:13.4.1}
+  The same estimate for the parameter derivative, with constant
+  $M = (k_1r_0+k_2)(k_6+k_3(k_5r_0+k_7)) + k_4k_5$, resting on the parameter
+  chain rule $\partial_\rho(\psi_\rho\circ\varphi_\rho) = \partial_\rho\psi +
+  d\psi_\rho(\partial_\rho\varphi)$, which is proved here.
+\end{lemma}
+
+\begin{lemma}[Lemma 13.2.3 and Remark 13.2.1]
+  \label{lem:13.2.3}
+  \lean{MorseFloer.Chapter13.exists_const_linear,
+        MorseFloer.Chapter13.exists_const_bilinear,
+        MorseFloer.Chapter13.norm_fderiv_sub_le_of_norm_sndFDeriv_le,
+        MorseFloer.Chapter13.norm_sndFDeriv_comp_le}
+  \leanok
+  \uses{thm:sndFDeriv_comp}
+  The uniform bounds coming from compactness of $W$, all four parts; and the
+  single assertion of Remark 13.2.1 from which the book deduces both Lemma 9.4.8
+  and Lemma 9.4.16, proved from the second differential and the mean value
+  inequality.
+\end{lemma}
