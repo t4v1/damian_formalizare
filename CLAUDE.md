@@ -91,9 +91,9 @@ verifies every cited declaration still exists.
 |---|---|---|---|
 | `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
 | `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard); Morse lemma proved in dimension one |
-| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows |
+| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows; Brouwer in dim ≤ 1 |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
-| `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half |
+| `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half; Brouwer in dim ≤ 1 |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 6 | symplectic basis theorem proved in full |
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
@@ -181,6 +181,11 @@ result recorded in the blueprint with no Lean statement at all:
 3. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
    symplectic manifolds (only the linear theory is reachable in Chapter 5); the
    second blocks the elliptic regularity of Chapters 12 and 13.
+4. **Excision or Mayer–Vietoris for singular homology.** Mathlib has singular
+   homology as a functor with homotopy invariance and `H₀`, but cannot compute
+   `H_{n-1}(Sⁿ⁻¹)`. That is what blocks Brouwer and the no-retraction theorem,
+   in Chapters 2 and 4, in every dimension above one. There is no shortcut:
+   `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent too.
 
 
 ## What Mathlib does and does not have

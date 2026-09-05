@@ -58,7 +58,12 @@ Proved here:
 Assumed (`sorry`): Proposition 2.1.6 (convergence of a trajectory to a critical
 point — the proof uses Morse charts, which need the Morse lemma), Reeb's
 theorem 2.1.9, the classification of compact connected 1-manifolds (2.3.2) and
-Brouwer's theorem (2.3.3), none of which Mathlib can currently prove.
+Brouwer's theorem (2.3.3), none of which Mathlib can currently prove.  Brouwer
+is assumed only in dimension `≥ 2`: `brouwer_dim_zero` and `brouwer_dim_one`
+prove the low-dimensional case in full, the latter by the intermediate value
+theorem.  The docstring of `brouwer` records why the general case is out of
+reach — no homology of spheres (no excision, no Mayer–Vietoris), no
+`π₁(S¹) ≅ ℤ`, no Sperner lemma and no degree theory.
 
 Omitted, because today's Mathlib cannot even state them faithfully:
 
@@ -901,14 +906,110 @@ theorem classification_dim_one {V : Type*} [TopologicalSpace V] [CompactSpace V]
     Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin 2)) 1) := by
   sorry
 
+/-- The norm on the line `EuclideanSpace ℝ (Fin 1)` is the absolute value of the
+single coordinate: this is what identifies the one-dimensional closed unit ball
+with `[−1, 1]`, and it is all `brouwer_dim_one` needs beyond the intermediate
+value theorem. -/
+theorem norm_eq_abs_coord (x : EuclideanSpace ℝ (Fin 1)) : ‖x‖ = |x 0| := by
+  rw [EuclideanSpace.norm_eq, Fin.sum_univ_one, Real.norm_eq_abs, sq_abs,
+    Real.sqrt_sq_eq_abs]
+
+/-- **Theorem 2.3.3, base case `n = 0`.**  Proved in full.  `EuclideanSpace ℝ
+(Fin 0)` has exactly one point, so the closed unit ball is `{0}` and the origin
+is a fixed point of every self-map.  With `brouwer_dim_one` this discharges
+`brouwer` for `n ≤ 1`; the obstruction for `n ≥ 2` is recorded on `brouwer`. -/
+theorem brouwer_dim_zero (ϕ : EuclideanSpace ℝ (Fin 0) → EuclideanSpace ℝ (Fin 0))
+    (_hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
+    (_hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 0)) 1, ϕ x = x := by
+  refine ⟨0, Metric.mem_closedBall_self zero_le_one, ?_⟩
+  ext i
+  exact i.elim0
+
+/-- **Theorem 2.3.3, base case `n = 1`.**  Proved in full.
+
+By `norm_eq_abs_coord` the closed unit ball of `EuclideanSpace ℝ (Fin 1)` is the
+image of `[−1, 1]` under the isometric parametrisation `t ↦ (t)`.  The function
+`g t = ϕ(t) − t` is continuous on `[−1, 1]`, and `g(1) ≤ 0 ≤ g(−1)` because `ϕ`
+maps the ball into itself, so `intermediate_value_Icc'` gives a zero of `g`,
+which is a fixed point of `ϕ`.
+
+This is a genuine instance of Theorem 2.3.3, not a placeholder: it is the base
+case any inductive or homological proof would also have to supply. -/
+theorem brouwer_dim_one (ϕ : EuclideanSpace ℝ (Fin 1) → EuclideanSpace ℝ (Fin 1))
+    (hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
+    (hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 1)) 1, ϕ x = x := by
+  obtain ⟨j, hj0, hjc, hjn⟩ :
+      ∃ j : ℝ → EuclideanSpace ℝ (Fin 1),
+        (∀ t, j t 0 = t) ∧ Continuous j ∧ ∀ t, ‖j t‖ = |t| := by
+    refine ⟨fun t => WithLp.toLp 2 fun _ => t, fun _ => rfl, ?_, ?_⟩
+    · exact (PiLp.continuous_toLp 2 _).comp (continuous_pi fun _ => continuous_id)
+    · intro t
+      rw [norm_eq_abs_coord]
+  have hjmem : ∀ t : ℝ, t ∈ Icc (-1 : ℝ) 1 →
+      j t ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 1)) 1 := by
+    intro t ht
+    rw [mem_closedBall_zero_iff, hjn]
+    exact abs_le.mpr ⟨ht.1, ht.2⟩
+  have hgc : ContinuousOn (fun t : ℝ => ϕ (j t) 0 - t) (Icc (-1 : ℝ) 1) :=
+    ((PiLp.continuous_apply 2 _ 0).comp_continuousOn
+      (hcont.comp hjc.continuousOn hjmem)).sub continuousOn_id
+  have hbound : ∀ t : ℝ, t ∈ Icc (-1 : ℝ) 1 → |ϕ (j t) 0| ≤ 1 := by
+    intro t ht
+    have h := hmaps (hjmem t ht)
+    rw [mem_closedBall_zero_iff, norm_eq_abs_coord] at h
+    exact h
+  have h1 : ϕ (j 1) 0 - 1 ≤ 0 := by
+    have h := (abs_le.mp (hbound 1 ⟨by norm_num, le_refl 1⟩)).2
+    linarith
+  have h2 : (0 : ℝ) ≤ ϕ (j (-1)) 0 - (-1) := by
+    have h := (abs_le.mp (hbound (-1) ⟨le_refl (-1 : ℝ), by norm_num⟩)).1
+    linarith
+  obtain ⟨t, ht, hgt⟩ :=
+    intermediate_value_Icc' (by norm_num : (-1 : ℝ) ≤ 1) hgc ⟨h1, h2⟩
+  refine ⟨j t, hjmem t ht, ?_⟩
+  have hcoord : ϕ (j t) 0 = t := by
+    have h : ϕ (j t) 0 - t = 0 := hgt
+    linarith
+  ext i
+  have hi : i = 0 := Fin.fin_one_eq_zero i
+  subst hi
+  rw [hj0]
+  exact hcoord
+
 /-- **Theorem 2.3.3 (Brouwer's fixed point theorem).**  A continuous self-map of
 the closed unit ball has a fixed point.
 
-`sorry`: the proof given in the book deduces it from Sard's theorem and the
-classification of 1-manifolds — a fixed-point-free map would give a smooth
-retraction of the ball onto its boundary, whose regular fibre would be a compact
-1-manifold with exactly one boundary point.  Mathlib has neither Sard's theorem
-nor Brouwer's theorem. -/
+`sorry` for arbitrary `n`.  The book's own proof deduces it from Sard's theorem
+and the classification of 1-manifolds — a fixed-point-free map would give a
+smooth retraction of the ball onto its boundary, whose regular fibre would be a
+compact 1-manifold with exactly one boundary point — and Mathlib has neither
+Sard's theorem nor `classification_dim_one` above.  But it is worth recording
+that *no* classical route is available either, since this was checked
+declaration by declaration:
+
+* **no homology of spheres.**  `Mathlib.AlgebraicTopology.SingularHomology`
+  builds singular homology as a functor and proves homotopy invariance and the
+  computation of `H₀`, but there is no excision and no Mayer–Vietoris, so
+  `H_{n−1}(Sⁿ⁻¹)` is computed nowhere and the no-retraction argument cannot be
+  run;
+* **no `π₁(S¹) ≅ ℤ`**, so even `n = 2` cannot go through covering spaces;
+* **no Sperner lemma** on simplicial subdivisions (`Combinatorics/SetFamily/
+  LYM.lean` is Sperner's unrelated *theorem* on antichains) and **no degree
+  theory**, closing the combinatorial and the analytic proofs.
+
+Brouwer's theorem is itself absent from this Mathlib (a search for `brouwer`
+finds only Brouwerian lattices), so it cannot simply be imported; closing this
+`sorry` means contributing one of the ingredients above upstream, of which
+excision plus Mayer–Vietoris for the existing singular homology is the cheapest.
+
+The low-dimensional case is *not* assumed: `brouwer_dim_zero` and
+`brouwer_dim_one` above prove it in full.  (`Chapter4.brouwer_fixedPoint`
+restates the theorem for §4.8.b and carries the same two base cases,
+`Chapter4.brouwer_fixedPoint_dim_zero` and
+`Chapter4.brouwer_fixedPoint_dim_one`; the proofs are repeated there because
+`Part1/Ch3.lean`, and hence `Part1/Ch4.lean`, does not import this file.) -/
 theorem brouwer {n : ℕ} (ϕ : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
     (_hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
     (_hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :

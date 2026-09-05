@@ -424,13 +424,22 @@ recorded here are what force the assumed results elsewhere.
 
 \begin{theorem}[Theorems 2.3.2 and 2.3.3]
   \label{thm:2.3.2}
-  \lean{MorseFloer.Chapter2.classification_dim_one, MorseFloer.Chapter2.brouwer}
+  \lean{MorseFloer.Chapter2.classification_dim_one, MorseFloer.Chapter2.brouwer,
+        MorseFloer.Chapter2.brouwer_dim_zero, MorseFloer.Chapter2.brouwer_dim_one}
   \notready
   A compact connected $1$-manifold is a circle or a segment --- so a compact
   $1$-manifold has an even number of boundary points, which is exactly what
   \ref{def:brokenPairs} needs --- and Brouwer's fixed point theorem.
   \emph{Assumed} (the classification for the closed case only); the manifolds
   with boundary needed for the general statement are not available.
+
+  Brouwer is proved in dimensions $0$ and $1$, the base cases, the second by the
+  intermediate value theorem.  The general case is blocked three ways at once and
+  cannot be assembled from today's Mathlib: there is no homology of spheres
+  (singular homology exists as a functor, with homotopy invariance and $H_0$, but
+  no excision and no Mayer--Vietoris, so $H_{n-1}(S^{n-1})$ is computed nowhere),
+  no $\pi_1(S^1) \simeq \mathbb{Z}$, and no Sperner lemma or degree theory.
+  Closing it means contributing excision upstream.
 \end{theorem}
 
 \chapter{The complex of critical points (Chapter 3)}
@@ -643,12 +652,19 @@ skeleton of the chapter --- is formalized and proved.
 \begin{theorem}[Theorem 4.8.3 and Corollaries 4.8.4--4.8.6, Borsuk--Ulam]
   \label{thm:4.8.3}
   \lean{MorseFloer.Chapter4.borsuk_ulam, MorseFloer.Chapter4.borsuk_ulam_of_odd,
-        MorseFloer.Chapter4.exists_eq_antipode}
+        MorseFloer.Chapter4.exists_eq_antipode,
+        MorseFloer.Chapter4.brouwer_fixedPoint,
+        MorseFloer.Chapter4.brouwer_fixedPoint_dim_zero,
+        MorseFloer.Chapter4.brouwer_fixedPoint_dim_one,
+        MorseFloer.Chapter4.no_retraction_closedBall}
   \notready
   There is no continuous odd map $S^n \to S^{n-1}$; hence every map
   $S^n\to\mathbb{R}^n$ identifies an antipodal pair.  Borsuk--Ulam itself is
   assumed --- it is \emph{not} in this Mathlib --- but the corollaries are
-  derived from it.  Brouwer (\S4.8.b) is likewise stated rather than cited.
+  derived from it.  Brouwer (\S4.8.b) is likewise absent from Mathlib; dimensions
+  $0$ and $1$ are proved here, and the general case is blocked by the same three
+  missing pieces recorded at \ref{thm:2.3.2}.  Brouwer and the no-retraction
+  theorem are equivalent by the ray construction, so they stand or fall together.
 \end{theorem}
 
 \begin{theorem}[\S4.6 functoriality and \S4.7 the long exact sequence]

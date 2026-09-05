@@ -86,7 +86,12 @@ or bookkeeping that is not attempted here:
   contains neither Brouwer's fixed point theorem nor Borsuk–Ulam** (a search for
   `brouwer` finds only Brouwerian lattices, and for `borsuk` only the
   Borsuk–Mazurkiewicz example on local contractibility), so they are stated
-  here.  Their corollaries are proved from them.
+  here.  Their corollaries are proved from them.  Nor can they be *derived*:
+  Mathlib has no excision or Mayer–Vietoris for its singular homology (so
+  `H_{n−1}(Sⁿ⁻¹)` is nowhere computed), no `π₁(S¹) ≅ ℤ`, no Sperner lemma and no
+  degree theory.  The low-dimensional case of Brouwer is nonetheless proved in
+  full — see `brouwer_fixedPoint_dim_zero` and `brouwer_fixedPoint_dim_one`
+  under §4.8.b, the latter by the intermediate value theorem.
 * `exists_antipodal_pair_of_closed_cover` — Corollary 4.8.6.
 
 ## Gaps: results carrying no Lean declaration
@@ -917,11 +922,124 @@ section Applications
 The book re-proves Brouwer's theorem from `HM_{n−1}(Dⁿ) = 0`: a fixed point free
 self-map of the disc produces a retraction `r : Dⁿ → Sⁿ⁻¹` with `r ∘ j = id`,
 which is impossible since the identity of `HM_{n−1}(Sⁿ⁻¹) = Z/2` would factor
-through `0`.  This Mathlib version has neither Brouwer's theorem nor the
-homology of spheres, so both statements are recorded here without proof. -/
+through `0`.
+
+**Why the general case is not proved here.**  It is not that the book's route is
+inconvenient: *all three* classical routes to Brouwer are unavailable in this
+Mathlib, and the check was made declaration by declaration.
+
+1. *No homology of spheres.*  `Mathlib.AlgebraicTopology.SingularHomology` does
+   build singular homology as a functor, with homotopy invariance and the
+   computation of `H₀`, but it has **no excision and no Mayer–Vietoris**.  So
+   `H_{n−1}(Sⁿ⁻¹)` is computed nowhere, and the book's argument — like every
+   homological proof of Brouwer — needs exactly that computation.
+2. *No fundamental group of the circle.*  `π₁(S¹) ≅ ℤ` is absent, so even `n = 2`
+   cannot be run through covering-space theory.
+3. *No Sperner lemma and no degree theory.*  `Combinatorics/SetFamily/LYM.lean`
+   is Sperner's *theorem* on antichains, an unrelated result; the combinatorial
+   Sperner lemma on simplicial subdivisions is not there, and neither is the
+   Brouwer degree of a map of spheres.  So the combinatorial and the analytic
+   proofs are closed too.
+
+Consequently `brouwer_fixedPoint` and `no_retraction_closedBall` are stated for
+arbitrary `n` and assumed.  What *is* reachable is the low-dimensional case, and
+it is proved here in full, not assumed: `brouwer_fixedPoint_dim_zero` and
+`brouwer_fixedPoint_dim_one`.  Dimension `1` is a genuine instance of the
+theorem — the intermediate value theorem applied to `t ↦ f(t) − t` on `[−1, 1]`
+— and it is the base case any inductive or homological proof would also have to
+supply. -/
+
+/-- The norm on the line `EuclideanSpace ℝ (Fin 1)` is the absolute value of the
+single coordinate.  This is what identifies the one-dimensional closed unit ball
+with the interval `[−1, 1]`, and it is the only computation the base case
+`brouwer_fixedPoint_dim_one` needs beyond the intermediate value theorem. -/
+theorem norm_eq_abs_coord (x : EuclideanSpace ℝ (Fin 1)) : ‖x‖ = |x 0| := by
+  rw [EuclideanSpace.norm_eq, Fin.sum_univ_one, Real.norm_eq_abs, sq_abs,
+    Real.sqrt_sq_eq_abs]
+
+/-- **Brouwer's fixed point theorem, base case `n = 0`.**  Proved in full.
+`EuclideanSpace ℝ (Fin 0)` has exactly one point, so the closed unit ball is
+`{0}` and every self-map fixes the origin.  Together with
+`brouwer_fixedPoint_dim_one` this discharges `brouwer_fixedPoint` for `n ≤ 1`;
+for `n ≥ 2` see the obstruction recorded above. -/
+theorem brouwer_fixedPoint_dim_zero
+    (f : EuclideanSpace ℝ (Fin 0) → EuclideanSpace ℝ (Fin 0))
+    (_hf : ContinuousOn f (Metric.closedBall 0 1))
+    (_hmaps : Set.MapsTo f (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 0)) 1, f x = x := by
+  refine ⟨0, Metric.mem_closedBall_self zero_le_one, ?_⟩
+  ext i
+  exact i.elim0
+
+/-- **Brouwer's fixed point theorem, base case `n = 1`.**  Proved in full.
+
+The closed unit ball of `EuclideanSpace ℝ (Fin 1)` is the image of `[−1, 1]`
+under the isometric parametrisation `t ↦ (t)`, by `norm_eq_abs_coord`.  Transport
+`f` to `g t = f(t) − t` on `[−1, 1]`: it is continuous, `g(1) ≤ 0` and
+`g(−1) ≥ 0` because `f` maps the ball into itself, so `intermediate_value_Icc'`
+produces a zero of `g`, which is a fixed point of `f`.
+
+This is the only case of `brouwer_fixedPoint` that today's Mathlib can supply;
+the obstruction to `n ≥ 2` is recorded above and on `brouwer_fixedPoint`. -/
+theorem brouwer_fixedPoint_dim_one
+    (f : EuclideanSpace ℝ (Fin 1) → EuclideanSpace ℝ (Fin 1))
+    (hf : ContinuousOn f (Metric.closedBall 0 1))
+    (hmaps : Set.MapsTo f (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 1)) 1, f x = x := by
+  obtain ⟨j, hj0, hjc, hjn⟩ :
+      ∃ j : ℝ → EuclideanSpace ℝ (Fin 1),
+        (∀ t, j t 0 = t) ∧ Continuous j ∧ ∀ t, ‖j t‖ = |t| := by
+    refine ⟨fun t => WithLp.toLp 2 fun _ => t, fun _ => rfl, ?_, ?_⟩
+    · exact (PiLp.continuous_toLp 2 _).comp (continuous_pi fun _ => continuous_id)
+    · intro t
+      rw [norm_eq_abs_coord]
+  have hjmem : ∀ t : ℝ, t ∈ Set.Icc (-1 : ℝ) 1 →
+      j t ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin 1)) 1 := by
+    intro t ht
+    rw [mem_closedBall_zero_iff, hjn]
+    exact abs_le.mpr ⟨ht.1, ht.2⟩
+  have hgc : ContinuousOn (fun t : ℝ => f (j t) 0 - t) (Set.Icc (-1 : ℝ) 1) :=
+    ((PiLp.continuous_apply 2 _ 0).comp_continuousOn
+      (hf.comp hjc.continuousOn hjmem)).sub continuousOn_id
+  have hbound : ∀ t : ℝ, t ∈ Set.Icc (-1 : ℝ) 1 → |f (j t) 0| ≤ 1 := by
+    intro t ht
+    have h := hmaps (hjmem t ht)
+    rw [mem_closedBall_zero_iff, norm_eq_abs_coord] at h
+    exact h
+  have h1 : f (j 1) 0 - 1 ≤ 0 := by
+    have h := (abs_le.mp (hbound 1 ⟨by norm_num, le_refl 1⟩)).2
+    linarith
+  have h2 : (0 : ℝ) ≤ f (j (-1)) 0 - (-1) := by
+    have h := (abs_le.mp (hbound (-1) ⟨le_refl (-1 : ℝ), by norm_num⟩)).1
+    linarith
+  obtain ⟨t, ht, hgt⟩ :=
+    intermediate_value_Icc' (by norm_num : (-1 : ℝ) ≤ 1) hgc ⟨h1, h2⟩
+  refine ⟨j t, hjmem t ht, ?_⟩
+  have hcoord : f (j t) 0 = t := by
+    have h : f (j t) 0 - t = 0 := hgt
+    linarith
+  ext i
+  have hi : i = 0 := Fin.fin_one_eq_zero i
+  subst hi
+  rw [hj0]
+  exact hcoord
 
 /-- **Theorem 2.3.3, reproved in §4.8.b (Brouwer).**  A continuous self-map of
-the closed unit ball has a fixed point.  Not in this Mathlib version. -/
+the closed unit ball has a fixed point.
+
+`sorry` for arbitrary `n`, and the obstruction is precise: this Mathlib has
+**no homology of spheres** (singular homology exists as a functor, with homotopy
+invariance and `H₀`, but there is no excision and no Mayer–Vietoris, so
+`H_{n−1}(Sⁿ⁻¹)` is computed nowhere), **no `π₁(S¹) ≅ ℤ`** (which would settle
+`n = 2`), **no Sperner lemma** on simplicial subdivisions (`Combinatorics/
+SetFamily/LYM.lean` is Sperner's unrelated theorem on antichains) and **no
+degree theory**.  Brouwer's theorem itself is also absent — a search for
+`brouwer` finds only Brouwerian lattices — so it cannot simply be imported.
+Every classical proof therefore needs a Mathlib contribution first; the cheapest
+is excision plus Mayer–Vietoris on the existing singular homology.
+
+The low-dimensional case is *not* assumed: see `brouwer_fixedPoint_dim_zero` and
+`brouwer_fixedPoint_dim_one`, both proved in full above. -/
 theorem brouwer_fixedPoint {n : ℕ}
     (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
     (hf : ContinuousOn f (Metric.closedBall 0 1))
@@ -930,7 +1048,21 @@ theorem brouwer_fixedPoint {n : ℕ}
   sorry
 
 /-- **§4.8.b.**  There is no retraction of the closed ball onto its boundary
-sphere: a map of the ball into the sphere must move some point of the sphere. -/
+sphere: a map of the ball into the sphere must move some point of the sphere.
+
+`sorry`, and equivalently so: no-retraction and `brouwer_fixedPoint` imply each
+other by the standard ray construction, so this statement is blocked by exactly
+the three missing ingredients listed on `brouwer_fixedPoint` — no homology of
+spheres (no excision, no Mayer–Vietoris, hence no `H_{n−1}(Sⁿ⁻¹)`), no
+`π₁(S¹) ≅ ℤ`, no Sperner lemma and no degree theory.  The book's proof is the
+homological one: `r ∘ j = id` on `Sⁿ⁻¹` would factor the identity of
+`HM_{n−1}(Sⁿ⁻¹) = Z/2` through `HM_{n−1}(Dⁿ) = 0`.
+
+For the fixed point statement the case `n ≤ 1` is proved in full above
+(`brouwer_fixedPoint_dim_zero`, `brouwer_fixedPoint_dim_one`); here the
+corresponding case is `n + 1 ≤ 1`, i.e. `n = 0`, where `S⁰` is two points and the
+statement is elementary but not separately used, so it is left inside the
+general `sorry`. -/
 theorem no_retraction_closedBall {n : ℕ}
     (r : EuclideanSpace ℝ (Fin (n + 1)) → EuclideanSpace ℝ (Fin (n + 1)))
     (hr : ContinuousOn r (Metric.closedBall 0 1))
