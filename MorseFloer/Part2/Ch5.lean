@@ -1063,20 +1063,77 @@ theorem transpose_mul_J_eq {A : Matrix (l ⊕ l) (l ⊕ l) ℝ}
     _ = Aᵀ * Matrix.J l ℝ * A * A⁻¹ := (Matrix.mul_assoc _ _ _).symm
     _ = Matrix.J l ℝ * A⁻¹ := by rw [h]
 
+/-- A symplectic matrix has a symplectic inverse.  (Mathlib knows that
+`symplecticGroup` is a group; this transports it to `Matrix.inv`.) -/
+theorem inv_mem_symplecticGroup {K : Type*} [Field K] {A : Matrix (l ⊕ l) (l ⊕ l) K}
+    (hA : A ∈ Matrix.symplecticGroup l K) :
+    A⁻¹ ∈ Matrix.symplecticGroup l K := by
+  have h := (⟨A, hA⟩ : Matrix.symplecticGroup l K)⁻¹.2
+  rwa [SymplecticGroup.coe_inv'] at h
+
+/-- For a symplectic `A` and any scalar `c`, `det(A⁻¹ − c) = det(A − c)`: indeed
+`A⁻¹ = (−J) Aᵀ J`, conjugation does not change the determinant, and neither does
+transposition.  This is the computational content of Proposition 5.6.3. -/
+theorem det_inv_sub_smul {K : Type*} [Field K] {A : Matrix (l ⊕ l) (l ⊕ l) K}
+    (hA : A ∈ Matrix.symplecticGroup l K) (c : K) :
+    (A⁻¹ - c • 1).det = (A - c • 1).det := by
+  have hinv : A⁻¹ = (-Matrix.J l K) * Aᵀ * Matrix.J l K :=
+    SymplecticGroup.inv_eq_symplectic_inv A hA
+  have hJJ : (-Matrix.J l K) * Matrix.J l K = 1 := by
+    rw [Matrix.neg_mul, Matrix.J_squared, neg_neg]
+  have hstep : (-Matrix.J l K) * (Aᵀ - c • 1) * Matrix.J l K = A⁻¹ - c • 1 := by
+    rw [Matrix.mul_sub, Matrix.sub_mul, hinv]
+    congr 1
+    rw [Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, hJJ]
+  have htr : Aᵀ - c • 1 = (A - c • 1)ᵀ := by
+    rw [Matrix.transpose_sub, Matrix.transpose_smul, Matrix.transpose_one]
+  have hdetJ : (-Matrix.J l K).det * (Matrix.J l K).det = 1 := by
+    rw [← Matrix.det_mul, hJJ, Matrix.det_one]
+  rw [← hstep, Matrix.det_mul, Matrix.det_mul, htr, Matrix.det_transpose]
+  calc (-Matrix.J l K).det * (A - c • 1).det * (Matrix.J l K).det
+      = ((-Matrix.J l K).det * (Matrix.J l K).det) * (A - c • 1).det := by ring
+    _ = (A - c • 1).det := by rw [hdetJ, one_mul]
+
+/-- `det(A⁻¹ − c⁻¹) = (−c⁻¹)^{2n} det(A − c)`, from `A⁻¹ − c⁻¹ = −c⁻¹ A⁻¹(A − c)`
+and `det A = 1`. -/
+theorem det_inv_sub_inv_smul {K : Type*} [Field K] {A : Matrix (l ⊕ l) (l ⊕ l) K}
+    (hA : A ∈ Matrix.symplecticGroup l K) {c : K} (hc : c ≠ 0) :
+    (A⁻¹ - c⁻¹ • 1).det = (-c⁻¹) ^ Fintype.card (l ⊕ l) * (A - c • 1).det := by
+  have hdet : A.det = 1 := SymplecticGroup.det_eq_one hA
+  have hu : IsUnit A.det := by rw [hdet]; exact isUnit_one
+  have hinvdet : A⁻¹.det = 1 := by
+    have h := Matrix.det_nonsing_inv_mul_det A hu
+    rw [hdet, mul_one] at h
+    exact h
+  have h1 : A⁻¹ * (A - c • 1) = 1 - c • A⁻¹ := by
+    rw [Matrix.mul_sub, Matrix.nonsing_inv_mul A hu, Matrix.mul_smul, Matrix.mul_one]
+  have hstep : (-c⁻¹) • (A⁻¹ * (A - c • 1)) = A⁻¹ - c⁻¹ • 1 := by
+    rw [h1, smul_sub, smul_smul, show (-c⁻¹) * c = -1 from by
+      rw [neg_mul, inv_mul_cancel₀ hc], neg_one_smul, neg_smul, sub_neg_eq_add]
+    abel
+  rw [← hstep, Matrix.det_smul, Matrix.det_mul, hinvdet, one_mul]
+
+/-- `det(A − λ⁻¹) = (−λ⁻¹)^{2n} det(A − λ)` for symplectic `A`. -/
+theorem det_sub_inv_smul {K : Type*} [Field K] {A : Matrix (l ⊕ l) (l ⊕ l) K}
+    (hA : A ∈ Matrix.symplecticGroup l K) {c : K} (hc : c ≠ 0) :
+    (A - c⁻¹ • 1).det = (-c⁻¹) ^ Fintype.card (l ⊕ l) * (A - c • 1).det :=
+  (det_inv_sub_smul hA c⁻¹).symm.trans (det_inv_sub_inv_smul hA hc)
+
 /-- **Proposition 5.6.4.**  The characteristic polynomial of a symplectic matrix
 is symmetric: `det(A − λ Id) = λ^{2n} det(A − λ⁻¹ Id)`.
 
-The book's proof uses `A = −J ᵗA⁻¹ J`, `J² = −Id` and `det A = 1`.
-
-**This is proved**, in exactly this shape, as `Chapter7.det_charpoly_symmetric`.
-It is left assumed *here* only because Chapter 7 imports Chapter 5 and not the
-other way round, so the proof cannot be cited from this file.  Use the Chapter 7
-declaration; the blueprint node for Proposition 5.6.4 points at it. -/
+The book's proof uses `A = −J ᵗA⁻¹ J`, `J² = −Id` and `det A = 1`; the chain
+`inv_mem_symplecticGroup`, `det_inv_sub_smul`, `det_inv_sub_inv_smul` and
+`det_sub_inv_smul` above carries it out.  The two forms agree because `2n` is
+even, which turns the sign `(−λ⁻¹)^{2n}` into `λ^{-2n}`. -/
 theorem det_charpoly_symmetric {A : Matrix (l ⊕ l) (l ⊕ l) ℝ}
-    (_hA : A ∈ Matrix.symplecticGroup l ℝ) {lam : ℝ} (_hlam : lam ≠ 0) :
+    (hA : A ∈ Matrix.symplecticGroup l ℝ) {lam : ℝ} (hlam : lam ≠ 0) :
     (A - lam • (1 : Matrix (l ⊕ l) (l ⊕ l) ℝ)).det
       = lam ^ Fintype.card (l ⊕ l) * (A - lam⁻¹ • (1 : Matrix (l ⊕ l) (l ⊕ l) ℝ)).det := by
-  sorry
+  have hN : Even (Fintype.card (l ⊕ l)) := ⟨Fintype.card l, by rw [Fintype.card_sum]⟩
+  have h := det_sub_inv_smul hA hlam
+  rw [hN.neg_pow] at h
+  rw [h, ← mul_assoc, ← mul_pow, mul_inv_cancel₀ hlam, one_pow, one_mul]
 
 /-- **Proposition 5.6.6** for genuine eigenvectors.  If `AX = λX`, `AY = μY` and
 `λμ ≠ 1`, then `ω(X, Y) = 0`.

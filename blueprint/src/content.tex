@@ -975,14 +975,17 @@ gaps.
 
 \begin{proposition}[Proposition 5.6.4, proved here]
   \label{prop:5.6.4}
-  \lean{MorseFloer.Chapter7.det_sub_inv_smul,
+  \lean{MorseFloer.Chapter5.det_charpoly_symmetric,
+        MorseFloer.Chapter5.det_sub_inv_smul,
+        MorseFloer.Chapter5.inv_mem_symplecticGroup,
         MorseFloer.Chapter7.det_charpoly_symmetric,
         MorseFloer.Chapter7.det_sub_smul_eq_zero_iff}
   \leanok
   \uses{def:7.1.c}
   The characteristic polynomial of a symplectic matrix is symmetric under
-  $\lambda \mapsto \lambda^{-1}$, so its spectrum is.  Chapter 5 states this and
-  leaves it assumed only because it cannot import Chapter 7.
+  $\lambda \mapsto \lambda^{-1}$, so its spectrum is.  The proof now lives in
+  Chapter 5, where the result is stated, so that chapter no longer assumes it;
+  Chapter 7 keeps aliases and the general-field version.
 \end{proposition}
 
 \begin{definition}[The Conley--Zehnder index, axiomatically]

@@ -94,7 +94,7 @@ verifies every cited declaration still exists.
 | `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half |
-| `Part2/Ch5.lean` | 5 Symplectic geometry | 7 | symplectic basis theorem proved in full |
+| `Part2/Ch5.lean` | 5 Symplectic geometry | 6 | symplectic basis theorem proved in full |
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |
@@ -133,11 +133,27 @@ examples. A `sorry`ed false statement would be worse than no statement.
 Two results are proved in a later chapter than the one that states them, because
 the import order runs the other way:
 
-- Proposition 5.6.4 is assumed in `Part2/Ch5.lean` and proved in
-  `Part2/Ch7.lean` as `det_charpoly_symmetric`.
-- Künneth's algebraic half was proved in Chapter 15 and has been moved into
-  `Part1/Ch4.lean` as `brokenPairs_prod`, which is no longer assumed;
-  `Chapter15.tensor_brokenPairs` is now an alias for it.
+Both have now been resolved the same way — by moving the proof up to the chapter
+that states the result, leaving an alias behind so no name changes:
+
+- Künneth's algebraic half, proved in Chapter 15, moved into `Part1/Ch4.lean` as
+  `brokenPairs_prod`; `Chapter15.tensor_brokenPairs` is an alias for it.
+- Proposition 5.6.4, proved in Chapter 7, moved into `Part2/Ch5.lean` as
+  `det_charpoly_symmetric`, together with the four-lemma chain it rests on;
+  Chapter 7 keeps aliases and its own general-field version.
+
+**The search for more of these has been run and came back empty.**
+`scripts/find_misplaced_proofs.py` parses every declaration in `MorseFloer/`,
+splits them into assumed and proved, and scores each assumed one against every
+proved one on both an exact name match and token overlap of the statement. Over
+556 declarations it surfaced only two candidates, both false positives: the
+Morse lemma against its own one-dimensional case, which is strictly weaker, and
+the no-retraction theorem against a Borsuk–Ulam corollary, which merely shares
+vocabulary. So the two transplants above were the only ones, and there is no
+point hunting by hand.
+
+Re-run the script after adding chapters or after a batch of parallel work —
+that is when the pattern arises.
 
 ### Contributing Sobolev spaces upstream
 
