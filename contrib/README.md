@@ -17,21 +17,45 @@ computation on `f.prodMap g` into one on each factor.
 
 **State.** Complete, no `sorry`. The first belongs in
 `Mathlib/LinearAlgebra/Prod.lean` beside `Submodule.prod`; the second needs
-`Mathlib.LinearAlgebra.Isomorphisms`, so it may prefer to live there.
+`Mathlib.LinearAlgebra.Isomorphisms`, so it may prefer to live there. Once they
+are upstream, `fredholmIndex (u.prodMap v) = fredholmIndex u + fredholmIndex v`
+becomes a short follow-up to the Fredholm index file below.
 
-## LinearAlgebra/FiniteDimensional/CompIndex.lean
+## Analysis/Normed/Operator/Fredholm/Index.lean
 
-`LinearMap.finrank_ker_sub_finrank_coker_comp`: the quantity
-`dim (ker f) − dim (coker f)` is additive under composition. For continuous
-linear maps between Banach spaces this is the additivity of the Fredholm index,
-but nothing here is topological, so it is stated for bare linear maps.
+The **index of a Fredholm operator**, which Mathlib does not have at all: it has
+`ContinuousLinearMap.IsFredholm`, Fredholm decompositions and quasi-inverses,
+but no index. The file defines `ContinuousLinearMap.fredholmIndex u` as
+`dim (ker u) - dim (coker u)` and proves the two stability theorems that make it
+useful: additivity under composition (`fredholmIndex_comp`) and local constancy
+(`fredholmIndex_locally_constant`), together with the finite-rank case of
+invariance under compact perturbations
+(`isFredholm_add_and_fredholmIndex_eq_of_hasNoetherianRange`), the value in
+finite dimensions, the value read off a `FredholmPackage`, and the surjective,
+injective and bijective special cases.
 
-The usual proof needs the six-term exact sequence and an alternating-sum count.
-This one avoids it: four applications of rank–nullity to four explicitly
-constructed maps give the identity directly.
+It opens with three lemmas of pure linear algebra, in `namespace LinearMap`.
+The first, `LinearMap.finrank_ker_sub_finrank_coker_comp`, is the engine of
+additivity: `dim (ker ·) - dim (coker ·)` is additive under composition of bare
+linear maps. The usual proof needs the six-term exact sequence and an
+alternating-sum count; this one avoids it, deriving the identity from four
+applications of rank-nullity to four explicitly constructed maps. It could be
+split out into `Mathlib/LinearAlgebra/FiniteDimensional/Lemmas.lean` if a
+reviewer prefers, but it ships here because the index additivity is what it is
+for. (This absorbs the former `LinearAlgebra/FiniteDimensional/CompIndex.lean`
+draft, which is gone: a separate draft file cannot be imported by another one,
+and the two belong in a single PR.)
 
-**State.** Complete, no `sorry`. Belongs beside
-`LinearMap.finrank_range_add_finrank_ker`.
+**State.** Complete, no `sorry`; imports are
+`Mathlib.Analysis.Normed.Operator.Fredholm.Basic` and
+`Mathlib.Analysis.Normed.Operator.NormedSpace`. Belongs beside
+`Mathlib/Analysis/Normed/Operator/Fredholm/Basic.lean`, as `Fredholm/Index.lean`.
+
+Two results are deliberately left out, and the module docstring says so:
+invariance of the index under a *compact* perturbation, which needs
+Riesz-Schauder in a form Mathlib's Riesz theory does not provide, and the index
+of a direct sum, which needs the two isomorphisms of `LinearAlgebra/Prod.lean`
+above and so waits on that PR.
 
 ## MorreyInequality.lean
 
