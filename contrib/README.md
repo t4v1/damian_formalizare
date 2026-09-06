@@ -74,11 +74,50 @@ It is also the exact input `MorseFloer/Part2/Ch13.lean` assumes repeatedly: the
 constant `K` in `‖g‖_∞ ≤ K‖g‖_{W^{1,p}}`, on a two-dimensional domain where
 `p > 2` means `p > n`.
 
-**State.** Statements and constants are final and type-check. The four proofs
-carry `sorry`; each docstring names the ingredient it needs. The two that carry
-real work are the Riesz-kernel integrability on a ball (where supercriticality
-is consumed, and where Mathlib's lack of a polar-coordinates change of variables
-bites) and the Riesz potential estimate.
+**State.** Two of the four results are proved, two remain.
+
+`lintegral_ball_rpow_neg_lt_top` — integrability of the Riesz kernel on a ball,
+and the only place the hypothesis `n < p` is used — is proved outright:
+`#print axioms` shows it depends on nothing but `propext`, `Classical.choice`
+and `Quot.sound`.
+
+`eLpNorm_top_le_eLpNorm_fderiv` has a complete proof, but a *conditional* one: it
+is derived from the Hölder estimate, which is still assumed, so `#print axioms`
+reports `sorryAx`. It becomes unconditional the moment that estimate lands.
+
+What remains is the Riesz potential estimate and the Hölder estimate that follows
+from it. Neither is blocked by anything missing from Mathlib — every ingredient
+exists — only by size: the potential estimate needs a `lintegral` polar-coordinate
+formula derived from `measurePreserving_homeomorphUnitSphereProd`, since Mathlib
+states only the Bochner and integrability corollaries and both are for radial
+integrands.
+
+Proved: `lintegral_ball_rpow_neg_lt_top`, the integrability of the Riesz kernel
+`y ↦ ‖y - x‖ ^ (-a)` on a ball for `a < n` — this is where supercriticality is
+consumed, and it is the only place it is used; and
+`eLpNorm_top_le_eLpNorm_fderiv`, which derives the bound on the essential
+supremum from the Hölder estimate by walking out of the support along a ray to
+find a point at distance `Metric.diam s` at which the function vanishes.
+
+Still `sorry`: `lintegral_ball_enorm_sub_le_lintegral_riesz`, the Riesz
+potential estimate, and `enorm_sub_le_morreyConst_mul_rpow_mul_eLpNorm_fderiv`,
+the Hölder estimate itself.
+
+Two notes that correct earlier ones:
+
+- Mathlib **does** have a generalized polar-coordinates change of variables,
+  `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean`: `Measure.toSphere`,
+  `measurePreserving_homeomorphUnitSphereProd`, and the radial corollaries
+  `integrableOn_fun_norm_addHaar` and `integral_fun_norm_addHaar`. Together with
+  `integrableOn_ball_of_norm_le_rpow` in
+  `Mathlib/Analysis/SpecialFunctions/Pow/Integral.lean` this is what makes the
+  first proof short.
+- Two of the drafted constants were not homogeneous of the right degree in `μ`,
+  which made the statements they appear in false for a Haar measure scaled down
+  by a small factor. They are corrected: the Riesz potential estimate now carries
+  `rieszPotentialConst E r = r ^ n / n`, which does not involve `μ` at all, and
+  `morreyConst` now carries `2 ^ (n + 1) / n * … * (μ (ball 0 1)).toNNReal⁻¹`
+  in place of `2 * … * (μ (ball 0 1)).toNNReal`.
 
 The full rationale, including what Mathlib already has and why the cylinder
 `ℝ × S¹` does not fit the Sobolev designs currently in flight, is at
