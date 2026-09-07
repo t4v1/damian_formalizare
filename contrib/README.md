@@ -74,67 +74,60 @@ It is also the exact input `MorseFloer/Part2/Ch13.lean` assumes repeatedly: the
 constant `K` in `‖g‖_∞ ≤ K‖g‖_{W^{1,p}}`, on a two-dimensional domain where
 `p > 2` means `p > n`.
 
-**State.** One `sorry` remains, on the Hölder estimate
-`enorm_sub_le_morreyConst_mul_rpow_mul_eLpNorm_fderiv`. Everything else is
-proved, and `#print axioms` was used to separate the unconditional results from
-the one whose proof is complete but whose dependency is not.
+**State.** Complete. No `sorry`, and `#print axioms` on every declaration in the file
+returns only `propext`, `Classical.choice` and `Quot.sound` — including
+`eLpNorm_top_le_eLpNorm_fderiv`, which was previously conditional on the Hölder estimate.
+The file is a submittable Mathlib contribution rather than a draft.
 
-Unconditional — `#print axioms` shows nothing but `propext`, `Classical.choice`
-and `Quot.sound`:
+What it contains, in order:
 
-- `lintegral_addHaar_eq_lintegral_toSphere_lintegral_Ioi` — polar coordinates for
-  a Lebesgue integral against an additive Haar measure, for a general
-  non-negative measurable integrand. Mathlib has
-  `Measure.measurePreserving_homeomorphUnitSphereProd` but exposes only its
-  radial corollaries, so this is the missing general `lintegral` form. It belongs
-  upstream in `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean` on its own
-  merits, whether or not Morrey ever lands.
-- `setLIntegral_ball_eq_lintegral_toSphere_lintegral_Ioo` — the same, localised
-  to a ball, with the radial integral over `Ioo 0 R`.
-- `enorm_sub_le_lintegral_Ioc_enorm_fderiv` — the fundamental theorem of calculus
-  along a ray, stated without assuming the target space complete: the Bochner
-  integral behind it is taken in `UniformSpace.Completion F`.
-- `lintegral_ball_rpow_neg_lt_top` — integrability of the Riesz kernel on a ball,
-  and the only place the hypothesis `n < p` is used.
-- `lintegral_ball_enorm_sub_le_lintegral_riesz` — the Riesz potential estimate:
-  the mean oscillation of a `C¹` function on a ball is at most `r ^ n / n` times
-  the Riesz potential of its derivative. Both sides are read in polar coordinates
-  about the centre, where the radial density `ρ ^ (n - 1)` cancels the Riesz
-  kernel exactly and what is left on each ray is the fundamental theorem of
-  calculus.
+- `lintegral_addHaar_eq_lintegral_toSphere_lintegral_Ioi` — polar coordinates for a Lebesgue
+  integral against an additive Haar measure, for a general non-negative measurable integrand.
+  Mathlib has `Measure.measurePreserving_homeomorphUnitSphereProd` but exposes only its
+  radial corollaries (`integral_fun_norm_addHaar`, `integrableOn_fun_norm_addHaar`); this is
+  the missing general `lintegral` form. It belongs upstream in
+  `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean` on its own merits, independently of
+  Morrey, and is the piece most worth extracting first.
+- `setLIntegral_ball_eq_lintegral_toSphere_lintegral_Ioo` — the same, localised to a ball.
+- `setLIntegral_ball_rpow_neg` — the exact value of the Riesz kernel integral
+  `∫⁻ y in ball x r, ‖y - x‖ ^ (-a)` for `a < n`, namely
+  `n / (n - a) * μ (ball 0 1) * r ^ (n - a)`; and `lintegral_ball_rpow_neg_lt_top`, its
+  finiteness, now a two-line corollary. This is where supercriticality is consumed, and the
+  only place.
+- `enorm_sub_le_lintegral_Ioc_enorm_fderiv` — the fundamental theorem of calculus along a
+  ray, stated without assuming the target space complete (the Bochner integral behind it is
+  taken in `UniformSpace.Completion F`).
+- `lintegral_ball_enorm_sub_le_lintegral_riesz` — the Riesz potential estimate: the mean
+  oscillation of a `C¹` function on a ball is at most `r ^ n / n` times the Riesz potential
+  of its derivative. Both sides are read in polar coordinates about the centre, where the
+  radial density `ρ ^ (n - 1)` cancels the Riesz kernel exactly.
+- `enorm_sub_le_morreyConst_mul_rpow_mul_eLpNorm_fderiv` — the Hölder estimate. Hölder's
+  inequality against the Riesz kernel, then the comparison of the averages over
+  `ball x d` and `ball z d`, `d = ‖x - z‖`, with the average over `ball ((x+z)/2) (d/2)`,
+  which is contained in both and has measure at least `2 ^ (-n)` times theirs.
+- `eLpNorm_top_le_eLpNorm_fderiv` — the bound on the essential supremum, by walking out of
+  the support along a ray to a point at distance `Metric.diam s` where the function vanishes.
 
-`eLpNorm_top_le_eLpNorm_fderiv` has a complete proof, but a *conditional* one: it
-is derived from the Hölder estimate, which is still assumed, so `#print axioms`
-reports `sorryAx`. It becomes unconditional the moment that estimate lands. The
-proof walks out of the support along a ray to find a point at distance
-`Metric.diam s` at which the function vanishes.
-
-What remains is the Hölder estimate itself, and its docstring says exactly what
-is left: Hölder's inequality against the Riesz kernel — which additionally wants
-a quantitative form of `lintegral_ball_rpow_neg_lt_top`, giving the value of the
-integral and not merely its finiteness — followed by the comparison of the
-averages over `ball x ‖x - z‖` and `ball z ‖x - z‖` with the average over their
-intersection, which contains a ball of half the radius about the midpoint.
-
-Two notes that correct earlier ones:
+Three notes that correct earlier ones:
 
 - Mathlib **does** have a generalized polar-coordinates change of variables,
   `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean`: `Measure.toSphere`,
   `measurePreserving_homeomorphUnitSphereProd`, and the radial corollaries
-  `integrableOn_fun_norm_addHaar` and `integral_fun_norm_addHaar`. Together with
-  `integrableOn_ball_of_norm_le_rpow` in
-  `Mathlib/Analysis/SpecialFunctions/Pow/Integral.lean` this is what makes the
-  Riesz-kernel proof short; the general `lintegral` form recorded in this file is
-  what the potential estimate needs.
-- Two of the drafted constants were not homogeneous of the right degree in `μ`,
-  which made the statements they appear in false for a Haar measure scaled down
-  by a small factor. They are corrected: the Riesz potential estimate now carries
-  `rieszPotentialConst E r = r ^ n / n`, which does not involve `μ` at all —
-  both sides of that estimate are homogeneous of degree one in `μ`, and the
-  completed proof does give exactly `r ^ n / n` — and `morreyConst` now carries
-  `2 ^ (n + 1) / n * … * (μ (ball 0 1)).toNNReal⁻¹` in place of
-  `2 * … * (μ (ball 0 1)).toNNReal`, which makes it homogeneous of degree
-  `-1 / p` and so cancels the degree `1 / p` of `eLpNorm · p μ`.
+  `integrableOn_fun_norm_addHaar` and `integral_fun_norm_addHaar`. Its general `lintegral`
+  form, recorded here, is what both analytic steps of Morrey actually need.
+- Two of the drafted constants were not homogeneous of the right degree in `μ`, which made
+  the statements they appear in false for a Haar measure scaled down by a small factor. They
+  are corrected: the Riesz potential estimate carries `rieszPotentialConst E r = r ^ n / n`,
+  which does not involve `μ` at all (both sides of that estimate are homogeneous of degree
+  one in `μ`), and `morreyConst` carries
+  `2 ^ (n + 1) / n * rieszKernelConst μ ((n-1)*q) 1 ^ (1/q) * (μ (ball 0 1)).toNNReal⁻¹` in
+  place of `2 * … * (μ (ball 0 1)).toNNReal`. The completed proof produces exactly these two
+  constants: in each case the final step of the proof is an *equality* of the two sides, not
+  an estimate. `morreyConst` is homogeneous of degree `1/q - 1 = -1/p`, cancelling the degree
+  `1/p` of `eLpNorm · p μ`, so the Hölder estimate is invariant under rescaling `μ`.
+- The compact-support hypothesis of the Hölder estimate turns out not to be used. It is kept,
+  because removing a hypothesis changes the API and the statement was fixed in advance, but a
+  reviewer may well want it dropped.
 
 The full rationale, including what Mathlib already has and why the cylinder
 `ℝ × S¹` does not fit the Sobolev designs currently in flight, is at
