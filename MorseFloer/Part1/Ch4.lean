@@ -510,12 +510,13 @@ generally over a field — the homology of the product complex is the tensor
 product of the homologies, so the Betti numbers satisfy
 `βₖ(M × N) = Σ_{i+j=k} βᵢ(M) βⱼ(N)`.
 
-Not proved: this is the Künneth theorem for complexes of vector spaces, which
-would first require the identification `brokenPairs_prod` above. -/
+Not proved: this is the Künneth theorem for complexes of vector spaces.  The
+product complex is known to satisfy `BrokenPairs` — that is `brokenPairs_prod`
+above, from exactly these hypotheses — so the statement no longer needs to assume
+it; what remains is the Künneth isomorphism itself. -/
 theorem betti_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
-    (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0)
-    (hP : BrokenPairs (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂)) (k : ℕ) :
+    (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0) (k : ℕ) :
     betti (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) k
       = ∑ i ∈ Finset.range (k + 1), betti ind₁ cnt₁ i * betti ind₂ cnt₂ (k - i) := by
   sorry

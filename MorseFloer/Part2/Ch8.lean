@@ -198,14 +198,13 @@ theorem fredholmIndex_eq_neg_finrank_coker_of_injective {u : E →L[𝕜] F}
     rw [hk, finrank_bot]
   simp [Chapter16.fredholmIndex, h0]
 
-/-- An isomorphism has index `0`. -/
+/-- An isomorphism has index `0`.
+
+Proved in Chapter 16, which this chapter imports; kept here as an alias so that
+the name this chapter uses stays put. -/
 theorem fredholmIndex_eq_zero_of_bijective {u : E →L[𝕜] F} (hu : Function.Bijective u) :
-    Chapter16.fredholmIndex u = 0 := by
-  rw [fredholmIndex_eq_finrank_ker_of_surjective hu.2]
-  have hk : LinearMap.ker (u : E →ₗ[𝕜] F) = ⊥ := by
-    rw [LinearMap.ker_eq_bot]; exact hu.1
-  rw [hk, finrank_bot]
-  simp
+    Chapter16.fredholmIndex u = 0 :=
+  Chapter16.fredholmIndex_eq_zero_of_bijective hu
 
 /-- **The linear content of Remark 8.4.8.**  A nonzero solution of the
 linearised equation makes the kernel nonzero.  Along a nonconstant Floer
