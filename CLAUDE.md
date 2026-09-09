@@ -105,7 +105,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Morse–Sard for `dim E > dim F` only; the other two regimes proved |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
-| `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index, which Mathlib lacks; additivity and local constancy proved |
+| `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index for operators; additivity and local constancy proved (see the Fredholm note below) |
 
 **All sixteen chapters of the book are now formalized.**
 
@@ -169,7 +169,7 @@ exactly the input Chapter 13 assumes repeatedly.
 
 ### The gaps that matter most
 
-Three missing Mathlib pieces account for nearly every assumption and for every
+Four missing Mathlib pieces account for nearly every assumption and for every
 result recorded in the blueprint with no Lean statement at all:
 
 1. **Morse–Sard above the diagonal.** Narrowed, as of the Sard work in Chapter
@@ -192,7 +192,10 @@ result recorded in the blueprint with no Lean statement at all:
    homology as a functor with homotopy invariance and `H₀`, but cannot compute
    `H_{n-1}(Sⁿ⁻¹)`. That is what blocks Brouwer and the no-retraction theorem,
    in Chapters 2 and 4, in every dimension above one. There is no shortcut:
-   `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent too.
+   `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent too. Two
+   names are traps when grepping for these: Mathlib's `IsAntichain.sperner` is
+   Sperner's *theorem* on antichains, not the simplicial lemma, and its
+   `MayerVietoris` files are for sheaf cohomology, not singular homology.
 
 
 ## What Mathlib does and does not have
@@ -204,8 +207,20 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   the inverse function theorem, symmetry of the second derivative
   (`ContDiffAt.isSymmSndFDerivAt`), quadratic-form signature and Sylvester's law
   (`sigPos`/`sigNeg`, at *root* namespace, not `QuadraticMap.`), Fredholm
-  operators, `Matrix.SymplecticGroup`, Sobolev-adjacent analysis, homological
-  algebra and homology of complexes.
+  operators — `IsFredholm`, `FredholmPackage` and quasi-inverses in
+  `Analysis/Normed/Operator/Fredholm/Basic.lean`, plus the *algebraic* index
+  `LinearMap.index` (`dim ker − dim coker`, with the injective, surjective and
+  finite-dimensional cases) in `Algebra/Module/LinearMap/Index.lean` — and
+  `Matrix.SymplecticGroup`, Hofer's lemma (`Analysis/Hofer.lean`, the metric
+  lemma behind bubbling arguments), Sobolev-adjacent analysis, homological
+  algebra and homology of complexes. Note that upstream *master* has since
+  moved past the pin here: it has `IsFredholm.index_comp` (additivity) and
+  `Fredholm/Open.lean` (local constancy of the index on Fredholm operators),
+  and it takes the index of an operator to be `LinearMap.index` of its
+  underlying linear map rather than a separate definition. The pinned
+  checkout has none of this, so Chapter 16's proofs stand on their own — but
+  the `contrib/` Fredholm package is largely superseded upstream and must be
+  compared against master before any PR.
 - **Also has, and this was wrong in earlier notes**: distributions. Bundled
   test functions `𝓓^{n}(Ω, F)` on an open `Ω` with the LF topology, the space
   `𝓓'^{n}(Ω, F)`, and the distributional directional derivative
@@ -215,7 +230,11 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   Gagliardo–Nirenberg–Sobolev inequality for compactly supported `C¹` functions
   (`Analysis/FunctionalSpaces/SobolevInequality.lean`), harmonic functions with
   the mean value property and analyticity, and the Cauchy–Riemann criterion
-  `differentiableAt_complex_iff_differentiableAt_real`.
+  `differentiableAt_complex_iff_differentiableAt_real`. The nearest thing to
+  a `Cᵏ` topology is `ContDiffMapSupportedIn n K` with its LF topology
+  (`Analysis/Distribution/ContDiffMapSupportedIn.lean`): compactly supported
+  `Cⁿ` maps on a *normed space*, not on a manifold, so it does not reach the
+  vector fields of Chapter 2 directly.
 - **Does not have**: Morse theory of any kind, Morse–Sard above the diagonal
   (the other two regimes are now proved in Chapter 14) or Sard for manifolds,
   the Hessian on a manifold, tubular neighbourhoods, the `Cᵏ` topology on
