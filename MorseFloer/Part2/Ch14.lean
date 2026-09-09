@@ -29,10 +29,14 @@ result, this file cites it rather than restating it.
 
 ## What is missing, and what that costs
 
-* **Sard's theorem** (Theorem 14.2.1) is stated here and assumed.  Mathlib has
-  measure-theoretic ingredients but no Sard for manifolds.  This single gap is
-  what forces Proposition 1.2.1 and every transversality genericity statement in
-  the book to remain assumed.
+* **Morse–Sard above the diagonal** (Theorem 14.2.1) is the only part of Sard
+  still assumed.  The theorem splits on the two dimensions and two of the three
+  regimes are proved here: below the diagonal the whole image is null, and on the
+  diagonal it is Mathlib's Jacobian lemma after transport.  Above the diagonal it
+  is the genuine Morse–Sard theorem, `sard_of_lt_finrank`, stated at the sharp
+  smoothness threshold and assumed.  Note that Proposition 1.2.1 needs only the
+  equidimensional case, so what blocks it is the normal bundle, not this.
+
 * **Submanifolds** have no Mathlib type, so Theorem 14.1.1 (the equivalence of
   the local-equations, local-parametrisation and local-model descriptions) and
   Proposition 14.3.5 (`f ⋔ P` implies `f⁻¹(P)` is a submanifold) are recorded in
@@ -108,6 +112,9 @@ end CriticalPoints
 
 section Sard
 
+open MeasureTheory Module Set
+open scoped NNReal ENNReal
+
 variable {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F] [FiniteDimensional ℝ F]
   [MeasurableSpace F] [BorelSpace F]
@@ -120,18 +127,119 @@ that a regular value need not be a value at all, and that a point outside the
 critical set may still map to a critical value. -/
 def criticalValues (f : E → F) : Set F := f '' criticalSet f
 
+omit [FiniteDimensional ℝ E] [FiniteDimensional ℝ F] [MeasurableSpace F] [BorelSpace F] in
+/-- A critical point in the book's sense fails, in particular, to have surjective
+differential.  This is the only consequence of criticality that Sard's proof uses,
+and it is what makes the theorem below insensitive to which of the two clauses of
+`HasMaximalRank` fails. -/
+theorem not_surjective_of_mem_criticalSet {f : E → F} {x : E} (hx : x ∈ criticalSet f) :
+    ¬ Function.Surjective (fderiv ℝ f x) :=
+  fun hs => hx (Or.inr hs)
+
+omit [MeasurableSpace F] [BorelSpace F] in
+/-- For an endomorphism of a finite-dimensional space, a vanishing determinant is
+exactly the failure of surjectivity.  This is the bridge between the book's
+rank condition and the determinant condition that Mathlib's Jacobian theory uses. -/
+theorem det_eq_zero_iff_not_surjective (A : F →L[ℝ] F) :
+    A.det = 0 ↔ ¬ Function.Surjective A := by
+  rw [ContinuousLinearMap.det, LinearMap.det_eq_zero_iff_ker_ne_bot, ne_eq,
+    LinearMap.ker_eq_bot, LinearMap.injective_iff_surjective]
+  rfl
+
+/-- **Sard's theorem, low-dimensional regime.**  When the source has strictly
+smaller dimension than the target, the image of *any* set is null — criticality
+plays no role, because the whole image is already too thin.
+
+Proved.  The image has Hausdorff dimension at most `dim E`, since a `C¹` map does
+not raise Hausdorff dimension, and a set of Hausdorff dimension below `dim F` is
+null for the Hausdorff measure of dimension `dim F`, which is itself a Haar
+measure on `F`.  Nullity does not depend on which Haar measure is chosen, as any
+two are mutually absolutely continuous. -/
+theorem sard_of_finrank_lt (μ : Measure F) [μ.IsAddHaarMeasure]
+    {f : E → F} (hf : ContDiff ℝ 1 f) (s : Set E) (hEF : finrank ℝ E < finrank ℝ F) :
+    μ (f '' s) = 0 := by
+  have hlt : dimH (f '' s) < (finrank ℝ F : ℝ≥0) := by
+    refine lt_of_le_of_lt ((dimH_mono (image_subset_range f s)).trans hf.dimH_range_le) ?_
+    exact_mod_cast hEF
+  refine measure_zero_of_dimH_lt (d := (finrank ℝ F : ℝ≥0)) ?_ hlt
+  exact Measure.absolutelyContinuous_isAddHaarMeasure μ (μH[(finrank ℝ F : ℝ)])
+
+/-- **Sard's theorem, equidimensional regime.**  The critical values of a
+differentiable map between spaces of equal dimension are null.
+
+Proved, and with a weaker hypothesis than the book's: differentiability alone
+suffices, no `C¹` and no continuity of the differential.  Mathlib supplies the
+analytic content, for a self-map of a single space, as
+`MeasureTheory.addHaar_image_eq_zero_of_det_fderivWithin_eq_zero`, itself
+following Fremlin.  The work here is transport: a linear isomorphism `e : E ≃L F`
+exists because the dimensions agree, and `f ∘ e.symm` is a self-map of `F` whose
+differential fails to be surjective exactly where that of `f` does. -/
+theorem sard_of_finrank_eq (μ : Measure F) [μ.IsAddHaarMeasure]
+    {f : E → F} (hf : Differentiable ℝ f) {s : Set E}
+    (hcrit : ∀ x ∈ s, ¬ Function.Surjective (fderiv ℝ f x))
+    (hEF : finrank ℝ E = finrank ℝ F) :
+    μ (f '' s) = 0 := by
+  set e : E ≃L[ℝ] F := ContinuousLinearEquiv.ofFinrankEq hEF with he
+  set g : F → F := f ∘ e.symm with hg
+  set g' : F → F →L[ℝ] F := fun y => (fderiv ℝ f (e.symm y)).comp
+    (e.symm : F →L[ℝ] E) with hg'
+  have himg : f '' s = g '' (e '' s) := by
+    simp [hg, Set.image_image]
+  rw [himg]
+  refine addHaar_image_eq_zero_of_det_fderivWithin_eq_zero μ (f' := g') ?_ ?_
+  · intro y _
+    exact HasFDerivAt.hasFDerivWithinAt
+      ((hf (e.symm y)).hasFDerivAt.comp y (e.symm.hasFDerivAt))
+  · rintro y ⟨x, hx, rfl⟩
+    rw [det_eq_zero_iff_not_surjective]
+    simp only [hg', ContinuousLinearEquiv.symm_apply_apply]
+    intro hsurj
+    rw [ContinuousLinearMap.coe_comp] at hsurj
+    exact hcrit x hx hsurj.of_comp
+
+/-- **Sard's theorem, high-dimensional regime** — the genuine Morse–Sard theorem,
+and the only part of Sard this project assumes.
+
+*Assumed.*  The hypothesis `finrank E < finrank F + k` is the sharp smoothness
+threshold `k ≥ dim E - dim F + 1`; Whitney's 1935 example of a `C¹` function
+constant on no arc of its critical set shows it cannot be lowered.  Neither this
+statement nor any equivalent is in Mathlib.  It is, however, formalized: Yury
+Kudryashov's `SardMoreira` project proves Moreira's sharper Hausdorff-measure
+version, from which this follows by taking rank bound `dim F - 1`, Hölder
+exponent `0`, and observing that the resulting Hausdorff measure of dimension
+`dim F` is a Haar measure on `F`.  That project is complete and `sorry`-free but
+external to Mathlib, and its upstreaming is in progress.  Transplanting it, rather
+than reproving it, is the way to close this. -/
+theorem sard_of_lt_finrank (μ : Measure F) [μ.IsAddHaarMeasure]
+    {f : E → F} {k : ℕ} (_hf : ContDiff ℝ k f) {s : Set E}
+    (_hcrit : ∀ x ∈ s, ¬ Function.Surjective (fderiv ℝ f x))
+    (_hFE : finrank ℝ F < finrank ℝ E) (_hk : finrank ℝ E < finrank ℝ F + k) :
+    μ (f '' s) = 0 := by
+  sorry
+
 /-- **Theorem 14.2.1 (Sard's theorem).**  The critical values of a smooth map
 form a set of measure zero.
 
-*Assumed.*  This is the single most consequential gap in the project: it is what
-Proposition 1.2.1 needs to produce Morse functions, and what every genericity
-statement about transversality in Chapters 8 and 11 rests on.  Mathlib has the
-measure-theoretic ingredients (`MeasureTheory.Function.Jacobian`, Hausdorff
-dimension bounds) but no Sard theorem. -/
-theorem sard (μ : MeasureTheory.Measure F) [μ.IsAddHaarMeasure]
-    {f : E → F} (_hf : ContDiff ℝ ω f) :
+Reduced to a single assumption.  The proof splits on the two dimensions.  Below
+the diagonal the whole image is null and criticality is irrelevant; on the
+diagonal the statement is Mathlib's Jacobian lemma after transport; above the
+diagonal it is the genuine Morse–Sard theorem, which is `sard_of_lt_finrank` and
+is the one piece assumed.  So of the three regimes two are proved outright, and
+what remains is delimited exactly.
+
+Note which regime the applications need.  Proposition 1.2.1, which produces Morse
+functions, applies Sard to the endpoint map of a normal bundle, whose source and
+target both have dimension `n`: that is the equidimensional case, proved here.
+Its remaining obstacle is the normal bundle itself, not this theorem. -/
+theorem sard (μ : Measure F) [μ.IsAddHaarMeasure] {f : E → F} (hf : ContDiff ℝ ω f) :
     μ (criticalValues f) = 0 := by
-  sorry
+  have hcrit : ∀ x ∈ criticalSet f, ¬ Function.Surjective (fderiv ℝ f x) :=
+    fun _ hx => not_surjective_of_mem_criticalSet hx
+  rcases lt_trichotomy (finrank ℝ E) (finrank ℝ F) with h | h | h
+  · exact sard_of_finrank_lt μ (hf.of_le (OrderTop.le_top _)) _ h
+  · exact sard_of_finrank_eq μ (hf.differentiable WithTop.top_ne_zero) hcrit h
+  · exact sard_of_lt_finrank μ (k := finrank ℝ E - finrank ℝ F + 1)
+      (hf.of_le (OrderTop.le_top _)) hcrit h (by omega)
 
 end Sard
 

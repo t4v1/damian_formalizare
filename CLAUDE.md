@@ -90,7 +90,7 @@ verifies every cited declaration still exists.
 | File | Book chapter | `sorry` | Notes |
 |---|---|---|---|
 | `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
-| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs Sard); Morse lemma proved in dimension one |
+| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs the normal bundle, not Sard); Morse lemma proved in dimension one |
 | `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows; Brouwer in dim ≤ 1 |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half; Brouwer in dim ≤ 1 |
@@ -103,7 +103,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 1 | Cauchy–Riemann regularity, the bootstrapping recursion |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
-| `Part2/Ch14.lean` | 14 Differential geometry | 1 | Sard |
+| `Part2/Ch14.lean` | 14 Differential geometry | 1 | Morse–Sard for `dim E > dim F` only; the other two regimes proved |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
 | `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index, which Mathlib lacks; additivity and local constancy proved |
 
@@ -172,8 +172,15 @@ exactly the input Chapter 13 assumes repeatedly.
 Three missing Mathlib pieces account for nearly every assumption and for every
 result recorded in the blueprint with no Lean statement at all:
 
-1. **Sard's theorem for manifolds.** Forces Proposition 1.2.1 and every
-   transversality genericity result in the book.
+1. **Morse–Sard above the diagonal.** Narrowed, as of the Sard work in Chapter
+   14. Sard now splits into three dimension regimes, of which two are *proved*:
+   the image is null outright when `dim E < dim F`, and the equidimensional case
+   is Mathlib's Jacobian lemma after transport. Only `dim E > dim F` remains
+   assumed, as `Chapter14.sard_of_lt_finrank`, stated at the sharp threshold
+   `k ≥ dim E - dim F + 1`. It is complete and `sorry`-free in Kudryashov's
+   external `SardMoreira` project; transplanting it, not reproving it, is the
+   route. Note that Proposition 1.2.1 needs only the *equidimensional* case, so
+   Sard no longer blocks it — the normal bundle does.
 2. **Submanifolds** as a type carrying its own smooth structure, with tubular
    neighbourhoods and transversality. Without it there is no space of
    trajectories, so all of §3.2 and the Smale condition are unstatable, and
@@ -209,7 +216,8 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   (`Analysis/FunctionalSpaces/SobolevInequality.lean`), harmonic functions with
   the mean value property and analyticity, and the Cauchy–Riemann criterion
   `differentiableAt_complex_iff_differentiableAt_real`.
-- **Does not have**: Morse theory of any kind, Sard's theorem for manifolds,
+- **Does not have**: Morse theory of any kind, Morse–Sard above the diagonal
+  (the other two regimes are now proved in Chapter 14) or Sard for manifolds,
   the Hessian on a manifold, tubular neighbourhoods, the `Cᵏ` topology on
   `C^∞(V;ℝ)`, symplectic manifolds (only the linear symplectic group), Floer
   homology, and — the one that blocks Part II hardest — `W^{k,p}(V)` or
@@ -256,6 +264,12 @@ These are specific to this Mathlib version and were each hit during the build:
   project's warning-clean build.
 - `Manifold.IsSmoothEmbedding` is in namespace `Manifold`; `open scoped Manifold`
   does not bring it into scope.
+- `ω` in `ContDiff ℝ ω f` needs `open scoped ContDiff`. Without it the file still
+  parses and elaborates — `ω` resolves to a *different* element of `WithTop ℕ∞` —
+  and then `le_top` will not close `1 ≤ ω`, with a confusing error naming `ω` on
+  one side and `⊤` on the other. With the scope open, `OrderTop.le_top _` and
+  `WithTop.top_ne_zero` are the two coercions you want; bare `le_top` fails to
+  unify.
 
 ## Reading the book's PDFs
 

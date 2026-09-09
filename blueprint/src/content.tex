@@ -121,8 +121,12 @@
   \uses{prop:fderiv_distSq, thm:14.2.1, lem:1.2.2}
   For almost every $p \in \mathbb{R}^n$, the function $f_p$ restricted to a
   submanifold $V \subseteq \mathbb{R}^n$ is a Morse function.
-  \emph{Assumed:} the proof applies Sard's theorem to the endpoint map of the
-  normal bundle, and Sard's theorem for manifolds is not in Mathlib.
+  \emph{Assumed}, but no longer for the reason first recorded.  The endpoint map
+  of the normal bundle goes from a manifold of dimension $d + (n-d) = n$ to
+  $\mathbb{R}^n$, so the proof needs only the \emph{equidimensional} case of
+  Sard, which is proved (\ref{thm:14.2.1}) and which Mathlib had all along in a
+  stronger form than the book uses.  The obstacle is Lemma \ref{lem:1.2.2}: the
+  normal bundle as a submanifold, which cannot be stated.
 \end{proposition}
 
 \begin{lemma}[Lemma 1.2.2]
@@ -255,12 +259,32 @@ recorded here are what force the assumed results elsewhere.
 \begin{theorem}[Theorem 14.2.1, Sard]
   \label{thm:14.2.1}
   \lean{MorseFloer.Chapter14.criticalSet, MorseFloer.Chapter14.criticalValues,
+        MorseFloer.Chapter14.not_surjective_of_mem_criticalSet,
+        MorseFloer.Chapter14.det_eq_zero_iff_not_surjective,
+        MorseFloer.Chapter14.sard_of_finrank_lt,
+        MorseFloer.Chapter14.sard_of_finrank_eq,
+        MorseFloer.Chapter14.sard_of_lt_finrank,
         MorseFloer.Chapter14.sard}
   \notready
   \uses{def:14.2.a}
   The critical values of a smooth map form a set of measure zero.
-  \emph{Assumed}, and the most consequential gap in the project: Proposition
-  1.2.1 and every transversality genericity statement in the book rest on it.
+
+  \emph{Two of three regimes proved; one assumed.}  The proof splits on the two
+  dimensions.  When $\dim E < \dim F$ the entire image is null and criticality is
+  irrelevant: a $C^1$ map does not raise Hausdorff dimension, and a set of
+  Hausdorff dimension below $\dim F$ is null.  When $\dim E = \dim F$ criticality
+  means a vanishing determinant, and the statement is Mathlib's Jacobian lemma
+  after transport along a linear isomorphism; differentiability alone suffices
+  here, without the book's $C^1$.  Both are proved outright.
+
+  When $\dim E > \dim F$ the statement is the genuine Morse--Sard theorem, and it
+  is the single assumption that remains.  It is stated at the sharp smoothness
+  threshold $k \ge \dim E - \dim F + 1$, which Whitney's 1935 example shows cannot
+  be lowered.  It is absent from Mathlib but not unformalized: Kudryashov's
+  \texttt{SardMoreira} proves Moreira's sharper Hausdorff-measure version,
+  complete and \texttt{sorry}-free, and classical Sard follows from it by taking
+  rank bound $\dim F - 1$ and H\"older exponent $0$.  Transplanting that, rather
+  than reproving it, is the way to close this node.
 \end{theorem}
 
 \begin{definition}[Transverse subspaces, \S14.3.a]
