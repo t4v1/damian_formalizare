@@ -116,17 +116,21 @@
 
 \begin{proposition}[Proposition 1.2.1]
   \label{prop:1.2.1}
-  \lean{MorseFloer.Chapter1.ae_isMorseFunction_distSq}
-  \notready
-  \uses{prop:fderiv_distSq, thm:14.2.1, lem:1.2.2}
+  \lean{MorseFloer.Chapter1.ae_isMorseFunction_distSq,
+        MorseFloer.ae_isMorseFunction_distSq_general}
+  \leanok
+  \uses{prop:fderiv_distSq, thm:14.2.1}
   For almost every $p \in \mathbb{R}^n$, the function $f_p$ restricted to a
   submanifold $V \subseteq \mathbb{R}^n$ is a Morse function.
-  \emph{Assumed}, but no longer for the reason first recorded.  The endpoint map
-  of the normal bundle goes from a manifold of dimension $d + (n-d) = n$ to
-  $\mathbb{R}^n$, so the proof needs only the \emph{equidimensional} case of
-  Sard, which is proved (\ref{thm:14.2.1}) and which Mathlib had all along in a
-  stronger form than the book uses.  The obstacle is Lemma \ref{lem:1.2.2}: the
-  normal bundle as a submanifold, which cannot be stated.
+  \emph{Proved} (\texttt{MorseFloer/Part1/DistSqMorse.lean}), without the normal
+  bundle as a global object.  $V$ is second countable, being embedded in
+  $\mathbb{R}^n$, so countably many small chart domains cover it.  On each, a
+  smoothly varying projection onto the normal spaces turns the endpoint map
+  $(u,w) \mapsto g(u) + P(u)w$ into a map between spaces of dimension $n$, and
+  Mathlib's \emph{equidimensional} Sard (\ref{thm:14.2.1}) says its critical
+  values are null.  The local half of Lemma \ref{lem:1.2.2} is proved along the
+  way: a kernel vector of the Hessian of $f_p$ at a critical point yields one of
+  the differential of the endpoint map.
 \end{proposition}
 
 \begin{lemma}[Lemma 1.2.2]
@@ -168,28 +172,27 @@
   \lean{MorseFloer.Chapter1.morse_lemma,
         MorseFloer.Chapter1.morse_lemma_real,
         MorseFloer.Chapter1.morse_lemma_dim_one,
-        MorseFloer.Chapter1.exists_analyticAt_sq_factor}
-  \notready
+        MorseFloer.Chapter1.exists_analyticAt_sq_factor,
+        MorseFloer.morse_lemma_general}
+  \leanok
   \uses{def:hessian}
   Near a nondegenerate critical point $c$ there are coordinates in which $f$
   equals its quadratic model: a chart $\varphi$ centred at $c$ with
   $f(y) = f(c) + \tfrac12 d^2f_c(\varphi y, \varphi y)$.  Diagonalising by
   Sylvester's law gives the book's normal form
   $f(c) - \sum_{j\le i} x_j^2 + \sum_{j>i} x_j^2$.
-  \emph{Partially proved.}  \textbf{Dimension one is done}:
-  \texttt{morse\_lemma\_real} is this very statement with $E = \mathbb{R}$,
-  proved outright, and it is the base case of the book's induction.  It goes
-  through analyticity rather than through a Taylor theorem with integral
-  remainder: Mathlib's expansion for analytic functions of one variable supplies
-  the order-three factorisation $f(y) = f(c) + (y-c)^2 g(y)$, and the chart is
-  $y \mapsto (y-c)\sqrt{2g(y)/f''(c)}$, whose derivative at $c$ is $1$.
-
-  What blocks the general case is the first step, Hadamard's lemma: writing
-  $f(c+x) = R_x(x,x)$ for a smooth family of symmetric forms needs a
-  \emph{multivariable} Taylor expansion with integral remainder, and Mathlib's
-  analytic expansion is one-variable only.  The second step, an analytic square
-  root of an operator near the identity depending smoothly on a parameter, is
-  the remaining crux.
+  \emph{Proved in every finite dimension}
+  (\texttt{MorseFloer/Part1/MorseLemma.lean}), by the analyst's route rather
+  than the book's induction.  Hadamard's lemma comes from the Taylor formula
+  with integral remainder along segments, $Q_x = \int_0^1 (1-t)\,
+  d^2f(c+tx)\,dt$; the operator $(Q_0)^{-1}Q_x$, which is near the identity, has
+  a square root $A_x$ obtained from the inverse function theorem inside the
+  $Q_0$-self-adjoint operators, Lipschitz in $x$; and $y \mapsto A_{y-c}(y-c)$
+  has strict derivative the identity at $c$, so it is a chart.  Since the
+  statement asks only for a homeomorphism, no smooth dependence on the
+  parameter is needed.  The one-dimensional case \texttt{morse\_lemma\_real},
+  proved earlier through the analytic factorisation
+  $f(y) = f(c) + (y-c)^2 g(y)$, is kept.
 \end{theorem}
 
 \begin{corollary}[Corollary 1.3.2]
@@ -366,6 +369,24 @@ recorded here are what force the assumed results elsewhere.
   forever, which is the contradiction step of Proposition 2.1.6.
 \end{proposition}
 
+\begin{proposition}[Proposition 2.1.6]
+  \label{prop:2.1.6}
+  \lean{MorseFloer.Chapter2.exists_isCriticalPt_tendsto,
+        MorseFloer.Chapter2.isCriticalPt_of_mapClusterPt,
+        MorseFloer.Chapter2.eventually_eq_of_isCriticalPt}
+  \leanok
+  \uses{prop:2.1.traj, cor:1.3.2}
+  A trajectory of a pseudo-gradient that stays in a compact set converges to a
+  critical point, when the critical points are nondegenerate.  Stated in the
+  local model, for a \emph{continuous} field on a \emph{finite-dimensional}
+  space: without these two hypotheses, which the book has implicitly, the
+  statement is false (take $f(x,y) = y$ and a discontinuous field steering the
+  bounded curve $(\cos s, -\arctan s)$).  Proved without Morse charts.  Every
+  cluster point of the trajectory is critical, because $f$ converges along it.
+  Nondegenerate critical points are isolated, and the intermediate value
+  theorem then rules out two distinct cluster points.
+\end{proposition}
+
 \begin{proposition}[\S2.1.b, the Morse model]
   \label{prop:2.1.b}
   \uses{thm:1.3.1}
@@ -446,24 +467,35 @@ recorded here are what force the assumed results elsewhere.
 
 \section{\S2.3 Dimension one}
 
-\begin{theorem}[Theorems 2.3.2 and 2.3.3]
+\begin{theorem}[Theorem 2.3.2]
   \label{thm:2.3.2}
-  \lean{MorseFloer.Chapter2.classification_dim_one, MorseFloer.Chapter2.brouwer,
-        MorseFloer.Chapter2.brouwer_dim_zero, MorseFloer.Chapter2.brouwer_dim_one}
+  \lean{MorseFloer.Chapter2.classification_dim_one}
   \notready
   A compact connected $1$-manifold is a circle or a segment --- so a compact
   $1$-manifold has an even number of boundary points, which is exactly what
-  \ref{def:brokenPairs} needs --- and Brouwer's fixed point theorem.
+  \ref{def:brokenPairs} needs.
   \emph{Assumed} (the classification for the closed case only); the manifolds
   with boundary needed for the general statement are not available.
+\end{theorem}
 
-  Brouwer is proved in dimensions $0$ and $1$, the base cases, the second by the
-  intermediate value theorem.  The general case is blocked three ways at once and
-  cannot be assembled from today's Mathlib: there is no homology of spheres
-  (singular homology exists as a functor, with homotopy invariance and $H_0$, but
-  no excision and no Mayer--Vietoris, so $H_{n-1}(S^{n-1})$ is computed nowhere),
-  no $\pi_1(S^1) \simeq \mathbb{Z}$, and no Sperner lemma or degree theory.
-  Closing it means contributing excision upstream.
+\begin{theorem}[Theorem 2.3.3, Brouwer]
+  \label{thm:2.3.3}
+  \lean{MorseFloer.Chapter2.brouwer, MorseFloer.brouwer_fixed_point,
+        MorseFloer.no_retraction, MorseFloer.Brouwer.no_C1_retraction,
+        MorseFloer.Chapter2.brouwer_dim_zero, MorseFloer.Chapter2.brouwer_dim_one}
+  \leanok
+  A continuous self-map of the closed unit ball has a fixed point.
+  \emph{Proved in every dimension} (\texttt{MorseFloer/Part1/Brouwer.lean}), but
+  not by the book's route, which runs through Sard and \ref{thm:2.3.2}, nor by
+  any homological one: this Mathlib has no homology of spheres.  The proof is
+  analytic, after Milnor and Rogers.  A $C^1$ retraction $r$ of the ball $D$
+  onto its boundary would give $\int_D \det Dr = \operatorname{vol} D$: follow
+  the homotopy $\mathrm{id} + t(r - \mathrm{id})$, a bijection of $D$ for small
+  $t$, with the change of variables formula, and note that the integral is a
+  polynomial in $t$.  It would also give $\int_D \det Dr = 0$, because
+  $\|r\| = 1$ makes $Dr$ singular.  Smooth partitions of unity reduce a
+  continuous fixed-point-free map to a $C^1$ one, and the ray construction turns
+  that into a $C^1$ retraction.
 \end{theorem}
 
 \chapter{The complex of critical points (Chapter 3)}
@@ -633,8 +665,9 @@ skeleton of the chapter --- is formalized and proved.
 
 \begin{proposition}[Proposition 4.3.2, corrected]
   \label{prop:4.3.2}
-  \lean{MorseFloer.Chapter4.finrank_homology_dual_int}
-  \notready
+  \lean{MorseFloer.Chapter4.finrank_homology_dual_int,
+        MorseFloer.Chapter4.int_rank_transpose}
+  \leanok
   \uses{prop:4.3.1}
   As printed, the integral statement $HM_{n-k}(V;\mathbb{Z}) \cong
   HM_k(V;\mathbb{Z})$ cannot be taken literally: the complex of $-f$ is the
@@ -643,7 +676,11 @@ skeleton of the chapter --- is formalized and proved.
   $\mathbb{Z}\to^0\mathbb{Z}\to^2\mathbb{Z}\to^0\mathbb{Z}$, one has
   $HM_1 = \mathbb{Z}/2$ but $HM_2 = 0$ while $n-1 = 2$.  What is stated here is
   the true integral statement, duality of the free ranks.  Over a field there is
-  no discrepancy and \ref{prop:4.3.1} is proved outright.
+  no discrepancy and \ref{prop:4.3.1} is proved outright.  The integral version
+  is proved too, directly over $\mathbb{Z}$: ranks over a domain are additive,
+  so the free rank of $Z_k/B_k$ is $c_k - \operatorname{rk}\partial_k -
+  \operatorname{rk}\partial_{k+1}$, and an integer matrix has the rank of its
+  transpose because $A^{\mathsf T}A$ and $A$ have the same kernel.
 \end{proposition}
 
 \section{\S4.2 The K\"unneth formula}
@@ -653,13 +690,31 @@ skeleton of the chapter --- is formalized and proved.
   \lean{MorseFloer.Chapter4.brokenPairs_prod,
         MorseFloer.Chapter4.sum_critSet_prod,
         MorseFloer.Chapter15.betti_prod_of_count_zero,
-        MorseFloer.Chapter4.betti_prod}
-  \notready
+        MorseFloer.Chapter4.betti_prod,
+        MorseFloer.Chapter4.exists_retract,
+        MorseFloer.Chapter4.betti_eq_numCrit_of_retract,
+        MorseFloer.Chapter4.betti_prod_of_retract}
+  \leanok
   \uses{def:morseComplex, def:4.4}
   $\Phi$ is an isomorphism of complexes $C_\star(f+g) \cong C_\star(f)\otimes
-  C_\star(g)$, whence the K\"unneth formula.  \emph{Assumed}; the algebraic half
-  needs characteristic $2$, as the book notes.
+  C_\star(g)$, whence the K\"unneth formula.  The algebraic half needs
+  characteristic $2$, as the book notes.  \emph{Proved}, though not by the
+  book's splitting, which changes basis and so leaves the based model: every
+  based complex over a field retracts, by explicit matrices, onto a graded space
+  with zero differential whose dimensions are then its Betti numbers, and the
+  Kronecker product of two such retractions retracts the product complex, the
+  cross terms cancelling because $2 = 0$.
 \end{proposition}
+
+\begin{corollary}[\S4.1 and Corollary 4.5.5, disjoint unions]
+  \label{cor:4.5.5}
+  \lean{MorseFloer.Chapter4.sumCount, MorseFloer.Chapter4.betti_sumComplex}
+  \leanok
+  \uses{prop:4.2.1}
+  The complex of a disjoint union is the direct sum of the complexes, so Betti
+  numbers add.  Proved with the same retractions as \ref{prop:4.2.1}, summed
+  block-diagonally.
+\end{corollary}
 
 \section{\S4.8 Applications}
 
@@ -677,18 +732,28 @@ skeleton of the chapter --- is formalized and proved.
   \label{thm:4.8.3}
   \lean{MorseFloer.Chapter4.borsuk_ulam, MorseFloer.Chapter4.borsuk_ulam_of_odd,
         MorseFloer.Chapter4.exists_eq_antipode,
-        MorseFloer.Chapter4.brouwer_fixedPoint,
+        MorseFloer.Chapter4.exists_antipodal_pair_of_closed_cover}
+  \notready
+  There is no continuous odd map $S^n \to S^{n-1}$; hence every map
+  $S^n\to\mathbb{R}^n$ identifies an antipodal pair, and one of $n+1$ closed
+  sets covering $S^n$ contains an antipodal pair.  Borsuk--Ulam itself is
+  assumed --- it is \emph{not} in this Mathlib, whose singular homology cannot
+  compute the mod $2$ homology of $P^n(\mathbb{R})$ --- but all three corollaries
+  are derived from it.
+\end{theorem}
+
+\begin{theorem}[\S4.8.b, Brouwer and no retraction]
+  \label{thm:4.8.b}
+  \lean{MorseFloer.Chapter4.brouwer_fixedPoint,
         MorseFloer.Chapter4.brouwer_fixedPoint_dim_zero,
         MorseFloer.Chapter4.brouwer_fixedPoint_dim_one,
         MorseFloer.Chapter4.no_retraction_closedBall}
-  \notready
-  There is no continuous odd map $S^n \to S^{n-1}$; hence every map
-  $S^n\to\mathbb{R}^n$ identifies an antipodal pair.  Borsuk--Ulam itself is
-  assumed --- it is \emph{not} in this Mathlib --- but the corollaries are
-  derived from it.  Brouwer (\S4.8.b) is likewise absent from Mathlib; dimensions
-  $0$ and $1$ are proved here, and the general case is blocked by the same three
-  missing pieces recorded at \ref{thm:2.3.2}.  Brouwer and the no-retraction
-  theorem are equivalent by the ray construction, so they stand or fall together.
+  \leanok
+  \uses{thm:2.3.3}
+  Brouwer's theorem, reproved in \S4.8.b, and the non-existence of a retraction
+  of the ball onto its boundary sphere, in every dimension.  The fixed point
+  theorem restates \ref{thm:2.3.3}; no-retraction follows by applying it to
+  $-r$.
 \end{theorem}
 
 \begin{theorem}[\S4.6 functoriality and \S4.7 the long exact sequence]
@@ -1163,15 +1228,15 @@ gaps.
         MorseFloer.Chapter15.numCrit_prodIndex,
         MorseFloer.Chapter15.betti_prod_of_count_zero,
         MorseFloer.Chapter15.betti_tensor}
-  \notready
+  \leanok
   \uses{prop:4.2.1}
-  The tensor product of two complexes is a complex --- proved, and moved into
-  Chapter 4 so that \ref{prop:4.2.1}'s algebraic half is no longer assumed; the
-  cross terms cancel exactly because $2 = 0$, which is the book's footnote about
-  $\mathbb{Z}/2$.  The formula on the underlying graded spaces is proved, and the
-  K\"unneth formula itself whenever both differentials vanish, which covers every
-  example the book computes.  The general statement is assumed: Mathlib has no
-  K\"unneth theorem.
+  The tensor product of two complexes is a complex, the cross terms cancelling
+  exactly because $2 = 0$, which is the book's footnote about $\mathbb{Z}/2$; and
+  over a field of characteristic $2$ its Betti numbers are
+  $\beta_k = \sum_{i+j=k}\beta_i\beta_j$.  Both are proved in Chapter 4
+  (\ref{prop:4.2.1}) and restated here by alias; Mathlib itself has no
+  K\"unneth theorem.  The case of vanishing differentials, which covers every
+  example the book computes, is also recorded separately.
 \end{proposition}
 
 \begin{proposition}[\S15.1.b, the long exact sequence]

@@ -76,7 +76,11 @@ chart-independent at a critical point; the file follows that route exactly:
 
 Chapter files live in `MorseFloer/Part1/ChN.lean` and `MorseFloer/Part2/ChN.lean`,
 one per book chapter, each opening with a module docstring that states which
-results are proved and which are assumed. Most chapter content is stated in the
+results are proved and which are assumed. A long self-contained proof may live in
+a helper file beside the chapter (`Part1/Brouwer.lean`, `Part1/MorseLemma.lean`,
+`Part1/DistSqMorse.lean`), importing only `Basic` or Mathlib; the chapter then
+restates the book's theorem as a one-line term. This keeps chapter builds short
+and lets several proofs be developed in parallel. Most chapter content is stated in the
 **local model** (a normed space, `IsCriticalPt f x : fderiv ℝ f x = 0`) because
 that is where the book's proofs actually live; the manifold-level definitions
 sit in `Basic.lean`.
@@ -90,10 +94,13 @@ verifies every cited declaration still exists.
 | File | Book chapter | `sorry` | Notes |
 |---|---|---|---|
 | `MorseFloer/Basic.lean` | foundations | 0 | second differentials, Hessian, index |
-| `Part1/Ch1.lean` | 1 Morse functions | 2 | Prop 1.2.1 (needs the normal bundle, not Sard); Morse lemma proved in dimension one |
-| `Part1/Ch2.lean` | 2 Pseudo-gradients | 4 | 66 results on trajectories and flows; Brouwer in dim ≤ 1 |
+| `Part1/Brouwer.lean` | helper for 2.3.3 / §4.8.b | 0 | Brouwer in every dimension, analytically (Milnor–Rogers) |
+| `Part1/MorseLemma.lean` | helper for 1.3.1 | 0 | the Morse lemma in every finite dimension |
+| `Part1/DistSqMorse.lean` | helper for 1.2.1 | 0 | normal-bundle argument in charts + equidimensional Sard |
+| `Part1/Ch1.lean` | 1 Morse functions | 0 | Morse lemma and Prop 1.2.1, restated from the two helpers above |
+| `Part1/Ch2.lean` | 2 Pseudo-gradients | 2 | Reeb (2.1.9) and the classification of 1-manifolds (2.3.2); Prop 2.1.6 and Brouwer proved |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
-| `Part1/Ch4.lean` | 4 Morse homology | 7 | Morse inequalities, Poincaré duality, Künneth's algebraic half; Brouwer in dim ≤ 1 |
+| `Part1/Ch4.lean` | 4 Morse homology | 1 | Borsuk–Ulam only; Künneth, integral duality, disjoint unions, Brouwer all proved |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 6 | symplectic basis theorem proved in full |
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
@@ -104,7 +111,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 1 | Cauchy–Riemann regularity, the bootstrapping recursion |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Morse–Sard for `dim E > dim F` only; the other two regimes proved |
-| `Part2/Ch15.lean` | 15 Algebraic topology | 1 | long exact sequence; Künneth over a field |
+| `Part2/Ch15.lean` | 15 Algebraic topology | 0 | long exact sequence; Künneth over a field (alias of Ch4's `betti_prod`) |
 | `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index for operators; additivity and local constancy proved (see the Fredholm note below) |
 
 **All sixteen chapters of the book are now formalized.**
@@ -137,7 +144,9 @@ Both have now been resolved the same way — by moving the proof up to the chapt
 that states the result, leaving an alias behind so no name changes:
 
 - Künneth's algebraic half, proved in Chapter 15, moved into `Part1/Ch4.lean` as
-  `brokenPairs_prod`; `Chapter15.tensor_brokenPairs` is an alias for it.
+  `brokenPairs_prod`; `Chapter15.tensor_brokenPairs` is an alias for it. The
+  Künneth formula itself is now proved in Chapter 4 (`betti_prod`), and
+  `Chapter15.betti_tensor` and `Chapter15.numCrit_prodIndex` are aliases too.
 - Proposition 5.6.4, proved in Chapter 7, moved into `Part2/Ch5.lean` as
   `det_charpoly_symmetric`, together with the four-lemma chain it rests on;
   Chapter 7 keeps aliases and its own general-field version.
@@ -153,7 +162,8 @@ vocabulary. So the two transplants above were the only ones, and there is no
 point hunting by hand.
 
 Re-run the script after adding chapters or after a batch of parallel work —
-that is when the pattern arises.
+that is when the pattern arises. (Last run after the Part I push: 684
+declarations, no candidates.)
 
 ### Contributing Sobolev spaces upstream
 
@@ -179,8 +189,9 @@ result recorded in the blueprint with no Lean statement at all:
    assumed, as `Chapter14.sard_of_lt_finrank`, stated at the sharp threshold
    `k ≥ dim E - dim F + 1`. It is complete and `sorry`-free in Kudryashov's
    external `SardMoreira` project; transplanting it, not reproving it, is the
-   route. Note that Proposition 1.2.1 needs only the *equidimensional* case, so
-   Sard no longer blocks it — the normal bundle does.
+   route. Proposition 1.2.1 needs only the *equidimensional* case, and is now
+   proved (`Part1/DistSqMorse.lean`) by running the normal-bundle argument in
+   charts, so it needs no normal bundle either.
 2. **Submanifolds** as a type carrying its own smooth structure, with tubular
    neighbourhoods and transversality. Without it there is no space of
    trajectories, so all of §3.2 and the Smale condition are unstatable, and
@@ -190,12 +201,22 @@ result recorded in the blueprint with no Lean statement at all:
    second blocks the elliptic regularity of Chapters 12 and 13.
 4. **Excision or Mayer–Vietoris for singular homology.** Mathlib has singular
    homology as a functor with homotopy invariance and `H₀`, but cannot compute
-   `H_{n-1}(Sⁿ⁻¹)`. That is what blocks Brouwer and the no-retraction theorem,
-   in Chapters 2 and 4, in every dimension above one. There is no shortcut:
-   `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent too. Two
-   names are traps when grepping for these: Mathlib's `IsAntichain.sperner` is
-   Sperner's *theorem* on antichains, not the simplicial lemma, and its
-   `MayerVietoris` files are for sheaf cohomology, not singular homology.
+   `H_{n-1}(Sⁿ⁻¹)` or the mod 2 homology of `Pⁿ(ℝ)`. It no longer blocks
+   Brouwer, which has an analytic proof (Milnor–Rogers, in `Part1/Brouwer.lean`,
+   from the change of variables formula and partitions of unity). It still
+   blocks Borsuk–Ulam (Chapter 4), which has no comparably short analytic proof;
+   the realistic routes are Tucker's combinatorial lemma, or a mod 2 degree
+   built on Sard. `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent
+   too. Two names are traps when grepping for these: Mathlib's
+   `IsAntichain.sperner` is Sperner's *theorem* on antichains, not the
+   simplicial lemma, and its `MayerVietoris` files are for sheaf cohomology,
+   not singular homology.
+
+The rest of Part I's assumptions are Reeb's theorem and the classification of
+compact 1-manifolds (Chapter 2). Neither is blocked by a single missing lemma:
+Reeb needs the flow of a vector field on a compact manifold, continuous in the
+initial point, and gluing of disks; the classification needs either that or
+Gale's purely topological argument. Each is a multi-week project.
 
 
 ## What Mathlib does and does not have
@@ -248,6 +269,20 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
 ## Lean gotchas that cost real time here
 
 These are specific to this Mathlib version and were each hit during the build:
+
+- **Instance search fails on nested operator spaces** such as
+  `E →L[ℝ] E →L[ℝ] ℝ` or `(E →L[ℝ] ℝ) →L[ℝ] E` — `NormSMulClass`,
+  `IntervalIntegrable`, even `norm_nonneg` — because this project builds at the
+  default `maxSynthPendingDepth` of 1. `set_option maxSynthPendingDepth 3`
+  (Mathlib's own setting) fixes it file-locally; `Part1/MorseLemma.lean` uses
+  it. It can also trigger `whnf` timeouts elsewhere, so scope it to the
+  sections that need it.
+- **Junk values make careless statements false.** An unconstrained `X : E → E`
+  is not a vector field in the book's sense (Prop 2.1.6 was false until
+  `Continuous X` and `FiniteDimensional` were added), and `mfderiv` is `0` where
+  `f` is not differentiable, so `IsMorseFunction` alone does not make `f`
+  smooth (Reeb now carries a `ContMDiff` hypothesis). Check the hypotheses of a
+  `sorry`ed statement for these before spending effort on its proof.
 
 - **`simpa ... using h` fails across instance diamonds.** Composing Mathlib
   calculus lemmas produces terms whose `ℝ` `AddCommGroup`/`Module` instances go

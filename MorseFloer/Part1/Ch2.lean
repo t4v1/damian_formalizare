@@ -1,4 +1,5 @@
 import MorseFloer.Basic
+import MorseFloer.Part1.Brouwer
 
 /-!
 # Chapter 2: Pseudo-gradients
@@ -37,9 +38,13 @@ Proved here:
 * the chain rule along a trajectory, and monotonicity: `f` is nonincreasing
   along any trajectory of a pseudo-gradient and *strictly* decreasing along a
   trajectory containing no critical point;
-* the two halves of the proof of Proposition 2.1.6 that are analytic: `f` is
-  convergent along a forward trajectory that stays in a compact set, and
-  therefore `df(X)` cannot stay below a negative constant (`frequently_fderiv_gt`);
+* Proposition 2.1.6 in the local model (`exists_isCriticalPt_tendsto`): a
+  forward trajectory of a continuous pseudo-gradient in finite dimension that
+  stays in a compact set converges to a critical point, when the critical
+  points are nondegenerate.  The proof avoids Morse charts: every cluster point
+  is critical because `f` converges along the trajectory, and nondegenerate
+  critical points are isolated, which with the intermediate value theorem rules
+  out two cluster points;
 * the Morse model of §2.1.b: `−grad Q` is a pseudo-gradient for the normal form
   `Q = −‖x₋‖² + ‖x₊‖²`, its flow is `(e^{2s}x₋, e^{−2s}x₊)`, and the stable set
   of the origin is exactly `V₊` (the model half of §2.1.d);
@@ -55,15 +60,14 @@ Proved here:
 * Lemma 2.2.9 in its model: the perturbed field `−∂/∂z − β(z)∂/∂x` moves the
   point `(0,0)` to `(∫₀^m β, m)` in time `−m`.
 
-Assumed (`sorry`): Proposition 2.1.6 (convergence of a trajectory to a critical
-point — the proof uses Morse charts, which need the Morse lemma), Reeb's
-theorem 2.1.9, the classification of compact connected 1-manifolds (2.3.2) and
-Brouwer's theorem (2.3.3), none of which Mathlib can currently prove.  Brouwer
-is assumed only in dimension `≥ 2`: `brouwer_dim_zero` and `brouwer_dim_one`
-prove the low-dimensional case in full, the latter by the intermediate value
-theorem.  The docstring of `brouwer` records why the general case is out of
-reach — no homology of spheres (no excision, no Mayer–Vietoris), no
-`π₁(S¹) ≅ ℤ`, no Sperner lemma and no degree theory.
+Also proved: Brouwer's theorem (2.3.3) in every dimension, `brouwer`, restating
+`MorseFloer.brouwer_fixed_point` from `MorseFloer/Part1/Brouwer.lean`.  This
+Mathlib has no homology of spheres, so that proof is analytic (Milnor–Rogers)
+rather than the book's; `brouwer_dim_zero` and `brouwer_dim_one` keep the
+elementary low-dimensional cases.
+
+Assumed (`sorry`): Reeb's theorem 2.1.9 and the classification of compact
+connected 1-manifolds (2.3.2), neither of which Mathlib can currently prove.
 
 Omitted, because today's Mathlib cannot even state them faithfully:
 
@@ -262,9 +266,8 @@ theorem bddBelow_range_comp {f : E → ℝ} {γ : ℝ → E} {K : Set E}
   exact isMinOn_iff.mp hmin _ (hmem s)
 
 /-- Along a trajectory contained in a compact set, `f ∘ γ` converges as
-`s → +∞`: it is nonincreasing and bounded below.  (Half of Proposition 2.1.6:
-the value converges; identifying the limit point as a critical point is the part
-that needs Morse charts.) -/
+`s → +∞`: it is nonincreasing and bounded below.  (The first step of
+Proposition 2.1.6, `exists_isCriticalPt_tendsto`.) -/
 theorem tendsto_comp_integralCurve {f : E → ℝ} {X : E → E} {γ : ℝ → E}
     (hf : Differentiable ℝ f) (hX : IsPseudoGradient f X)
     (hγ : IsIntegralCurve γ fun _ => X)
@@ -300,23 +303,168 @@ theorem frequently_fderiv_gt {f : E → ℝ} {X : E → E} {γ : ℝ → E} {ε 
   rw [hcancel] at key
   linarith [hCle (s₀ + (f (γ s₀) - C + 1) / ε)]
 
+/-- **Cluster points of a forward trajectory are critical** (the core of the
+proof of Proposition 2.1.6).  Let `γ` be a trajectory of a continuous
+pseudo-gradient `X` of a `C¹` function `f`, staying in a compact set `K`.  Any
+point `p` near which `γ(s)` returns at arbitrarily large times is critical.
+
+Suppose `df_p(X_p) = −δ < 0`.  By continuity `df(X) < −δ/2` on a ball
+`B(p, r)`, and the speed `‖γ'‖ = ‖X ∘ γ‖` is bounded by some `M` on `K`.  So
+each late visit of `γ` to `B(p, r/2)` is followed by a stay of length
+`τ = r / (2(M + 1))` inside `B(p, r)`, during which `f ∘ γ` drops by more than
+`δτ/2`.  This contradicts the convergence of `f ∘ γ`. -/
+theorem isCriticalPt_of_mapClusterPt {f : E → ℝ} {X : E → E} {γ : ℝ → E} {K : Set E}
+    {p : E} (hf : ContDiff ℝ 1 f) (hXc : Continuous X) (hX : IsPseudoGradient f X)
+    (hγ : IsIntegralCurve γ fun _ => X) (hK : IsCompact K) (hmem : ∀ s, γ s ∈ K)
+    (hp : MapClusterPt p atTop γ) : IsCriticalPt f p := by
+  by_contra hpc
+  have hdf : Differentiable ℝ f := hf.differentiable one_ne_zero
+  -- `df(X)` is continuous and negative at `p`, hence `< −δ/2` on a ball around `p`.
+  have hφc : Continuous fun x => fderiv ℝ f x (X x) :=
+    (hf.continuous_fderiv one_ne_zero).clm_apply hXc
+  obtain ⟨δ, hδ, hδeq⟩ : ∃ δ > 0, fderiv ℝ f p (X p) = -δ :=
+    ⟨-fderiv ℝ f p (X p), by linarith [hX.neg_of_not_isCriticalPt hpc], by ring⟩
+  obtain ⟨r, hr, hball⟩ := Metric.continuous_iff.mp hφc p (δ / 2) (by linarith)
+  have hneg : ∀ x, dist x p < r → fderiv ℝ f x (X x) < -(δ / 2) := by
+    intro x hx
+    have h1 : dist (fderiv ℝ f x (X x)) (fderiv ℝ f p (X p)) < δ / 2 := hball x hx
+    rw [Real.dist_eq, abs_lt] at h1
+    linarith [h1.2]
+  -- The speed of `γ` is bounded, so `γ` is `M`-Lipschitz.
+  obtain ⟨M, hM⟩ := hK.exists_bound_of_continuousOn hXc.continuousOn
+  have hM0 : 0 ≤ M := (norm_nonneg _).trans (hM _ (hmem 0))
+  have hlip : ∀ s t, dist (γ t) (γ s) ≤ M * |t - s| := by
+    intro s t
+    have h := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le (f := γ)
+      (f' := fun u => X (γ u)) (fun u _ => (hγ u).hasDerivWithinAt)
+      (fun u _ => hM _ (hmem u)) convex_univ (mem_univ s) (mem_univ t)
+    rw [dist_eq_norm]
+    rwa [Real.norm_eq_abs] at h
+  -- `f ∘ γ` decreases to its infimum `L`.
+  have hbdd := bddBelow_range_comp hf.continuous hK hmem
+  have hlim := tendsto_comp_integralCurve hdf hX hγ hbdd
+  have hLle : ∀ t, (⨅ s : ℝ, f (γ s)) ≤ f (γ t) := fun t => ciInf_le hbdd t
+  set L := ⨅ s : ℝ, f (γ s)
+  -- The time `τ` spent in `B(p, r)` after a visit to `B(p, r/2)`.
+  set τ := r / 2 / (M + 1) with hτdef
+  have hM1 : M + 1 ≠ 0 := (show (0 : ℝ) < M + 1 by linarith).ne'
+  have hτ : 0 < τ := div_pos (half_pos hr) (by linarith)
+  have hMτ : M * τ < r / 2 := by
+    have h : (M + 1) * τ = r / 2 := by rw [hτdef]; field_simp
+    linarith
+  -- A late visit to `B(p, r/2)`, at a time where `f ∘ γ` is already close to `L`.
+  have hLη : L < L + δ / 2 * τ := by
+    have : 0 < δ / 2 * τ := by positivity
+    linarith
+  have hev : ∀ᶠ s in atTop, f (γ s) < L + δ / 2 * τ :=
+    hlim.eventually (eventually_lt_nhds hLη)
+  have hfreq : ∃ᶠ s in atTop, γ s ∈ Metric.ball p (r / 2) :=
+    mapClusterPt_iff_frequently.mp hp _ (Metric.ball_mem_nhds p (half_pos hr))
+  obtain ⟨s, hs1, hs2⟩ := (hfreq.and_eventually hev).exists
+  -- On `[s, s + τ]` the trajectory stays in `B(p, r)`.
+  have hin : ∀ u ∈ Icc s (s + τ), fderiv ℝ f (γ u) (X (γ u)) < -(δ / 2) := by
+    intro u hu
+    refine hneg _ ?_
+    have h1 := hlip s u
+    have h2 : |u - s| ≤ τ := by
+      rw [abs_of_nonneg (by linarith [hu.1])]
+      linarith [hu.2]
+    have h3 : M * |u - s| ≤ M * τ := mul_le_mul_of_nonneg_left h2 hM0
+    have h4 : dist (γ s) p < r / 2 := hs1
+    linarith [dist_triangle (γ u) (γ s) p]
+  -- So `f ∘ γ` drops by more than `δτ/2` over `[s, s + τ]`: mean value theorem.
+  obtain ⟨c, hc, hceq⟩ : ∃ c ∈ Ioo s (s + τ),
+      fderiv ℝ f (γ c) (X (γ c)) = (f (γ (s + τ)) - f (γ s)) / (s + τ - s) :=
+    exists_hasDerivAt_eq_slope (fun u => f (γ u)) (fun u => fderiv ℝ f (γ u) (X (γ u)))
+      (by linarith : s < s + τ) (hdf.continuous.comp hγ.continuous).continuousOn
+      (fun u _ => hasDerivAt_comp_integralCurve hdf hγ u)
+  have hc' := hin c (Ioo_subset_Icc_self hc)
+  rw [hceq, show s + τ - s = τ by ring, div_lt_iff₀ hτ] at hc'
+  linarith [hLle (s + τ)]
+
+/-- **Nondegenerate critical points are isolated** (in finite dimension).  If
+`d²f_c` is nondegenerate then `df`, whose derivative at `c` is `d²f_c`, is
+injective near `c`; in particular `c` is the only zero of `df` nearby.
+
+This is `Chapter1.isolated_of_nondegenerate`, restated with the nondegeneracy
+hypothesis in the form used here: in finite dimension an injective linear map
+is anti-Lipschitz, which is all the inverse-function argument needs. -/
+theorem eventually_eq_of_isCriticalPt [FiniteDimensional ℝ E] {f : E → ℝ} {c : E}
+    (hf : ContDiff ℝ 2 f) (hnd : IsNondegenerate (sndFDeriv f c)) :
+    ∀ᶠ y in 𝓝 c, IsCriticalPt f y → y = c := by
+  have hd : HasFDerivAt (fderiv ℝ f) (sndFDeriv f c) c := by
+    have h1 : ContDiff ℝ 1 (fderiv ℝ f) := hf.fderiv_right (by norm_num)
+    exact (h1.differentiable one_ne_zero c).hasFDerivAt
+  have hinj : Function.Injective (sndFDeriv f c) := (isNondegenerate_iff_injective _).mp hnd
+  obtain ⟨K, -, hK⟩ := (sndFDeriv f c).injective_iff_antilipschitz.mp hinj
+  have hev := hd.eventually_ne (c := (0 : E →L[ℝ] ℝ)) ⟨K, hK⟩
+  rw [eventually_nhdsWithin_iff] at hev
+  filter_upwards [hev] with y hy hcrit
+  by_contra hne
+  exact hy hne hcrit
+
 /-- **Proposition 2.1.6.**  On a compact manifold, every trajectory of a
 pseudo-gradient comes from a critical point and goes to a critical point.
 
 Stated here in the local model for the forward limit, with "the manifold is
-compact" replaced by "the trajectory stays in a compact set".
+compact" replaced by "the trajectory stays in a compact set".  The hypotheses
+that `E` is finite-dimensional and `X` continuous are part of the book's setting
+(smooth fields on a finite-dimensional manifold) and cannot be dropped: in `ℝ²`,
+with `f(x, y) = y`, the bounded injective curve `γ(s) = (cos s, −arctan s)` is
+an integral curve of the discontinuous pseudo-gradient equal to `γ'` along `γ`
+and to `(0, −1)` elsewhere, and `f` has no critical point at all.
 
-`sorry`: the book's proof shows that the trajectory must enter the *Morse
-chart* of some critical point and cannot leave it again; this needs the Morse
-lemma (Theorem 1.3.1, itself a `sorry` in Chapter 1) and the local model of
-§2.1.b.  The two analytic ingredients are proved above
-(`tendsto_comp_integralCurve` and `frequently_fderiv_gt`). -/
-theorem exists_isCriticalPt_tendsto {f : E → ℝ} {X : E → E} {γ : ℝ → E} {K : Set E}
-    (_hf : ContDiff ℝ 2 f) (_hX : IsPseudoGradient f X)
-    (_hnd : ∀ c, IsCriticalPt f c → IsNondegenerate (sndFDeriv f c))
-    (_hγ : IsIntegralCurve γ fun _ => X) (_hK : IsCompact K) (_hmem : ∀ s, γ s ∈ K) :
+The proof does not need Morse charts.  Every cluster point of `γ` at `+∞` is
+critical (`isCriticalPt_of_mapClusterPt`), and one exists since `K` is compact.
+There cannot be two, `c ≠ q`: nondegenerate critical points are isolated
+(`eventually_eq_of_isCriticalPt`), so for small `ρ` the sphere `S(c, ρ)` holds
+no critical point; but `γ` keeps coming back near `c` and near `q`, so by the
+intermediate value theorem it crosses `S(c, ρ)` at arbitrarily large times, and
+a cluster point of those crossings is a critical point on `S(c, ρ)`.  A unique
+cluster point in a compact set is a limit. -/
+theorem exists_isCriticalPt_tendsto [FiniteDimensional ℝ E] {f : E → ℝ} {X : E → E}
+    {γ : ℝ → E} {K : Set E}
+    (hf : ContDiff ℝ 2 f) (hXc : Continuous X) (hX : IsPseudoGradient f X)
+    (hnd : ∀ c, IsCriticalPt f c → IsNondegenerate (sndFDeriv f c))
+    (hγ : IsIntegralCurve γ fun _ => X) (hK : IsCompact K) (hmem : ∀ s, γ s ∈ K) :
     ∃ c, IsCriticalPt f c ∧ Tendsto γ atTop (𝓝 c) := by
-  sorry
+  have hcrit : ∀ p, MapClusterPt p atTop γ → IsCriticalPt f p := fun p hp =>
+    isCriticalPt_of_mapClusterPt (hf.of_le (by norm_num)) hXc hX hγ hK hmem hp
+  obtain ⟨c, -, hc⟩ := hK.exists_mapClusterPt (f := atTop) (u := γ)
+    (tendsto_principal.mpr (Eventually.of_forall hmem))
+  refine ⟨c, hcrit c hc, hK.tendsto_nhds_of_unique_mapClusterPt (Eventually.of_forall hmem) ?_⟩
+  intro q _ hq
+  by_contra hqc
+  -- `c` is the only critical point in `B(c, ρ₀)`.
+  obtain ⟨ρ₀, hρ₀, hball⟩ :=
+    Metric.eventually_nhds_iff.mp (eventually_eq_of_isCriticalPt hf (hnd c (hcrit c hc)))
+  have hdpos : 0 < dist q c := dist_pos.mpr hqc
+  obtain ⟨ρ, hρ, hρ₀', hρq⟩ : ∃ ρ, 0 < ρ ∧ ρ < ρ₀ ∧ ρ < dist q c := by
+    refine ⟨min ρ₀ (dist q c) / 2, half_pos (lt_min hρ₀ hdpos), ?_, ?_⟩
+    · linarith [min_le_left ρ₀ (dist q c), lt_min hρ₀ hdpos]
+    · linarith [min_le_right ρ₀ (dist q c), lt_min hρ₀ hdpos]
+  -- `γ` crosses the sphere `S(c, ρ)` at arbitrarily large times.
+  have hfreq : ∃ᶠ s in atTop, γ s ∈ K ∩ Metric.sphere c ρ := by
+    rw [frequently_atTop]
+    intro T
+    obtain ⟨s₁, hs₁T, hs₁⟩ := frequently_atTop.mp
+      (mapClusterPt_iff_frequently.mp hc _ (Metric.ball_mem_nhds c hρ)) T
+    obtain ⟨s₂, hs₁₂, hs₂⟩ := frequently_atTop.mp
+      (mapClusterPt_iff_frequently.mp hq _ (Metric.ball_mem_nhds q (sub_pos.mpr hρq))) s₁
+    have hd1 : dist (γ s₁) c < ρ := hs₁
+    have hd2 : ρ < dist (γ s₂) c := by
+      have h' : dist (γ s₂) q < dist q c - ρ := hs₂
+      linarith [dist_triangle q (γ s₂) c, dist_comm q (γ s₂)]
+    obtain ⟨s, hs, hseq⟩ := intermediate_value_Icc hs₁₂
+      (hγ.continuous.dist continuous_const).continuousOn ⟨hd1.le, hd2.le⟩
+    exact ⟨s, hs₁T.trans hs.1, hmem s, Metric.mem_sphere.mpr hseq⟩
+  -- A cluster point of these crossings is critical, lies on `S(c, ρ)`, and so is `c`.
+  obtain ⟨a, ⟨-, haS⟩, ha⟩ :=
+    (hK.inter_right Metric.isClosed_sphere).exists_mapClusterPt_of_frequently hfreq
+  have haρ : dist a c = ρ := Metric.mem_sphere.mp haS
+  have hac : a = c := hball (by rw [haρ]; exact hρ₀') (hcrit a ha)
+  rw [hac, dist_self] at haρ
+  exact absurd haρ (ne_of_lt hρ)
 
 end Trajectories
 
@@ -430,8 +578,9 @@ def modelBoundaryZero (ε η : ℝ) : Set (Fneg × Fpos) :=
 critical point `c` there is a chart `φ` in which `f` becomes `f(c) + Q` and `X`
 becomes `−grad Q`.  Such a `φ` is a *Morse chart adapted to `X`*.
 
-This is a definition only: the existence of `φ` is the Morse lemma
-(Theorem 1.3.1), which is a `sorry` in Chapter 1. -/
+This is a definition only.  A chart putting `f` in the form `f(c) + Q` is
+the Morse lemma (Theorem 1.3.1, `Chapter1.morse_lemma`); adapting the field `X`
+to it as well is the separate construction of §2.1.b. -/
 def IsMorseChart {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : E → ℝ) (X : E → E) (c : E) (φ : OpenPartialHomeomorph E (Fneg × Fpos)) : Prop :=
   c ∈ φ.source ∧ φ c = 0 ∧
@@ -693,13 +842,17 @@ end Sublevel
 /-- **Corollary 2.1.9 (Reeb's theorem).**  A compact manifold carrying a Morse
 function with exactly two critical points is homeomorphic to a sphere.
 
+The smoothness hypothesis `_hsmooth` is essential: `IsMorseFunction` alone
+does not ask `f` to be differentiable, and `mfderiv` is `0` wherever `f` is not,
+so without it such points would count as critical.
+
 `sorry`: the proof glues two disks obtained from the Morse lemma along their
 boundary, using Theorem 2.1.7 to identify the intermediate sublevel sets.  It
 needs the Morse lemma, the diffeomorphism statement of Theorem 2.1.7, and the
 gluing construction — none available. -/
 theorem reeb {n : ℕ} {V : Type*} [TopologicalSpace V] [CompactSpace V]
     [ChartedSpace (EuclideanSpace ℝ (Fin n)) V] [IsManifold (𝓡 n) ω V]
-    (f : V → ℝ) (_hf : IsMorseFunction (𝓡 n) f)
+    (f : V → ℝ) (_hsmooth : ContMDiff (𝓡 n) 𝓘(ℝ) ∞ f) (_hf : IsMorseFunction (𝓡 n) f)
     (_hcard : {x : V | IsCriticalPoint (𝓡 n) f x}.ncard = 2) :
     Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1) := by
   sorry
@@ -916,8 +1069,8 @@ theorem norm_eq_abs_coord (x : EuclideanSpace ℝ (Fin 1)) : ‖x‖ = |x 0| := 
 
 /-- **Theorem 2.3.3, base case `n = 0`.**  Proved in full.  `EuclideanSpace ℝ
 (Fin 0)` has exactly one point, so the closed unit ball is `{0}` and the origin
-is a fixed point of every self-map.  With `brouwer_dim_one` this discharges
-`brouwer` for `n ≤ 1`; the obstruction for `n ≥ 2` is recorded on `brouwer`. -/
+is a fixed point of every self-map.  Kept, with `brouwer_dim_one`, as the
+elementary low-dimensional case; `brouwer` below covers every dimension. -/
 theorem brouwer_dim_zero (ϕ : EuclideanSpace ℝ (Fin 0) → EuclideanSpace ℝ (Fin 0))
     (_hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
     (_hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
@@ -981,40 +1134,24 @@ theorem brouwer_dim_one (ϕ : EuclideanSpace ℝ (Fin 1) → EuclideanSpace ℝ 
 /-- **Theorem 2.3.3 (Brouwer's fixed point theorem).**  A continuous self-map of
 the closed unit ball has a fixed point.
 
-`sorry` for arbitrary `n`.  The book's own proof deduces it from Sard's theorem
-and the classification of 1-manifolds — a fixed-point-free map would give a
-smooth retraction of the ball onto its boundary, whose regular fibre would be a
-compact 1-manifold with exactly one boundary point — and Mathlib has neither
-Sard's theorem nor `classification_dim_one` above.  But it is worth recording
-that *no* classical route is available either, since this was checked
-declaration by declaration:
+Proved in every dimension, in `MorseFloer/Part1/Brouwer.lean`
+(`MorseFloer.brouwer_fixed_point`), which this theorem restates.  The book's own
+proof deduces it from Sard's theorem and the classification of 1-manifolds — a
+fixed-point-free map would give a smooth retraction of the ball onto its
+boundary, whose regular fibre would be a compact 1-manifold with exactly one
+boundary point.  This Mathlib has neither `classification_dim_one` above nor any
+homology of spheres, so the proof there is analytic instead, after Milnor and
+Rogers: a `C¹` retraction `r` would make `∫_D det Dr` both `vol D` (follow the
+homotopy `id + t (r − id)` by the change of variables formula, and note that
+the integral is a polynomial in `t`) and `0` (because `‖r‖ = 1`), and smooth
+partitions of unity reduce the continuous case to the `C¹` one.
 
-* **no homology of spheres.**  `Mathlib.AlgebraicTopology.SingularHomology`
-  builds singular homology as a functor and proves homotopy invariance and the
-  computation of `H₀`, but there is no excision and no Mayer–Vietoris, so
-  `H_{n−1}(Sⁿ⁻¹)` is computed nowhere and the no-retraction argument cannot be
-  run;
-* **no `π₁(S¹) ≅ ℤ`**, so even `n = 2` cannot go through covering spaces;
-* **no Sperner lemma** on simplicial subdivisions (`Combinatorics/SetFamily/
-  LYM.lean` is Sperner's unrelated *theorem* on antichains) and **no degree
-  theory**, closing the combinatorial and the analytic proofs.
-
-Brouwer's theorem is itself absent from this Mathlib (a search for `brouwer`
-finds only Brouwerian lattices), so it cannot simply be imported; closing this
-`sorry` means contributing one of the ingredients above upstream, of which
-excision plus Mayer–Vietoris for the existing singular homology is the cheapest.
-
-The low-dimensional case is *not* assumed: `brouwer_dim_zero` and
-`brouwer_dim_one` above prove it in full.  (`Chapter4.brouwer_fixedPoint`
-restates the theorem for §4.8.b and carries the same two base cases,
-`Chapter4.brouwer_fixedPoint_dim_zero` and
-`Chapter4.brouwer_fixedPoint_dim_one`; the proofs are repeated there because
-`Part1/Ch3.lean`, and hence `Part1/Ch4.lean`, does not import this file.) -/
+`Chapter4.brouwer_fixedPoint` restates the same theorem for §4.8.b. -/
 theorem brouwer {n : ℕ} (ϕ : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
-    (_hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
-    (_hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
-    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1, ϕ x = x := by
-  sorry
+    (hcont : ContinuousOn ϕ (Metric.closedBall 0 1))
+    (hmaps : MapsTo ϕ (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1, ϕ x = x :=
+  brouwer_fixed_point ϕ hcont hmaps
 
 end Chapter2
 end MorseFloer

@@ -1,4 +1,5 @@
 import MorseFloer.Part1.Ch3
+import MorseFloer.Part1.Brouwer
 
 /-!
 # Chapter 4: Morse homology, applications
@@ -63,36 +64,43 @@ rank–nullity theorem is available, Remark 4.4.2), we define
   behind it, `Matrix.rank_transpose`, is Mathlib's;
 * `betti_of_count_zero` and the examples: the torus (Poincaré polynomial
   `1 + 2t + t²`, Euler characteristic `0`) and `Pⁿ(ℝ)` (**Theorem 4.8.2**);
-* `borsuk_ulam_of_odd` and `exists_eq_antipode` — **Corollaries 4.8.4 and
-  4.8.5** of Borsuk–Ulam, deduced from Theorem 4.8.3.
+* `brokenPairs_prod` and `betti_prod` — **Proposition 4.2.1 and Corollaries
+  4.2.2, 4.2.3 (Künneth)**: in characteristic `2` the product complex is a
+  complex and `βₖ(M × N) = Σ_{i+j=k} βᵢ(M) βⱼ(N)`;
+* `betti_sumComplex` — the additivity of §4.1 and Corollary 4.5.5: the Betti
+  numbers of a disjoint union add up;
+* `finrank_homology_dual_int` — **Proposition 4.3.2**, duality over `ℤ` for an
+  oriented manifold, in the form of the free ranks.  The book's statement
+  `HM_{n−k}(V; Z) ≅ HMₖ(V; Z)` cannot be taken literally: the complex of `−f` is
+  the transposed complex, whose homology is *cohomology*, and over `ℤ` the two
+  differ by torsion — for `P³(ℝ)`, `HM₁ = Z/2` while `HM₂ = 0`.  Over a field,
+  which is Proposition 4.3.1, there is no discrepancy;
+* `brouwer_fixedPoint` and `no_retraction_closedBall` (§4.8.b), in every
+  dimension: the first restates `MorseFloer.brouwer_fixed_point` from
+  `MorseFloer/Part1/Brouwer.lean`, proved analytically since this Mathlib has no
+  homology of spheres, and the second is deduced from it;
+* `borsuk_ulam_of_odd`, `exists_eq_antipode` and
+  `exists_antipodal_pair_of_closed_cover` — **Corollaries 4.8.4, 4.8.5 and
+  4.8.6** of Borsuk–Ulam, deduced from Theorem 4.8.3.
 
-**Stated with `sorry`**, because the proof needs geometry Mathlib does not have,
-or bookkeeping that is not attempted here:
+The two statements about Betti numbers of a *changed* complex (Künneth and the
+disjoint union) rest on one piece of linear algebra, proved below under
+"Deformation retractions of based complexes": every based complex over a field
+retracts, by explicit matrices, onto a graded vector space with zero
+differential (`exists_retract`), whose numbers of generators are then the Betti
+numbers (`betti_eq_numCrit_of_retract`); retractions tensor
+(`betti_prod_of_retract`) and add up along block sums.
 
-* `brokenPairs_prod`, `betti_prod` — Proposition 4.2.1 and
-  Corollaries 4.2.2, 4.2.3 (Künneth).  The product complex is defined; that it
-  is a complex is the algebraic half of Proposition 4.2.1 and holds only in
-  characteristic `2` unless signs are inserted, as the book notes.
-* `finrank_homology_dual_int` — Proposition 4.3.2, duality over `ℤ` for an
-  oriented manifold.  Note that the book's statement `HM_{n−k}(V; Z) ≅ HMₖ(V; Z)`
-  cannot be taken literally: the complex of `−f` is the transposed complex, whose
-  homology is *cohomology*, and over `ℤ` the two differ by torsion — for `P³(ℝ)`,
-  `HM₁ = Z/2` while `HM₂ = 0`.  What is recorded here is the duality of the free
-  ranks; over a field, which is Proposition 4.3.1, there is no discrepancy.
-* `betti_sumComplex` — the additivity of §4.1 and Corollary 4.5.5 over a
-  disjoint union.
-* `brouwer_fixedPoint`, `no_retraction_closedBall`, `borsuk_ulam` — §4.8.b and
-  Theorem 4.8.3.  Contrary to what one might expect, **this Mathlib version
-  contains neither Brouwer's fixed point theorem nor Borsuk–Ulam** (a search for
-  `brouwer` finds only Brouwerian lattices, and for `borsuk` only the
-  Borsuk–Mazurkiewicz example on local contractibility), so they are stated
-  here.  Their corollaries are proved from them.  Nor can they be *derived*:
-  Mathlib has no excision or Mayer–Vietoris for its singular homology (so
-  `H_{n−1}(Sⁿ⁻¹)` is nowhere computed), no `π₁(S¹) ≅ ℤ`, no Sperner lemma and no
-  degree theory.  The low-dimensional case of Brouwer is nonetheless proved in
-  full — see `brouwer_fixedPoint_dim_zero` and `brouwer_fixedPoint_dim_one`
-  under §4.8.b, the latter by the intermediate value theorem.
-* `exists_antipodal_pair_of_closed_cover` — Corollary 4.8.6.
+**Stated with `sorry`**, because the proof needs topology Mathlib does not have:
+
+* `borsuk_ulam` — Theorem 4.8.3.  **This Mathlib version does not contain
+  Borsuk–Ulam** (a search for `borsuk` finds only the Borsuk–Mazurkiewicz
+  example on local contractibility), so it is stated here and its corollaries
+  are proved from it.  Nor can it be derived along the book's lines: Mathlib has
+  no excision or Mayer–Vietoris for its singular homology (so the mod `2`
+  homology of `Pⁿ(ℝ)` is nowhere computed), and no degree theory.  Unlike
+  Brouwer, it has no known short analytic proof; the realistic routes are
+  Tucker's combinatorial lemma or a mod `2` degree built on Sard's theorem.
 
 ## Gaps: results carrying no Lean declaration
 
@@ -323,10 +331,550 @@ private theorem sum_range_ite_mul (k p q : ℕ) :
 
 end Sums
 
+/-! ### Deformation retractions of based complexes
+
+Two results of this chapter compute the Betti numbers of a complex built from
+others — the product complex of §4.2 and the disjoint union of §4.1 — and the
+based model of Chapter 3 gives no direct handle on either, since the natural
+argument changes basis.  The tool used instead is a *deformation retraction onto
+the homology*, written with matrices on the whole set of critical points:
+
+* `totalD ind cnt` is the whole differential as one square matrix;
+* a retraction is a based graded set `CH` with matrices `I` (degree preserving,
+  into the cycles), `P` (killing the boundaries) and `Hm`, with `P I = 1` and
+  `I P = 1 + ∂ Hm + Hm ∂`.
+
+`betti_eq_numCrit_of_retract` shows that `βₖ` is then the number of elements of
+`CH` of degree `k`, and `exists_retract` that every based complex over a field
+has such a retraction.  Retractions are stable under Kronecker products and
+block sums, which is how `betti_prod` and `betti_sumComplex` are proved. -/
+
+section Retraction
+
+open scoped Matrix
+
+variable {K : Type*} [Field K] {Crit : Type*} [Fintype Crit]
+
+/-- The whole differential of the complex as one square matrix on the set of all
+critical points: the entry in row `b`, column `a` is the count from `a` to `b`
+when the index drops by one, and `0` otherwise. -/
+def totalD (ind : Crit → ℕ) (cnt : Crit → Crit → K) : Matrix Crit Crit K :=
+  Matrix.of fun b a => if ind a = ind b + 1 then cnt a b else 0
+
+omit [Fintype Crit] in
+theorem totalD_apply (ind : Crit → ℕ) (cnt : Crit → Crit → K) (b a : Crit) :
+    totalD ind cnt b a = if ind a = ind b + 1 then cnt a b else 0 := rfl
+
+/-- A chain of degree `k`, extended by zero to a function on all critical points. -/
+def extChains (ind : Crit → ℕ) (k : ℕ) : Chains K ind k →ₗ[K] (Crit → K) where
+  toFun x c := if h : ind c = k then x ⟨c, h⟩ else 0
+  map_add' x y := by
+    funext c
+    by_cases h : ind c = k
+    · simp only [dif_pos h, Pi.add_apply]
+    · simp only [dif_neg h, Pi.add_apply, add_zero]
+  map_smul' r x := by
+    funext c
+    by_cases h : ind c = k
+    · simp only [dif_pos h, Pi.smul_apply, RingHom.id_apply]
+    · simp only [dif_neg h, Pi.smul_apply, RingHom.id_apply, smul_zero]
+
+/-- The degree `k` part of a function on all critical points. -/
+def resChains (ind : Crit → ℕ) (k : ℕ) : (Crit → K) →ₗ[K] Chains K ind k :=
+  LinearMap.funLeft K K Subtype.val
+
+omit [Fintype Crit] in
+theorem extChains_apply_of_eq {ind : Crit → ℕ} {k : ℕ} (x : Chains K ind k) {c : Crit}
+    (h : ind c = k) : extChains ind k x c = x ⟨c, h⟩ := dif_pos h
+
+omit [Fintype Crit] in
+theorem extChains_apply_of_ne {ind : Crit → ℕ} {k : ℕ} (x : Chains K ind k) {c : Crit}
+    (h : ind c ≠ k) : extChains ind k x c = 0 := dif_neg h
+
+omit [Fintype Crit] in
+theorem resChains_extChains (ind : Crit → ℕ) (k : ℕ) (x : Chains K ind k) :
+    resChains ind k (extChains ind k x) = x := by
+  funext c
+  exact extChains_apply_of_eq x c.2
+
+omit [Fintype Crit] in
+theorem extChains_injective (ind : Crit → ℕ) (k : ℕ) :
+    Function.Injective (extChains (K := K) ind k) :=
+  Function.LeftInverse.injective (resChains_extChains ind k)
+
+omit [Fintype Crit] in
+theorem extChains_resChains_apply (ind : Crit → ℕ) (k : ℕ) (x : Crit → K) (c : Crit) :
+    extChains ind k (resChains ind k x) c = if ind c = k then x c else 0 := by
+  by_cases h : ind c = k
+  · rw [extChains_apply_of_eq _ h, if_pos h]
+    rfl
+  · rw [extChains_apply_of_ne _ h, if_neg h]
+
+/-- Reading the total differential in degree `k` gives back `∂ₖ`. -/
+theorem resChains_totalD_mulVec (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ)
+    (w : Crit → K) :
+    resChains ind k (totalD ind cnt *ᵥ w) = dLin ind cnt k (resChains ind (k + 1) w) := by
+  funext b
+  show ∑ a : Crit, totalD ind cnt b.1 a * w a = ∑ a : CritSet ind (k + 1), w a.1 * cnt a.1 b.1
+  rw [sum_critSet_eq ind (k + 1) (fun a => w a * cnt a b.1)]
+  refine Finset.sum_congr rfl fun a _ => ?_
+  have hb : ind b.1 = k := b.2
+  rw [totalD_apply]
+  by_cases ha : ind a = k + 1
+  · rw [if_pos (by omega), if_pos ha, mul_comm]
+  · rw [if_neg (by omega), if_neg ha, zero_mul]
+
+/-- The total differential kills everything of degree `0`. -/
+theorem totalD_mulVec_extChains_zero (ind : Crit → ℕ) (cnt : Crit → Crit → K)
+    (x : Chains K ind 0) : totalD ind cnt *ᵥ extChains ind 0 x = 0 := by
+  funext b
+  show ∑ a : Crit, totalD ind cnt b a * extChains ind 0 x a = 0
+  refine Finset.sum_eq_zero fun a _ => ?_
+  rw [totalD_apply]
+  by_cases ha : ind a = ind b + 1
+  · rw [extChains_apply_of_ne x (show ind a ≠ 0 by omega), mul_zero]
+  · rw [if_neg ha, zero_mul]
+
+/-- On chains of degree `k + 1` the total differential is `∂ₖ`. -/
+theorem totalD_mulVec_extChains (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ)
+    (x : Chains K ind (k + 1)) :
+    totalD ind cnt *ᵥ extChains ind (k + 1) x = extChains ind k (dLin ind cnt k x) := by
+  funext b
+  by_cases hb : ind b = k
+  · rw [extChains_apply_of_eq _ hb]
+    have h1 := congrFun (resChains_totalD_mulVec ind cnt k (extChains ind (k + 1) x)) ⟨b, hb⟩
+    rw [resChains_extChains] at h1
+    exact h1
+  · rw [extChains_apply_of_ne _ hb]
+    show ∑ a : Crit, totalD ind cnt b a * extChains ind (k + 1) x a = 0
+    refine Finset.sum_eq_zero fun a _ => ?_
+    rw [totalD_apply]
+    by_cases ha : ind a = ind b + 1
+    · rw [extChains_apply_of_ne x (show ind a ≠ k + 1 by omega), mul_zero]
+    · rw [if_neg ha, zero_mul]
+
+/-- `BrokenPairs` says exactly that the total differential squares to zero. -/
+theorem totalD_mul_self {ind : Crit → ℕ} {cnt : Crit → Crit → K} (h : BrokenPairs ind cnt) :
+    totalD ind cnt * totalD ind cnt = 0 := by
+  ext b a
+  rw [Matrix.mul_apply, Matrix.zero_apply]
+  by_cases hab : ind a = ind b + 2
+  · have hB : ∑ c : CritSet ind (ind b + 1), cnt a c.1 * cnt c.1 b = 0 :=
+      h (ind b) ⟨a, hab⟩ ⟨b, rfl⟩
+    rw [sum_critSet_eq ind (ind b + 1) (fun c => cnt a c * cnt c b)] at hB
+    refine Eq.trans (Finset.sum_congr rfl fun c _ => ?_) hB
+    rw [totalD_apply, totalD_apply]
+    by_cases hc : ind c = ind b + 1
+    · rw [if_pos hc, if_pos (by omega), if_pos hc, mul_comm]
+    · rw [if_neg hc, if_neg hc, zero_mul]
+  · refine Finset.sum_eq_zero fun c _ => ?_
+    rw [totalD_apply, totalD_apply]
+    by_cases hc : ind c = ind b + 1
+    · rw [if_neg (show ¬ind a = ind c + 1 by omega), mul_zero]
+    · rw [if_neg hc, zero_mul]
+
+/-- A chain is a cycle exactly when the total differential kills its extension
+by zero; in degree `0` both conditions always hold. -/
+theorem mem_cyclesAt_iff (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ)
+    (x : Chains K ind k) :
+    x ∈ cyclesAt ind cnt k ↔ totalD ind cnt *ᵥ extChains ind k x = 0 := by
+  cases k with
+  | zero =>
+      simp only [cyclesAt_zero, Submodule.mem_top, true_iff]
+      exact totalD_mulVec_extChains_zero ind cnt x
+  | succ k =>
+      rw [cyclesAt_succ, totalD_mulVec_extChains]
+      change dLin ind cnt k x = 0 ↔ _
+      constructor
+      · intro hx
+        rw [hx, map_zero]
+      · intro hx
+        exact extChains_injective ind k (by rw [hx, map_zero])
+
+omit [Fintype Crit] in
+/-- A graded matrix commutes with taking the degree `k` part. -/
+theorem extChains_resChains_mulVec {CH : Type*} [Fintype CH] (ind : Crit → ℕ)
+    (indH : CH → ℕ) (I : Matrix Crit CH K) (hI : ∀ c e, I c e ≠ 0 → ind c = indH e)
+    (k : ℕ) (y : CH → K) :
+    extChains ind k (resChains ind k (I *ᵥ y)) = I *ᵥ extChains indH k (resChains indH k y) := by
+  funext c
+  rw [extChains_resChains_apply]
+  show _ = ∑ e, I c e * extChains indH k (resChains indH k y) e
+  by_cases hc : ind c = k
+  · rw [if_pos hc]
+    show ∑ e, I c e * y e = _
+    refine Finset.sum_congr rfl fun e _ => ?_
+    rw [extChains_resChains_apply]
+    by_cases he : indH e = k
+    · rw [if_pos he]
+    · rw [if_neg he]
+      have h0 : I c e = 0 := by
+        by_contra hne
+        exact he ((hI c e hne).symm.trans hc)
+      rw [h0, zero_mul, mul_zero]
+  · rw [if_neg hc]
+    symm
+    refine Finset.sum_eq_zero fun e _ => ?_
+    rw [extChains_resChains_apply]
+    by_cases he : indH e = k
+    · have h0 : I c e = 0 := by
+        by_contra hne
+        exact hc ((hI c e hne).trans he)
+      rw [h0, zero_mul]
+    · rw [if_neg he, mul_zero]
+
+/-- **Betti numbers from a deformation retraction.**  Suppose the complex retracts
+onto a based graded vector space with zero differential: a degree-preserving `I`
+into the cycles, a `P` killing the boundaries with `P ∘ I = 1`, and a homotopy
+`Hm` with `I ∘ P = 1 + (∂ Hm + Hm ∂)`.  Then `βₖ` is the number of generators of
+degree `k`.  Proof: every cycle `z` equals `I P z − ∂(Hm z)`, so in each degree
+the cycles are the direct sum of the image of `I` and the boundaries. -/
+theorem betti_eq_numCrit_of_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → Crit → K}
+    (h : BrokenPairs ind cnt) {CH : Type*} [Fintype CH] [DecidableEq CH] (indH : CH → ℕ)
+    (I : Matrix Crit CH K) (P : Matrix CH Crit K) (Hm : Matrix Crit Crit K)
+    (hI : ∀ c e, I c e ≠ 0 → ind c = indH e) (hDI : totalD ind cnt * I = 0)
+    (hPD : P * totalD ind cnt = 0) (hPI : P * I = 1)
+    (hH : I * P = 1 + (totalD ind cnt * Hm + Hm * totalD ind cnt)) (k : ℕ) :
+    betti ind cnt k = numCrit indH k := by
+  let Ik : Chains K indH k →ₗ[K] Chains K ind k :=
+    resChains ind k ∘ₗ I.mulVecLin ∘ₗ extChains indH k
+  have hIk : ∀ y, extChains ind k (Ik y) = I *ᵥ extChains indH k y := by
+    intro y
+    have h1 := extChains_resChains_mulVec ind indH I hI k (extChains indH k y)
+    rw [resChains_extChains] at h1
+    exact h1
+  have hPIv : ∀ v, P *ᵥ (I *ᵥ v) = v := by
+    intro v
+    rw [Matrix.mulVec_mulVec, hPI, Matrix.one_mulVec]
+  -- the image of `I` meets the boundaries only in `0`
+  have hdisj : ∀ y w, Ik y = dLin ind cnt k w → y = 0 := by
+    intro y w hyw
+    have h1 : I *ᵥ extChains indH k y = totalD ind cnt *ᵥ extChains ind (k + 1) w := by
+      rw [← hIk, hyw, totalD_mulVec_extChains]
+    have h2 : extChains indH k y = 0 := by
+      rw [← hPIv (extChains indH k y), h1, Matrix.mulVec_mulVec, hPD, Matrix.zero_mulVec]
+    exact extChains_injective indH k (by rw [h2, map_zero])
+  have hinj : Function.Injective Ik := by
+    rw [← LinearMap.ker_eq_bot, LinearMap.ker_eq_bot']
+    intro y hy
+    exact hdisj y 0 (by rw [hy, map_zero])
+  -- the image of `I` consists of cycles
+  have hIcyc : LinearMap.range Ik ≤ cyclesAt ind cnt k := by
+    rintro _ ⟨y, rfl⟩
+    rw [mem_cyclesAt_iff, hIk, Matrix.mulVec_mulVec, hDI, Matrix.zero_mulVec]
+  -- every cycle is an image of `I` plus a boundary
+  have hcyc : cyclesAt ind cnt k ≤ LinearMap.range Ik ⊔ boundaries ind cnt k := by
+    intro z hz
+    rw [mem_cyclesAt_iff] at hz
+    have h1 : extChains ind k z
+        = I *ᵥ (P *ᵥ extChains ind k z) - totalD ind cnt *ᵥ (Hm *ᵥ extChains ind k z) := by
+      have h2 := congrArg (fun M => M *ᵥ extChains ind k z) hH
+      simp only [Matrix.add_mulVec, Matrix.one_mulVec, ← Matrix.mulVec_mulVec, hz,
+        Matrix.mulVec_zero, add_zero] at h2
+      rw [h2]
+      abel
+    have h3 : z = Ik (resChains indH k (P *ᵥ extChains ind k z))
+        - dLin ind cnt k (resChains ind (k + 1) (Hm *ᵥ extChains ind k z)) := by
+      have h4 := congrArg (resChains ind k) h1
+      rw [resChains_extChains, map_sub, resChains_totalD_mulVec] at h4
+      have h5 := congrArg (resChains ind k)
+        (extChains_resChains_mulVec ind indH I hI k (P *ᵥ extChains ind k z))
+      rw [resChains_extChains] at h5
+      refine h4.trans ?_
+      congr 1
+    rw [h3]
+    exact Submodule.sub_mem _ (Submodule.mem_sup_left (LinearMap.mem_range_self _ _))
+      (Submodule.mem_sup_right (LinearMap.mem_range_self _ _))
+  have hsup : cyclesAt ind cnt k = LinearMap.range Ik ⊔ boundaries ind cnt k :=
+    le_antisymm hcyc (sup_le hIcyc (boundaries_le_cyclesAt h k))
+  have hinf : LinearMap.range Ik ⊓ boundaries ind cnt k = ⊥ := by
+    rw [eq_bot_iff]
+    rintro _ ⟨⟨y, rfl⟩, ⟨w, hw⟩⟩
+    rw [hdisj y w hw.symm, map_zero]
+    exact Submodule.zero_mem _
+  have hdim := Submodule.finrank_sup_add_finrank_inf_eq (LinearMap.range Ik)
+    (boundaries ind cnt k)
+  rw [← hsup, hinf, finrank_bot, add_zero, LinearMap.finrank_range_of_inj hinj,
+    finrank_chains] at hdim
+  have hb := betti_add_bdim h k
+  have hbd : Module.finrank K (boundaries ind cnt k) = bdim ind cnt k := rfl
+  omega
+
+
+/-- Over a field every matrix has a generalised inverse: some `G` with
+`A G A = A`.  Take a right inverse of `A` onto its range, composed with a
+projection of the target onto that range. -/
+theorem exists_mul_mul_eq_self {m n : Type*} [Fintype m] [Fintype n] [DecidableEq m]
+    [DecidableEq n] (A : Matrix m n K) : ∃ G : Matrix n m K, A * G * A = A := by
+  obtain ⟨s, hs⟩ := LinearMap.exists_rightInverse_of_surjective (Matrix.toLin' A).rangeRestrict
+    (LinearMap.range_rangeRestrict _)
+  obtain ⟨t, ht⟩ := LinearMap.exists_leftInverse_of_injective
+    (LinearMap.range (Matrix.toLin' A)).subtype (Submodule.ker_subtype _)
+  refine ⟨LinearMap.toMatrix' (s ∘ₗ t), ?_⟩
+  apply Matrix.toLin'.injective
+  rw [Matrix.toLin'_mul, Matrix.toLin'_mul, Matrix.toLin'_toMatrix']
+  refine LinearMap.ext fun x => ?_
+  have h1 : t (Matrix.toLin' A x) = (Matrix.toLin' A).rangeRestrict x :=
+    LinearMap.congr_fun ht ((Matrix.toLin' A).rangeRestrict x)
+  have h2 : (Matrix.toLin' A).rangeRestrict (s ((Matrix.toLin' A).rangeRestrict x))
+      = (Matrix.toLin' A).rangeRestrict x :=
+    LinearMap.congr_fun hs ((Matrix.toLin' A).rangeRestrict x)
+  show Matrix.toLin' A (s (t (Matrix.toLin' A x))) = Matrix.toLin' A x
+  rw [h1]
+  exact congrArg Subtype.val h2
+
+/-- **Every complex of finite-dimensional vector spaces retracts onto its
+homology.**  For a based complex over a field there is a based graded vector
+space `CH` (with zero differential) and matrices `I`, `P`, `Hm` forming a
+deformation retraction in the sense of `betti_eq_numCrit_of_retract`.
+
+Construction: `G` is a generalised inverse of the total differential `∂`, so
+`πZ = 1 − G∂` projects onto the cycles.  In each degree `k` let `Zₖ` and `Bₖ` be
+the cycles and boundaries of degree `k`, choose a complement `Cₖ` of `Bₖ` in the
+whole space and put `Uₖ = Cₖ ∩ Zₖ`, a complement of `Bₖ` inside `Zₖ`.  `CH`
+indexes a basis of the `Uₖ`, `I` is the inclusion of that basis, `P` takes the
+coordinates of the projection onto `Cₖ` (along `Bₖ`) of the degree `k` part of
+`πZ x`, and `Hm = −G (πZ − I P)` is the homotopy.  The identity
+`I P = 1 + ∂ Hm + Hm ∂` holds because `πZ − I P` takes values in the
+boundaries, on which `∂ G` is the identity. -/
+theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → Crit → K}
+    (h : BrokenPairs ind cnt) :
+    ∃ (CH : Type) (_ : Fintype CH) (_ : DecidableEq CH) (indH : CH → ℕ)
+      (I : Matrix Crit CH K) (P : Matrix CH Crit K) (Hm : Matrix Crit Crit K),
+      (∀ c e, I c e ≠ 0 → ind c = indH e) ∧ totalD ind cnt * I = 0 ∧
+      P * totalD ind cnt = 0 ∧ P * I = 1 ∧
+      I * P = 1 + (totalD ind cnt * Hm + Hm * totalD ind cnt) := by
+  obtain ⟨G, hG⟩ := exists_mul_mul_eq_self (totalD ind cnt)
+  have hDD := totalD_mul_self h
+  obtain ⟨N, hN⟩ : ∃ N, ∀ c, ind c ≤ N :=
+    ⟨Finset.univ.sup ind, fun c => Finset.le_sup (Finset.mem_univ c)⟩
+  have hDDv : ∀ x, totalD ind cnt *ᵥ (totalD ind cnt *ᵥ x) = 0 := fun x => by
+    rw [Matrix.mulVec_mulVec, hDD, Matrix.zero_mulVec]
+  have hGv : ∀ x, totalD ind cnt *ᵥ (G *ᵥ (totalD ind cnt *ᵥ x)) = totalD ind cnt *ᵥ x :=
+    fun x => by
+      rw [Matrix.mulVec_mulVec (totalD ind cnt *ᵥ x) (totalD ind cnt) G,
+        Matrix.mulVec_mulVec x (totalD ind cnt * G) (totalD ind cnt), hG]
+  -- the degree projections add up to the identity
+  have sum_pr : ∀ x : Crit → K, ∑ k : Fin (N + 1), extChains ind k (resChains ind k x) = x := by
+    intro x
+    funext c
+    rw [Finset.sum_apply, Finset.sum_eq_single ⟨ind c, Nat.lt_succ_of_le (hN c)⟩]
+    · rw [extChains_resChains_apply, if_pos rfl]
+    · intro k _ hk
+      rw [extChains_resChains_apply, if_neg]
+      intro hc
+      exact hk (Fin.ext hc.symm)
+    · intro hc
+      exact absurd (Finset.mem_univ _) hc
+  have D_pr : ∀ (k : ℕ) (y : Crit → K), totalD ind cnt *ᵥ y = 0 →
+      totalD ind cnt *ᵥ extChains ind k (resChains ind k y) = 0 := by
+    intro k y hy
+    cases k with
+    | zero => exact totalD_mulVec_extChains_zero ind cnt _
+    | succ k =>
+        rw [totalD_mulVec_extChains, ← resChains_totalD_mulVec, hy, map_zero, map_zero]
+  have pr_D : ∀ (k : ℕ) (y : Crit → K),
+      extChains ind k (resChains ind k (totalD ind cnt *ᵥ y))
+        = totalD ind cnt *ᵥ extChains ind (k + 1) (resChains ind (k + 1) y) := by
+    intro k y
+    rw [totalD_mulVec_extChains, resChains_totalD_mulVec]
+  -- the projection onto the cycles
+  let πZ : (Crit → K) →ₗ[K] (Crit → K) :=
+    LinearMap.id - G.mulVecLin ∘ₗ (totalD ind cnt).mulVecLin
+  have πZ_apply : ∀ x, πZ x = x - G *ᵥ (totalD ind cnt *ᵥ x) := fun x => rfl
+  have D_πZ : ∀ x, totalD ind cnt *ᵥ πZ x = 0 := by
+    intro x
+    rw [πZ_apply, Matrix.mulVec_sub, hGv, sub_self]
+  have πZ_fix : ∀ y, totalD ind cnt *ᵥ y = 0 → πZ y = y := by
+    intro y hy
+    rw [πZ_apply, hy, Matrix.mulVec_zero, sub_zero]
+  -- cycles and boundaries of degree `k`, and a complement of the boundaries
+  let V : ℕ → Submodule K (Crit → K) := fun k =>
+    LinearMap.ker (totalD ind cnt).mulVecLin ⊓ LinearMap.range (extChains (K := K) ind k)
+  let W : ℕ → Submodule K (Crit → K) := fun k =>
+    LinearMap.range (totalD ind cnt).mulVecLin ⊓ LinearMap.range (extChains (K := K) ind k)
+  have hWV : ∀ k, W k ≤ V k := by
+    intro k x hx
+    obtain ⟨⟨y, rfl⟩, hx2⟩ := Submodule.mem_inf.mp hx
+    exact Submodule.mem_inf.mpr ⟨LinearMap.mem_ker.mpr (hDDv y), hx2⟩
+  choose C hC using fun k => Submodule.exists_isCompl (W k)
+  let U : ℕ → Submodule K (Crit → K) := fun k => C k ⊓ V k
+  let prC : (k : ℕ) → (Crit → K) →ₗ[K] (Crit → K) := fun k =>
+    Submodule.projection (C k) (W k) (hC k).symm
+  have hU : ∀ (k : ℕ) (v : Crit → K), v ∈ V k → prC k v ∈ U k := by
+    intro k v hv
+    refine Submodule.mem_inf.mpr ⟨Submodule.projection_apply_mem _ _, ?_⟩
+    have h1 : v - prC k v ∈ W k := Submodule.sub_projection_mem (hC k).symm v
+    have h3 := Submodule.sub_mem (V k) hv (hWV k h1)
+    rwa [sub_sub_cancel] at h3
+  have hv : ∀ (k : ℕ) (x : Crit → K), extChains ind k (resChains ind k (πZ x)) ∈ V k :=
+    fun k x => Submodule.mem_inf.mpr
+      ⟨LinearMap.mem_ker.mpr (D_pr k _ (D_πZ x)), LinearMap.mem_range_self _ _⟩
+  have hvU : ∀ (k : ℕ) (x : Crit → K),
+      prC k (extChains ind k (resChains ind k (πZ x))) ∈ U k :=
+    fun k x => hU k _ (hv k x)
+  let b : (k : ℕ) → Module.Basis (Fin (Module.finrank K (U k))) K (U k) :=
+    fun k => Module.finBasis K (U k)
+  let CH : Type := Σ k : Fin (N + 1), Fin (Module.finrank K (U k))
+  let u : CH → (Crit → K) := fun e => ((b e.1 e.2 : U e.1) : Crit → K)
+  have hu_U : ∀ e : CH, u e ∈ U e.1 := fun e => (b e.1 e.2).2
+  have hu_mem : ∀ e : CH, u e ∈ V e.1 := fun e => (Submodule.mem_inf.mp (hu_U e)).2
+  have hu_C : ∀ e : CH, u e ∈ C e.1 := fun e => (Submodule.mem_inf.mp (hu_U e)).1
+  have hu_ker : ∀ e : CH, totalD ind cnt *ᵥ u e = 0 := fun e =>
+    LinearMap.mem_ker.mp (Submodule.mem_inf.mp (hu_mem e)).1
+  have hu_deg : ∀ (e : CH) (c : Crit), ind c ≠ e.1 → u e c = 0 := by
+    intro e c hc
+    obtain ⟨w, hw⟩ := (Submodule.mem_inf.mp (hu_mem e)).2
+    rw [← hw]
+    exact extChains_apply_of_ne w hc
+  have pr_u : ∀ (k : ℕ) (e : CH),
+      extChains ind k (resChains ind k (u e)) = if (e.1 : ℕ) = k then u e else 0 := by
+    intro k e
+    funext c
+    rw [extChains_resChains_apply]
+    by_cases hk : (e.1 : ℕ) = k
+    · rw [if_pos hk]
+      by_cases hc : ind c = k
+      · rw [if_pos hc]
+      · rw [if_neg hc, hu_deg e c (by omega)]
+    · rw [if_neg hk, Pi.zero_apply]
+      by_cases hc : ind c = k
+      · rw [if_pos hc, hu_deg e c (by omega)]
+      · rw [if_neg hc]
+  -- the matrices
+  let Pl : (Crit → K) →ₗ[K] (CH → K) := LinearMap.pi fun e : CH =>
+    (Finsupp.lapply e.2) ∘ₗ (b e.1).repr.toLinearMap ∘ₗ
+      LinearMap.codRestrict (U e.1) (prC e.1 ∘ₗ extChains ind e.1 ∘ₗ resChains ind e.1 ∘ₗ πZ)
+        (fun x => hvU e.1 x)
+  let I : Matrix Crit CH K := Matrix.of fun c e => u e c
+  let P : Matrix CH Crit K := LinearMap.toMatrix' Pl
+  have hPx : ∀ x, P *ᵥ x = Pl x := fun x => LinearMap.toMatrix'_mulVec Pl x
+  have hIy : ∀ y : CH → K, I *ᵥ y = ∑ e, y e • u e := by
+    intro y
+    funext c
+    rw [Finset.sum_apply]
+    show ∑ e, u e c * y e = _
+    exact Finset.sum_congr rfl fun e _ => by rw [Pi.smul_apply, smul_eq_mul, mul_comm]
+  have hPl_D : ∀ x, Pl (totalD ind cnt *ᵥ x) = 0 := by
+    intro x
+    funext e
+    have hmem : extChains ind e.1 (resChains ind e.1 (πZ (totalD ind cnt *ᵥ x))) ∈ W e.1 := by
+      rw [πZ_fix _ (hDDv x)]
+      refine Submodule.mem_inf.mpr ⟨?_, LinearMap.mem_range_self _ _⟩
+      rw [pr_D]
+      exact LinearMap.mem_range_self _ _
+    have h1 : LinearMap.codRestrict (U e.1)
+        (prC e.1 ∘ₗ extChains ind e.1 ∘ₗ resChains ind e.1 ∘ₗ πZ)
+        (fun x => hvU e.1 x) (totalD ind cnt *ᵥ x) = 0 :=
+      Subtype.ext (Submodule.projection_apply_of_mem_right (hC e.1).symm hmem)
+    show (b e.1).repr (LinearMap.codRestrict (U e.1)
+      (prC e.1 ∘ₗ extChains ind e.1 ∘ₗ resChains ind e.1 ∘ₗ πZ)
+        (fun x => hvU e.1 x) (totalD ind cnt *ᵥ x)) e.2 = 0
+    rw [h1, map_zero, Finsupp.zero_apply]
+  have hPu : ∀ e e' : CH, Pl (u e) e' = if e' = e then 1 else 0 := by
+    rintro ⟨k, j⟩ ⟨k', j'⟩
+    by_cases hk : k = k'
+    · subst hk
+      have hvL : LinearMap.codRestrict (U k)
+          (prC k ∘ₗ extChains ind k ∘ₗ resChains ind k ∘ₗ πZ)
+          (fun x => hvU k x) (u ⟨k, j⟩) = b k j := by
+        apply Subtype.ext
+        show prC k (extChains ind k (resChains ind k (πZ (u ⟨k, j⟩)))) = u ⟨k, j⟩
+        rw [πZ_fix _ (hu_ker _), pr_u, if_pos rfl]
+        exact Submodule.projection_apply_of_mem_left (hC k).symm (hu_C ⟨k, j⟩)
+      show (b k).repr (LinearMap.codRestrict (U k)
+        (prC k ∘ₗ extChains ind k ∘ₗ resChains ind k ∘ₗ πZ)
+          (fun x => hvU k x) (u ⟨k, j⟩)) j' = _
+      rw [hvL, Module.Basis.repr_self, Finsupp.single_apply]
+      by_cases hj : j = j'
+      · subst hj
+        rw [if_pos rfl, if_pos rfl]
+      · rw [if_neg hj, if_neg]
+        intro heq
+        exact hj (eq_of_heq (Sigma.mk.inj_iff.mp heq).2).symm
+    · have hvL : LinearMap.codRestrict (U k')
+          (prC k' ∘ₗ extChains ind k' ∘ₗ resChains ind k' ∘ₗ πZ)
+          (fun x => hvU k' x) (u ⟨k, j⟩) = 0 := by
+        apply Subtype.ext
+        show prC k' (extChains ind k' (resChains ind k' (πZ (u ⟨k, j⟩)))) = 0
+        rw [πZ_fix _ (hu_ker _), pr_u, if_neg (fun h => hk (Fin.ext h)), map_zero]
+      show (b k').repr (LinearMap.codRestrict (U k')
+        (prC k' ∘ₗ extChains ind k' ∘ₗ resChains ind k' ∘ₗ πZ)
+          (fun x => hvU k' x) (u ⟨k, j⟩)) j' = _
+      rw [hvL, map_zero, Finsupp.zero_apply, if_neg]
+      intro heq
+      exact hk (Sigma.mk.inj_iff.mp heq).1.symm
+  have hIPl : ∀ x, I *ᵥ Pl x = ∑ k : Fin (N + 1),
+      prC k (extChains ind k (resChains ind k (πZ x))) := by
+    intro x
+    rw [hIy, Fintype.sum_sigma]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    have h1 : prC k (extChains ind k (resChains ind k (πZ x)))
+        = ((LinearMap.codRestrict (U k) (prC k ∘ₗ extChains ind k ∘ₗ resChains ind k ∘ₗ πZ)
+          (fun x => hvU k x) x : U k) : Crit → K) := rfl
+    rw [h1, ← (b k).sum_repr (LinearMap.codRestrict (U k)
+        (prC k ∘ₗ extChains ind k ∘ₗ resChains ind k ∘ₗ πZ) (fun x => hvU k x) x),
+      Submodule.coe_sum]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [Submodule.coe_smul]
+    rfl
+  have hY : ∀ x, (1 - G * totalD ind cnt - I * P) *ᵥ x
+      ∈ LinearMap.range (totalD ind cnt).mulVecLin := by
+    intro x
+    have e1 : (1 - G * totalD ind cnt - I * P) *ᵥ x = πZ x - I *ᵥ Pl x := by
+      rw [Matrix.sub_mulVec, Matrix.sub_mulVec, Matrix.one_mulVec, ← Matrix.mulVec_mulVec,
+        ← Matrix.mulVec_mulVec, hPx]
+      rfl
+    have e2 : πZ x - I *ᵥ Pl x = ∑ k : Fin (N + 1),
+        (extChains ind k (resChains ind k (πZ x))
+          - prC k (extChains ind k (resChains ind k (πZ x)))) := by
+      rw [Finset.sum_sub_distrib, sum_pr, hIPl]
+    rw [e1, e2]
+    refine Submodule.sum_mem _ fun k _ => ?_
+    exact (Submodule.mem_inf.mp (Submodule.sub_projection_mem (hC k).symm
+      (extChains ind k (resChains ind k (πZ x))))).1
+  have hDI : totalD ind cnt * I = 0 := by
+    ext c e
+    rw [Matrix.mul_apply, Matrix.zero_apply]
+    exact congrFun (hu_ker e) c
+  have hPD : P * totalD ind cnt = 0 := by
+    apply Matrix.ext_of_mulVec_single
+    intro i
+    rw [← Matrix.mulVec_mulVec, hPx, hPl_D, Matrix.zero_mulVec]
+  have hPI : P * I = 1 := by
+    ext e' e
+    rw [Matrix.one_apply]
+    show (P *ᵥ u e) e' = _
+    rw [hPx, hPu]
+  have hYD : (1 - G * totalD ind cnt - I * P) * totalD ind cnt = totalD ind cnt := by
+    rw [Matrix.sub_mul, Matrix.sub_mul, Matrix.one_mul,
+      Matrix.mul_assoc G (totalD ind cnt) (totalD ind cnt), hDD, Matrix.mul_zero,
+      Matrix.mul_assoc I P (totalD ind cnt), hPD, Matrix.mul_zero, sub_zero, sub_zero]
+  have hDGY : totalD ind cnt * G * (1 - G * totalD ind cnt - I * P)
+      = 1 - G * totalD ind cnt - I * P := by
+    apply Matrix.ext_of_mulVec_single
+    intro i
+    obtain ⟨z, hz⟩ := hY (Pi.single i 1)
+    rw [← Matrix.mulVec_mulVec, ← hz]
+    show (totalD ind cnt * G) *ᵥ (totalD ind cnt *ᵥ z) = totalD ind cnt *ᵥ z
+    rw [Matrix.mulVec_mulVec, hG]
+  refine ⟨CH, inferInstance, inferInstance, fun e => (e.1 : ℕ), I, P,
+    -(G * (1 - G * totalD ind cnt - I * P)), ?_, hDI, hPD, hPI, ?_⟩
+  · intro c e hce
+    by_contra hne
+    exact hce (hu_deg e c hne)
+  · rw [Matrix.mul_neg, Matrix.neg_mul, ← Matrix.mul_assoc, hDGY, Matrix.mul_assoc, hYD]
+    abel
+
+
+end Retraction
+
 section Kunneth
 
 variable {K : Type*} [Field K] {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Crit₂]
   [DecidableEq Crit₁] [DecidableEq Crit₂]
+
+open scoped Kronecker
 
 /-- The index on `Crit(f + g) = Crit f × Crit g`: `Ind(a, a') = Ind a + Ind a'`. -/
 def prodIndex (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) : Crit₁ × Crit₂ → ℕ :=
@@ -505,21 +1053,159 @@ theorem brokenPairs_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
   · rw [if_neg hC, if_neg (show ¬(ind₁ b₁ + ind₂ a₂ = k + 1) by omega)]
     simp
 
-/-- **Corollaries 4.2.2 and 4.2.3 (the Künneth formula).**  Over `Z/2` — more
-generally over a field — the homology of the product complex is the tensor
-product of the homologies, so the Betti numbers satisfy
+/-- **The graded vector space underlying the product complex**: the degree `k`
+part of `C ⊗ D` has dimension `Σ_{i+j=k} dim Cᵢ · dim Dⱼ`, which is
+`(C ⊗ D)ₖ = ⨁_{i+j=k} Cᵢ ⊗ Dⱼ` counted on the canonical bases. -/
+theorem numCrit_prodIndex {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Crit₂]
+    (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (k : ℕ) :
+    numCrit (prodIndex ind₁ ind₂) k
+      = ∑ i ∈ Finset.range (k + 1), numCrit ind₁ i * numCrit ind₂ (k - i) := by
+  symm
+  calc ∑ i ∈ Finset.range (k + 1), numCrit ind₁ i * numCrit ind₂ (k - i)
+      = ∑ i ∈ Finset.range (k + 1), (∑ c₁ : Crit₁, if ind₁ c₁ = i then (1 : ℕ) else 0)
+          * (∑ c₂ : Crit₂, if ind₂ c₂ = k - i then (1 : ℕ) else 0) :=
+        Finset.sum_congr rfl fun i _ => by rw [numCrit_eq_sum, numCrit_eq_sum]
+    _ = ∑ i ∈ Finset.range (k + 1), ∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
+          (if ind₁ c₁ = i then (1 : ℕ) else 0) * (if ind₂ c₂ = k - i then (1 : ℕ) else 0) := by
+        refine Finset.sum_congr rfl fun i _ => ?_
+        rw [Finset.sum_mul]
+        exact Finset.sum_congr rfl fun c₁ _ => Finset.mul_sum _ _ _
+    _ = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂, ∑ i ∈ Finset.range (k + 1),
+          (if ind₁ c₁ = i then (1 : ℕ) else 0) * (if ind₂ c₂ = k - i then (1 : ℕ) else 0) := by
+        rw [Finset.sum_comm]
+        exact Finset.sum_congr rfl fun c₁ _ => Finset.sum_comm
+    _ = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂, if ind₁ c₁ + ind₂ c₂ = k then (1 : ℕ) else 0 :=
+        Finset.sum_congr rfl fun c₁ _ => Finset.sum_congr rfl fun c₂ _ =>
+          sum_range_ite_mul k (ind₁ c₁) (ind₂ c₂)
+    _ = numCrit (prodIndex ind₁ ind₂) k := by
+        have h := numCrit_eq_sum (prodIndex ind₁ ind₂) k
+        rw [Fintype.sum_prod_type] at h
+        exact h.symm
+
+omit [Fintype Crit₁] [Fintype Crit₂] in
+/-- The total differential of the product complex is `∂ ⊗ 1 + 1 ⊗ ∂`, as a
+Kronecker product of matrices. -/
+theorem totalD_prod (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (cnt₁ : Crit₁ → Crit₁ → K)
+    (cnt₂ : Crit₂ → Crit₂ → K) :
+    totalD (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂)
+      = totalD ind₁ cnt₁ ⊗ₖ (1 : Matrix Crit₂ Crit₂ K)
+        + (1 : Matrix Crit₁ Crit₁ K) ⊗ₖ totalD ind₂ cnt₂ := by
+  ext ⟨b₁, b₂⟩ ⟨a₁, a₂⟩
+  have hp : ∀ x₁ x₂, prodIndex ind₁ ind₂ (x₁, x₂) = ind₁ x₁ + ind₂ x₂ := fun _ _ => rfl
+  rw [Matrix.add_apply, Matrix.kronecker_apply, Matrix.kronecker_apply, Matrix.one_apply,
+    Matrix.one_apply, totalD_apply, totalD_apply, totalD_apply, prodCount_apply]
+  by_cases h1 : a₁ = b₁ <;> by_cases h2 : a₂ = b₂
+  · subst h1; subst h2
+    simp
+  · subst h1
+    rw [if_pos rfl, if_neg h2, if_neg (Ne.symm h2), if_pos rfl, add_zero, mul_zero, zero_add,
+      one_mul]
+    by_cases h : ind₂ a₂ = ind₂ b₂ + 1
+    · rw [if_pos (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
+        rw [hp, hp]; omega), if_pos h]
+    · rw [if_neg (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
+        rw [hp, hp]; omega), if_neg h]
+  · subst h2
+    rw [if_neg h1, if_pos rfl, if_pos rfl, if_neg (Ne.symm h1), zero_add, mul_one, zero_mul,
+      add_zero]
+    by_cases h : ind₁ a₁ = ind₁ b₁ + 1
+    · rw [if_pos (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
+        rw [hp, hp]; omega), if_pos h]
+    · rw [if_neg (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
+        rw [hp, hp]; omega), if_neg h]
+  · rw [if_neg h1, if_neg h2, if_neg (Ne.symm h1), if_neg (Ne.symm h2), add_zero, mul_zero,
+      zero_mul, add_zero, ite_self]
+
+/-- **Künneth for retractions.**  Retractions of two complexes onto `H₁` and `H₂`
+tensor to a retraction of the product complex onto `H₁ ⊗ H₂`, with homotopy
+`Hm₁ ⊗ 1 + (I₁ P₁) ⊗ Hm₂`.  The two cross terms `Hm₁ ⊗ ∂₂` cancel because
+`2 = 0`, exactly as in `brokenPairs_prod`. -/
+theorem betti_prod_of_retract {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
+    {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
+    (hB : BrokenPairs (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂)) (h2 : (2 : K) = 0)
+    {CH₁ CH₂ : Type*} [Fintype CH₁] [DecidableEq CH₁] [Fintype CH₂] [DecidableEq CH₂]
+    (indH₁ : CH₁ → ℕ) (I₁ : Matrix Crit₁ CH₁ K) (P₁ : Matrix CH₁ Crit₁ K)
+    (Hm₁ : Matrix Crit₁ Crit₁ K)
+    (hI₁ : ∀ c e, I₁ c e ≠ 0 → ind₁ c = indH₁ e) (hDI₁ : totalD ind₁ cnt₁ * I₁ = 0)
+    (hPD₁ : P₁ * totalD ind₁ cnt₁ = 0) (hPI₁ : P₁ * I₁ = 1)
+    (hH₁ : I₁ * P₁ = 1 + (totalD ind₁ cnt₁ * Hm₁ + Hm₁ * totalD ind₁ cnt₁))
+    (indH₂ : CH₂ → ℕ) (I₂ : Matrix Crit₂ CH₂ K) (P₂ : Matrix CH₂ Crit₂ K)
+    (Hm₂ : Matrix Crit₂ Crit₂ K)
+    (hI₂ : ∀ c e, I₂ c e ≠ 0 → ind₂ c = indH₂ e) (hDI₂ : totalD ind₂ cnt₂ * I₂ = 0)
+    (hPD₂ : P₂ * totalD ind₂ cnt₂ = 0) (hPI₂ : P₂ * I₂ = 1)
+    (hH₂ : I₂ * P₂ = 1 + (totalD ind₂ cnt₂ * Hm₂ + Hm₂ * totalD ind₂ cnt₂)) (k : ℕ) :
+    betti (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) k
+      = numCrit (prodIndex indH₁ indH₂) k := by
+  set D₁ := totalD ind₁ cnt₁ with hD₁
+  set D₂ := totalD ind₂ cnt₂ with hD₂
+  refine betti_eq_numCrit_of_retract hB (prodIndex indH₁ indH₂) (I₁ ⊗ₖ I₂) (P₁ ⊗ₖ P₂)
+    (Hm₁ ⊗ₖ 1 + (I₁ * P₁) ⊗ₖ Hm₂) ?_ ?_ ?_ ?_ ?_ k
+  · rintro ⟨c₁, c₂⟩ ⟨e₁, e₂⟩ hne
+    rw [Matrix.kronecker_apply] at hne
+    have h₁ := hI₁ c₁ e₁ (left_ne_zero_of_mul hne)
+    have h₂ := hI₂ c₂ e₂ (right_ne_zero_of_mul hne)
+    simp only [prodIndex]
+    omega
+  · rw [totalD_prod, ← hD₁, ← hD₂, Matrix.add_mul, ← Matrix.mul_kronecker_mul,
+      ← Matrix.mul_kronecker_mul, hDI₁, hDI₂, Matrix.zero_kronecker, Matrix.kronecker_zero,
+      add_zero]
+  · rw [totalD_prod, ← hD₁, ← hD₂, Matrix.mul_add, ← Matrix.mul_kronecker_mul,
+      ← Matrix.mul_kronecker_mul, hPD₁, hPD₂, Matrix.zero_kronecker, Matrix.kronecker_zero,
+      add_zero]
+  · rw [← Matrix.mul_kronecker_mul, hPI₁, hPI₂, Matrix.one_kronecker_one]
+  · rw [totalD_prod, ← hD₁, ← hD₂]
+    have hD1E : D₁ * (I₁ * P₁) = 0 := by rw [← Matrix.mul_assoc, hDI₁, Matrix.zero_mul]
+    have hED1 : I₁ * P₁ * D₁ = 0 := by rw [Matrix.mul_assoc, hPD₁, Matrix.mul_zero]
+    have hc : Hm₁ ⊗ₖ D₂ + Hm₁ ⊗ₖ D₂ = 0 := by
+      rw [← two_smul K (Hm₁ ⊗ₖ D₂), h2, zero_smul]
+    have hL : I₁ ⊗ₖ I₂ * P₁ ⊗ₖ P₂ = 1 + (D₁ * Hm₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K)
+        + (Hm₁ * D₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (I₁ * P₁) ⊗ₖ (D₂ * Hm₂)
+        + (I₁ * P₁) ⊗ₖ (Hm₂ * D₂) := by
+      rw [← Matrix.mul_kronecker_mul, hH₂, Matrix.kronecker_add, Matrix.kronecker_add]
+      have hE : (I₁ * P₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K)
+          = 1 + (D₁ * Hm₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (Hm₁ * D₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) := by
+        rw [hH₁, Matrix.add_kronecker, Matrix.add_kronecker, Matrix.one_kronecker_one]
+        abel
+      rw [hE]
+      abel
+    have hR : (D₁ ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (1 : Matrix Crit₁ Crit₁ K) ⊗ₖ D₂)
+          * (Hm₁ ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (I₁ * P₁) ⊗ₖ Hm₂)
+        + (Hm₁ ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (I₁ * P₁) ⊗ₖ Hm₂)
+          * (D₁ ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (1 : Matrix Crit₁ Crit₁ K) ⊗ₖ D₂)
+        = (D₁ * Hm₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K) + (Hm₁ * D₁) ⊗ₖ (1 : Matrix Crit₂ Crit₂ K)
+          + (I₁ * P₁) ⊗ₖ (D₂ * Hm₂) + (I₁ * P₁) ⊗ₖ (Hm₂ * D₂)
+          + (Hm₁ ⊗ₖ D₂ + Hm₁ ⊗ₖ D₂) := by
+      simp only [Matrix.add_mul, Matrix.mul_add, ← Matrix.mul_kronecker_mul, Matrix.one_mul, Matrix.mul_one,
+        hD1E, hED1, Matrix.zero_kronecker]
+      abel
+    rw [hL, hR, hc, add_zero]
+    abel
+
+
+/-- **Corollaries 4.2.2 and 4.2.3 (the Künneth formula).**  Over a field of
+characteristic `2` — in particular over `Z/2` — the homology of the product
+complex is the tensor product of the homologies, so the Betti numbers satisfy
 `βₖ(M × N) = Σ_{i+j=k} βᵢ(M) βⱼ(N)`.
 
-Not proved: this is the Künneth theorem for complexes of vector spaces.  The
-product complex is known to satisfy `BrokenPairs` — that is `brokenPairs_prod`
-above, from exactly these hypotheses — so the statement no longer needs to assume
-it; what remains is the Künneth isomorphism itself. -/
+Proved.  Each factor retracts onto a graded vector space with zero differential
+whose dimensions are its Betti numbers (`exists_retract`,
+`betti_eq_numCrit_of_retract`); the Kronecker product of the two retractions is
+a retraction of the product complex (`betti_prod_of_retract`, where `2 = 0`
+cancels the cross terms exactly as in `brokenPairs_prod`), and the dimension
+count `numCrit_prodIndex` finishes.  This replaces the book's inductive
+splitting argument, which changes basis and so does not fit the based model. -/
 theorem betti_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
     (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0) (k : ℕ) :
     betti (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) k
       = ∑ i ∈ Finset.range (k + 1), betti ind₁ cnt₁ i * betti ind₂ cnt₂ (k - i) := by
-  sorry
+  obtain ⟨CH₁, _, _, indH₁, I₁, P₁, Hm₁, hI₁, hDI₁, hPD₁, hPI₁, hH₁⟩ := exists_retract h₁
+  obtain ⟨CH₂, _, _, indH₂, I₂, P₂, Hm₂, hI₂, hDI₂, hPD₂, hPI₂, hH₂⟩ := exists_retract h₂
+  rw [betti_prod_of_retract (brokenPairs_prod h₁ h₂ h2) h2 indH₁ I₁ P₁ Hm₁ hI₁ hDI₁ hPD₁ hPI₁
+    hH₁ indH₂ I₂ P₂ Hm₂ hI₂ hDI₂ hPD₂ hPI₂ hH₂ k, numCrit_prodIndex]
+  refine Finset.sum_congr rfl fun i _ => ?_
+  rw [betti_eq_numCrit_of_retract h₁ indH₁ I₁ P₁ Hm₁ hI₁ hDI₁ hPD₁ hPI₁ hH₁,
+    betti_eq_numCrit_of_retract h₂ indH₂ I₂ P₂ Hm₂ hI₂ hDI₂ hPD₂ hPI₂ hH₂]
 
 end Kunneth
 
@@ -535,6 +1221,8 @@ Both halves are visible in the data: `dualCount cnt a b = cnt b a`, and the
 index function of `−f` is any `ind'` with `ind c + ind' c = n`. -/
 
 section Duality
+
+open scoped Matrix
 
 variable {K : Type*} [Field K] {Crit : Type*} [Fintype Crit]
 
@@ -639,6 +1327,101 @@ theorem betti_dual (h : BrokenPairs ind cnt) (h' : BrokenPairs ind' (dualCount c
           have hB' := numCrit_succ_eq h' (ind := ind') (cnt := dualCount cnt) j₀
           omega
 
+/-- Over `ℤ` the free rank of `Zₖ / Bₖ` is `rank Zₖ − rank Bₖ` (rank–nullity holds over a
+domain). -/
+theorem finrank_int_quot_add {ind : Crit → ℕ} {cntZ : Crit → Crit → ℤ}
+    (h : BrokenPairs ind cntZ) (k : ℕ) :
+    Module.finrank ℤ (cyclesAt ind cntZ k ⧸ boundariesIn ind cntZ k)
+      + Module.finrank ℤ (LinearMap.range (dLin ind cntZ k))
+      = Module.finrank ℤ (cyclesAt ind cntZ k) := by
+  have h2 : Module.finrank ℤ (boundariesIn ind cntZ k)
+      = Module.finrank ℤ (LinearMap.range (dLin ind cntZ k)) :=
+    (Submodule.comapSubtypeEquivOfLe (boundaries_le_cyclesAt h k)).finrank_eq
+  rw [← h2]
+  exact Submodule.finrank_quotient_add_finrank _
+
+/-- Rank–nullity over `ℤ` for `∂ₖ : Cₖ₊₁ → Cₖ`. -/
+theorem finrank_int_range_add (ind : Crit → ℕ) (cntZ : Crit → Crit → ℤ) (k : ℕ) :
+    Module.finrank ℤ (LinearMap.range (dLin ind cntZ k))
+      + Module.finrank ℤ (cyclesAt ind cntZ (k + 1)) = numCrit ind (k + 1) := by
+  have h1 := Submodule.finrank_quotient_add_finrank (LinearMap.ker (dLin ind cntZ k))
+  rw [(LinearMap.quotKerEquivRange (dLin ind cntZ k)).finrank_eq,
+    Module.finrank_fintype_fun_eq_card] at h1
+  exact h1
+
+/-- Every chain of degree `0` is a cycle, so `rank Z₀ = c₀`. -/
+theorem finrank_int_cyclesAt_zero (ind : Crit → ℕ) (cntZ : Crit → Crit → ℤ) :
+    Module.finrank ℤ (cyclesAt ind cntZ 0) = numCrit ind 0 := by
+  rw [cyclesAt_zero, finrank_top]
+  exact Module.finrank_fintype_fun_eq_card ℤ
+
+/-- Rank–nullity over `ℤ` for an integer matrix. -/
+theorem int_rank_add_finrank_ker {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℤ) :
+    A.rank + Module.finrank ℤ (LinearMap.ker A.mulVecLin) = Fintype.card n := by
+  have h1 := Submodule.finrank_quotient_add_finrank (LinearMap.ker A.mulVecLin)
+  rw [(LinearMap.quotKerEquivRange A.mulVecLin).finrank_eq,
+    Module.finrank_fintype_fun_eq_card] at h1
+  exact h1
+
+/-- Over `ℤ`, `Aᵀ A x = 0` forces `A x = 0`: pair with `x` to get `‖A x‖² = 0`. -/
+theorem int_ker_transpose_mul_self {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℤ) :
+    LinearMap.ker (Aᵀ * A).mulVecLin = LinearMap.ker A.mulVecLin := by
+  ext x
+  simp only [LinearMap.mem_ker, Matrix.mulVecLin_apply, ← Matrix.mulVec_mulVec]
+  constructor
+  · intro h
+    replace h := congr_arg (dotProduct x) h
+    rwa [Matrix.dotProduct_mulVec, dotProduct_zero, Matrix.vecMul_transpose,
+      dotProduct_self_eq_zero] at h
+  · intro h
+    rw [h, Matrix.mulVec_zero]
+
+/-- `Aᵀ A` and `A` have the same kernel, hence the same rank. -/
+theorem int_rank_transpose_mul_self {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℤ) :
+    (Aᵀ * A).rank = A.rank := by
+  have h1 := int_rank_add_finrank_ker (Aᵀ * A)
+  have h2 := int_rank_add_finrank_ker A
+  rw [int_ker_transpose_mul_self] at h1
+  omega
+
+/-- **An integer matrix and its transpose have the same rank.**  Mathlib proves
+`Matrix.rank_transpose` over a field; over `ℤ` the argument through `Aᵀ A`
+(whose kernel is that of `A`, `ℤ` being ordered) still applies. -/
+theorem int_rank_transpose {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℤ) :
+    Aᵀ.rank = A.rank := by
+  apply le_antisymm
+  · have h := Matrix.rank_mul_le_left Aᵀᵀ Aᵀ
+    rw [int_rank_transpose_mul_self Aᵀ, Matrix.transpose_transpose] at h
+    exact h
+  · have h := Matrix.rank_mul_le_left Aᵀ A
+    rw [int_rank_transpose_mul_self A] at h
+    exact h
+
+/-- The integral differential is multiplication by the count matrix. -/
+theorem dLin_eq_mulVecLin_int (ind : Crit → ℕ) (cntZ : Crit → Crit → ℤ) (k : ℕ) :
+    dLin ind cntZ k
+      = (Matrix.of fun (b : CritSet ind k) (a : CritSet ind (k + 1)) => cntZ a.1 b.1).mulVecLin := by
+  refine LinearMap.ext fun x => funext fun b => ?_
+  show (∑ a : CritSet ind (k + 1), x a * cntZ a.1 b.1) = _
+  simp only [Matrix.mulVecLin_apply, Matrix.mulVec, dotProduct, Matrix.of_apply]
+  exact Finset.sum_congr rfl fun a _ => mul_comm _ _
+
+/-- The integral analogue of `bdim_dual`: the differential of the dual complex
+is a transpose, hence has the same rank, by `int_rank_transpose`. -/
+theorem finrank_range_dLin_dual_int {ind ind' : Crit → ℕ} {cntZ : Crit → Crit → ℤ} {n : ℕ}
+    (hn : ∀ c, ind c + ind' c = n) {k j : ℕ} (hkj : k + j + 1 = n) :
+    Module.finrank ℤ (LinearMap.range (dLin ind' (fun a b => cntZ b a) j))
+      = Module.finrank ℤ (LinearMap.range (dLin ind cntZ k)) := by
+  have e1 : dLin ind' (fun a b => cntZ b a) j
+      = ((Matrix.of fun (b : CritSet ind k) (a : CritSet ind (k + 1)) => cntZ a.1 b.1).transpose.submatrix
+          (dualCritEquiv hn (show (k + 1) + j = n by omega))
+          (dualCritEquiv hn (show k + (j + 1) = n by omega))).mulVecLin := by
+    rw [dLin_eq_mulVecLin_int]
+    rfl
+  rw [e1, dLin_eq_mulVecLin_int]
+  exact (Matrix.rank_submatrix _ _ _).trans (int_rank_transpose _)
+
+
 /-- **Proposition 4.3.2 (Poincaré duality for oriented manifolds).**  For a
 closed oriented manifold of dimension `n`, the homology of the complex of `−f`
 in degree `n − k` is dual to the homology of the complex of `f` in degree `k`.
@@ -654,15 +1437,59 @@ does differ: for `P³(ℝ)`, whose integral Morse complex is
 Proposition 4.3.1, and of `betti_dual` above — the difficulty disappears, and
 over `ℤ` what survives is the duality of the free ranks, stated here.
 
-Not proved: it follows from `betti_dual` over `ℚ` together with the flatness of
-`ℚ` over `ℤ`, which is not carried out. -/
+Proved by the bookkeeping of `betti_dual`, run over `ℤ`.  Ranks over a domain
+are additive (`finrank_int_quot_add`, `finrank_int_range_add`), so the free rank
+of `Zₖ / Bₖ` is `cₖ − rank ∂ₖ₋₁ − rank ∂ₖ`; the dual complex has the same `cₖ`
+in dual degrees and transposed differentials, and an integer matrix has the rank
+of its transpose (`int_rank_transpose`). -/
 theorem finrank_homology_dual_int {cntZ : Crit → Crit → ℤ}
     (h : BrokenPairs ind cntZ) (h' : BrokenPairs ind' (fun a b => cntZ b a))
     (hn : ∀ c, ind c + ind' c = n) {k j : ℕ} (hkj : k + j = n) :
     Module.finrank ℤ
         (cyclesAt ind' (fun a b => cntZ b a) j ⧸ boundariesIn ind' (fun a b => cntZ b a) j)
       = Module.finrank ℤ (cyclesAt ind cntZ k ⧸ boundariesIn ind cntZ k) := by
-  sorry
+  have hind : ∀ c, ind c ≤ n := fun c => by have := hn c; omega
+  have hind' : ∀ c, ind' c ≤ n := fun c => by have := hn c; omega
+  have hc : numCrit ind' j = numCrit ind k := numCrit_dual hn hkj
+  have V : ∀ m, n < m → numCrit ind m = 0 := fun m hm => by
+    have := isEmpty_critSet hind hm
+    exact Fintype.card_eq_zero
+  have V' : ∀ m, n < m → numCrit ind' m = 0 := fun m hm => by
+    have := isEmpty_critSet hind' hm
+    exact Fintype.card_eq_zero
+  have Q := finrank_int_quot_add h
+  have Q' := finrank_int_quot_add h'
+  have R := finrank_int_range_add ind cntZ
+  have R' := finrank_int_range_add ind' (fun a b => cntZ b a)
+  have Z0 := finrank_int_cyclesAt_zero ind cntZ
+  have Z0' := finrank_int_cyclesAt_zero ind' (fun a b => cntZ b a)
+  cases k with
+  | zero =>
+      cases j with
+      | zero =>
+          have := Q 0; have := Q' 0; have := R 0; have := R' 0
+          have := V (0 + 1) (by omega); have := V' (0 + 1) (by omega)
+          omega
+      | succ j₀ =>
+          have := Q 0; have := Q' (j₀ + 1); have := R' j₀; have := R' (j₀ + 1)
+          have := V' (j₀ + 1 + 1) (by omega)
+          have := finrank_range_dLin_dual_int (cntZ := cntZ) (k := 0) (j := j₀) hn (by omega)
+          omega
+  | succ k₀ =>
+      cases j with
+      | zero =>
+          have := Q (k₀ + 1); have := R k₀; have := R (k₀ + 1); have := Q' 0
+          have := V (k₀ + 1 + 1) (by omega)
+          have := finrank_range_dLin_dual_int (cntZ := cntZ) (k := k₀) (j := 0) hn (by omega)
+          omega
+      | succ j₀ =>
+          have := Q (k₀ + 1); have := R k₀; have := R (k₀ + 1)
+          have := Q' (j₀ + 1); have := R' j₀; have := R' (j₀ + 1)
+          have := finrank_range_dLin_dual_int (cntZ := cntZ) (k := k₀ + 1) (j := j₀) hn
+            (by omega)
+          have := finrank_range_dLin_dual_int (cntZ := cntZ) (k := k₀) (j := j₀ + 1) hn
+            (by omega)
+          omega
 
 end Duality
 
@@ -877,20 +1704,68 @@ def sumCount (cnt₁ : Crit₁ → Crit₁ → K) (cnt₂ : Crit₂ → Crit₂ 
   | Sum.inr a, Sum.inr b => cnt₂ a b
   | _, _ => 0
 
+omit [Fintype Crit₁] [Fintype Crit₂] in
+/-- The total differential of a disjoint union is block diagonal. -/
+theorem totalD_sum (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (cnt₁ : Crit₁ → Crit₁ → K)
+    (cnt₂ : Crit₂ → Crit₂ → K) :
+    totalD (Sum.elim ind₁ ind₂) (sumCount cnt₁ cnt₂)
+      = Matrix.fromBlocks (totalD ind₁ cnt₁) 0 0 (totalD ind₂ cnt₂) := by
+  ext (b | b) (a | a)
+  · rfl
+  · show (if Sum.elim ind₁ ind₂ (Sum.inr a) = Sum.elim ind₁ ind₂ (Sum.inl b) + 1 then (0 : K)
+      else 0) = 0
+    exact ite_self _
+  · show (if Sum.elim ind₁ ind₂ (Sum.inl a) = Sum.elim ind₁ ind₂ (Sum.inr b) + 1 then (0 : K)
+      else 0) = 0
+    exact ite_self _
+  · rfl
+
+/-- The critical points of a disjoint union of index `k` are those of either piece. -/
+theorem numCrit_sum {α β : Type*} [Fintype α] [Fintype β] (f : α → ℕ) (g : β → ℕ) (k : ℕ) :
+    numCrit (Sum.elim f g) k = numCrit f k + numCrit g k := by
+  rw [numCrit_eq_sum, numCrit_eq_sum, numCrit_eq_sum, Fintype.sum_sum_type]
+  rfl
+
+
 /-- **§4.1 and Corollary 4.5.5.**  `C⋆(f ⊔ g) = C⋆(f) ⊕ C⋆(g)` and
 `∂_{X ⊔ Y} = ∂_X ⊕ ∂_Y`, so the Betti numbers of a disjoint union add up.  (With
 Proposition 4.5.1 this gives Corollary 4.5.5: `HM₀` and `HMₙ` have dimension the
 number of connected components.)
 
-Not proved: the direct sum decomposition of the complex is routine but requires
-transporting cycles and boundaries along the equivalence
-`CritSet (Sum.elim ind₁ ind₂) k ≃ CritSet ind₁ k ⊕ CritSet ind₂ k`. -/
+Proved: the total differential of the union is block diagonal (`totalD_sum`),
+so the block sum of retractions of the two pieces (`exists_retract`) is a
+retraction of the union, and `betti_eq_numCrit_of_retract` together with
+`numCrit_sum` gives the formula. -/
 theorem betti_sumComplex {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
     (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂)
     (hS : BrokenPairs (Sum.elim ind₁ ind₂) (sumCount cnt₁ cnt₂)) (k : ℕ) :
     betti (Sum.elim ind₁ ind₂) (sumCount cnt₁ cnt₂) k = betti ind₁ cnt₁ k + betti ind₂ cnt₂ k := by
-  sorry
+  have := Classical.decEq Crit₁
+  have := Classical.decEq Crit₂
+  obtain ⟨CH₁, _, _, indH₁, I₁, P₁, Hm₁, hI₁, hDI₁, hPD₁, hPI₁, hH₁⟩ := exists_retract h₁
+  obtain ⟨CH₂, _, _, indH₂, I₂, P₂, Hm₂, hI₂, hDI₂, hPD₂, hPI₂, hH₂⟩ := exists_retract h₂
+  rw [betti_eq_numCrit_of_retract h₁ indH₁ I₁ P₁ Hm₁ hI₁ hDI₁ hPD₁ hPI₁ hH₁ k,
+    betti_eq_numCrit_of_retract h₂ indH₂ I₂ P₂ Hm₂ hI₂ hDI₂ hPD₂ hPI₂ hH₂ k, ← numCrit_sum]
+  refine betti_eq_numCrit_of_retract hS (Sum.elim indH₁ indH₂) (Matrix.fromBlocks I₁ 0 0 I₂)
+    (Matrix.fromBlocks P₁ 0 0 P₂) (Matrix.fromBlocks Hm₁ 0 0 Hm₂) ?_ ?_ ?_ ?_ ?_ k
+  · rintro (c | c) (e | e) hne
+    · exact hI₁ c e hne
+    · exact absurd rfl hne
+    · exact absurd rfl hne
+    · exact hI₂ c e hne
+  · rw [totalD_sum, Matrix.fromBlocks_multiply]
+    simp only [Matrix.zero_mul, Matrix.mul_zero, add_zero, hDI₁, hDI₂, Matrix.fromBlocks_zero]
+  · rw [totalD_sum, Matrix.fromBlocks_multiply]
+    simp only [Matrix.zero_mul, Matrix.mul_zero, add_zero, hPD₁, hPD₂, Matrix.fromBlocks_zero]
+  · rw [Matrix.fromBlocks_multiply]
+    simp only [Matrix.zero_mul, Matrix.mul_zero, add_zero, zero_add, hPI₁, hPI₂,
+      Matrix.fromBlocks_one]
+  · rw [totalD_sum, Matrix.fromBlocks_multiply, Matrix.fromBlocks_multiply,
+      Matrix.fromBlocks_multiply]
+    simp only [Matrix.zero_mul, Matrix.mul_zero, add_zero, zero_add]
+    rw [Matrix.fromBlocks_add, ← Matrix.fromBlocks_one, Matrix.fromBlocks_add, hH₁, hH₂]
+    simp only [add_zero]
 
 end DisjointUnion
 
@@ -925,30 +1800,23 @@ self-map of the disc produces a retraction `r : Dⁿ → Sⁿ⁻¹` with `r ∘ 
 which is impossible since the identity of `HM_{n−1}(Sⁿ⁻¹) = Z/2` would factor
 through `0`.
 
-**Why the general case is not proved here.**  It is not that the book's route is
-inconvenient: *all three* classical routes to Brouwer are unavailable in this
-Mathlib, and the check was made declaration by declaration.
+**Why the proof here is not the book's.**  The homological route is closed in
+this Mathlib: `Mathlib.AlgebraicTopology.SingularHomology` builds singular
+homology with homotopy invariance and `H₀`, but has **no excision and no
+Mayer–Vietoris**, so `H_{n−1}(Sⁿ⁻¹)` is computed nowhere.  (Nor are `π₁(S¹) ≅ ℤ`,
+the combinatorial Sperner lemma — `Combinatorics/SetFamily/LYM.lean` is
+Sperner's unrelated theorem on antichains — or degree theory available.)
 
-1. *No homology of spheres.*  `Mathlib.AlgebraicTopology.SingularHomology` does
-   build singular homology as a functor, with homotopy invariance and the
-   computation of `H₀`, but it has **no excision and no Mayer–Vietoris**.  So
-   `H_{n−1}(Sⁿ⁻¹)` is computed nowhere, and the book's argument — like every
-   homological proof of Brouwer — needs exactly that computation.
-2. *No fundamental group of the circle.*  `π₁(S¹) ≅ ℤ` is absent, so even `n = 2`
-   cannot be run through covering-space theory.
-3. *No Sperner lemma and no degree theory.*  `Combinatorics/SetFamily/LYM.lean`
-   is Sperner's *theorem* on antichains, an unrelated result; the combinatorial
-   Sperner lemma on simplicial subdivisions is not there, and neither is the
-   Brouwer degree of a map of spheres.  So the combinatorial and the analytic
-   proofs are closed too.
-
-Consequently `brouwer_fixedPoint` and `no_retraction_closedBall` are stated for
-arbitrary `n` and assumed.  What *is* reachable is the low-dimensional case, and
-it is proved here in full, not assumed: `brouwer_fixedPoint_dim_zero` and
-`brouwer_fixedPoint_dim_one`.  Dimension `1` is a genuine instance of the
-theorem — the intermediate value theorem applied to `t ↦ f(t) − t` on `[−1, 1]`
-— and it is the base case any inductive or homological proof would also have to
-supply. -/
+The theorem is instead proved analytically, after Milnor and Rogers, in
+`MorseFloer/Part1/Brouwer.lean`.  A `C¹` retraction `r` of the ball onto the
+sphere would give `∫_D det Dr = vol D`, by following the homotopy
+`id + t (r − id)` with the change of variables formula (the integral is a
+polynomial in `t`), and also `∫_D det Dr = 0`, since `‖r‖ = 1` forces `Dr` to
+be singular.  Smooth partitions of unity reduce continuous maps to `C¹` ones.
+`brouwer_fixedPoint` restates the result, `no_retraction_closedBall` is deduced
+from it, and the elementary cases `brouwer_fixedPoint_dim_zero` and
+`brouwer_fixedPoint_dim_one` (the intermediate value theorem on `[−1, 1]`) are
+kept alongside. -/
 
 /-- The norm on the line `EuclideanSpace ℝ (Fin 1)` is the absolute value of the
 single coordinate.  This is what identifies the one-dimensional closed unit ball
@@ -960,9 +1828,7 @@ theorem norm_eq_abs_coord (x : EuclideanSpace ℝ (Fin 1)) : ‖x‖ = |x 0| := 
 
 /-- **Brouwer's fixed point theorem, base case `n = 0`.**  Proved in full.
 `EuclideanSpace ℝ (Fin 0)` has exactly one point, so the closed unit ball is
-`{0}` and every self-map fixes the origin.  Together with
-`brouwer_fixedPoint_dim_one` this discharges `brouwer_fixedPoint` for `n ≤ 1`;
-for `n ≥ 2` see the obstruction recorded above. -/
+`{0}` and every self-map fixes the origin. -/
 theorem brouwer_fixedPoint_dim_zero
     (f : EuclideanSpace ℝ (Fin 0) → EuclideanSpace ℝ (Fin 0))
     (_hf : ContinuousOn f (Metric.closedBall 0 1))
@@ -980,8 +1846,8 @@ under the isometric parametrisation `t ↦ (t)`, by `norm_eq_abs_coord`.  Transp
 `g(−1) ≥ 0` because `f` maps the ball into itself, so `intermediate_value_Icc'`
 produces a zero of `g`, which is a fixed point of `f`.
 
-This is the only case of `brouwer_fixedPoint` that today's Mathlib can supply;
-the obstruction to `n ≥ 2` is recorded above and on `brouwer_fixedPoint`. -/
+Kept as the elementary case; `brouwer_fixedPoint` below covers every
+dimension. -/
 theorem brouwer_fixedPoint_dim_one
     (f : EuclideanSpace ℝ (Fin 1) → EuclideanSpace ℝ (Fin 1))
     (hf : ContinuousOn f (Metric.closedBall 0 1))
@@ -1028,48 +1894,59 @@ theorem brouwer_fixedPoint_dim_one
 /-- **Theorem 2.3.3, reproved in §4.8.b (Brouwer).**  A continuous self-map of
 the closed unit ball has a fixed point.
 
-`sorry` for arbitrary `n`, and the obstruction is precise: this Mathlib has
-**no homology of spheres** (singular homology exists as a functor, with homotopy
-invariance and `H₀`, but there is no excision and no Mayer–Vietoris, so
-`H_{n−1}(Sⁿ⁻¹)` is computed nowhere), **no `π₁(S¹) ≅ ℤ`** (which would settle
-`n = 2`), **no Sperner lemma** on simplicial subdivisions (`Combinatorics/
-SetFamily/LYM.lean` is Sperner's unrelated theorem on antichains) and **no
-degree theory**.  Brouwer's theorem itself is also absent — a search for
-`brouwer` finds only Brouwerian lattices — so it cannot simply be imported.
-Every classical proof therefore needs a Mathlib contribution first; the cheapest
-is excision plus Mayer–Vietoris on the existing singular homology.
-
-The low-dimensional case is *not* assumed: see `brouwer_fixedPoint_dim_zero` and
-`brouwer_fixedPoint_dim_one`, both proved in full above. -/
+Proved in every dimension: this restates `MorseFloer.brouwer_fixed_point` from
+`MorseFloer/Part1/Brouwer.lean`, whose analytic proof (Milnor–Rogers: the change
+of variables formula along the homotopy `id + t (r − id)`, and smoothing by
+partitions of unity) is described in that file and in the note above.  It is
+also `Chapter2.brouwer`; Chapter 4 imports the Brouwer file directly because
+`Part1/Ch3.lean`, and hence this file, does not import Chapter 2. -/
 theorem brouwer_fixedPoint {n : ℕ}
     (f : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
     (hf : ContinuousOn f (Metric.closedBall 0 1))
     (hmaps : Set.MapsTo f (Metric.closedBall 0 1) (Metric.closedBall 0 1)) :
-    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1, f x = x := by
-  sorry
+    ∃ x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin n)) 1, f x = x :=
+  brouwer_fixed_point f hf hmaps
 
 /-- **§4.8.b.**  There is no retraction of the closed ball onto its boundary
 sphere: a map of the ball into the sphere must move some point of the sphere.
 
-`sorry`, and equivalently so: no-retraction and `brouwer_fixedPoint` imply each
-other by the standard ray construction, so this statement is blocked by exactly
-the three missing ingredients listed on `brouwer_fixedPoint` — no homology of
-spheres (no excision, no Mayer–Vietoris, hence no `H_{n−1}(Sⁿ⁻¹)`), no
-`π₁(S¹) ≅ ℤ`, no Sperner lemma and no degree theory.  The book's proof is the
-homological one: `r ∘ j = id` on `Sⁿ⁻¹` would factor the identity of
-`HM_{n−1}(Sⁿ⁻¹) = Z/2` through `HM_{n−1}(Dⁿ) = 0`.
-
-For the fixed point statement the case `n ≤ 1` is proved in full above
-(`brouwer_fixedPoint_dim_zero`, `brouwer_fixedPoint_dim_one`); here the
-corresponding case is `n + 1 ≤ 1`, i.e. `n = 0`, where `S⁰` is two points and the
-statement is elementary but not separately used, so it is left inside the
-general `sorry`. -/
+Deduced from `brouwer_fixedPoint` (the book argues the other way, homologically: `r ∘ j = id` on `Sⁿ⁻¹` would factor
+the identity of `HM_{n−1}(Sⁿ⁻¹) = Z/2` through `HM_{n−1}(Dⁿ) = 0`).  Suppose `r`
+fixed the sphere pointwise.  Then `x ↦ −r x` maps the ball into the sphere,
+hence into the ball, and has a fixed point `x = −r x`; this `x` has norm `1`, so
+`r x = x`, whence `x = −x` and `x = 0`, which does not lie on the sphere. -/
 theorem no_retraction_closedBall {n : ℕ}
     (r : EuclideanSpace ℝ (Fin (n + 1)) → EuclideanSpace ℝ (Fin (n + 1)))
     (hr : ContinuousOn r (Metric.closedBall 0 1))
     (hmaps : Set.MapsTo r (Metric.closedBall 0 1) (Metric.sphere 0 1)) :
     ∃ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, r x ≠ x := by
-  sorry
+  by_contra hcon
+  push Not at hcon
+  have hmaps' : Set.MapsTo (fun x => -r x) (Metric.closedBall 0 1) (Metric.closedBall 0 1) := by
+    intro x hx
+    have h1 := hmaps hx
+    rw [mem_sphere_zero_iff_norm] at h1
+    show -r x ∈ Metric.closedBall 0 1
+    rw [mem_closedBall_zero_iff, norm_neg, h1]
+  obtain ⟨x, _, hx⟩ := brouwer_fixedPoint (fun x => -r x) hr.neg hmaps'
+  have hxs : x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 := by
+    have hxb : x ∈ Metric.closedBall (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 := by
+      rw [← hx]; exact hmaps' ‹_›
+    have h1 := hmaps hxb
+    rw [mem_sphere_zero_iff_norm] at h1 ⊢
+    rw [← hx, norm_neg, h1]
+  have hrx : r x = x := hcon x hxs
+  have hx0 : x = 0 := by
+    have h2 : x = -x := by
+      calc x = -r x := hx.symm
+        _ = -x := by rw [hrx]
+    have h3 : (2 : ℝ) • x = 0 := by
+      rw [two_smul]
+      nth_rewrite 2 [h2]
+      exact add_neg_cancel x
+    exact (smul_eq_zero.mp h3).resolve_left two_ne_zero
+  rw [mem_sphere_zero_iff_norm, hx0, norm_zero] at hxs
+  exact zero_ne_one hxs
 
 /-! ### §4.8.c The mod 2 homology of the real projective space
 
@@ -1146,8 +2023,8 @@ theorem eulerChar_torus : eulerChar Chapter3.torusIndex Chapter3.torusCount 2 = 
 
 Theorem 4.8.3 itself needs the mod `2` homology of the projective spaces and the
 commutation of the connecting map with `ψ⋆`, so it is stated without proof (and
-is not in this Mathlib version).  Its corollaries 4.8.4 and 4.8.5 are deduced
-from it here, exactly as in the book. -/
+is not in this Mathlib version).  Its corollaries 4.8.4, 4.8.5 and 4.8.6 are
+deduced from it here. -/
 
 /-- **Theorem 4.8.3 (Borsuk–Ulam).**  There is no continuous odd map
 `Sⁿ → Sⁿ⁻¹`.  Not in this Mathlib version. -/
@@ -1211,15 +2088,86 @@ theorem exists_eq_antipode (n : ℕ)
   exact ⟨x, hx, sub_eq_zero.mp hx0⟩
 
 /-- **Corollary 4.8.6.**  If `n + 1` closed sets cover `Sⁿ`, one of them
-contains a pair of antipodal points: apply Corollary 4.8.5 to the map whose
-coordinates are the distances to the first `n` of them.  Not proved here. -/
+contains a pair of antipodal points.
+
+Proved from Corollary 4.8.5.  Empty members of the family are first replaced by
+a nonempty one (there is one, since the sphere is nonempty), which changes
+neither closedness nor the cover, and matters because the distance to the empty
+set is `0`.  The map `x ↦ (d(x, F₀), …, d(x, Fₙ₋₁))` then takes equal values at
+some antipodal pair `x, −x`.  For a closed nonempty set, `d(x, F) = 0` means
+`x ∈ F`, so for `i < n` the point `x` lies in `Fᵢ` exactly when `−x` does.
+Either `x` lies in some such `Fᵢ`, and so does `−x`; or neither `x` nor `−x`
+lies in any of them, and both lie in the last set `Fₙ`. -/
 theorem exists_antipodal_pair_of_closed_cover (n : ℕ)
     (F : Fin (n + 1) → Set (EuclideanSpace ℝ (Fin (n + 1))))
     (hclosed : ∀ i, IsClosed (F i))
     (hcover : Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 ⊆ ⋃ i, F i) :
     ∃ (i : Fin (n + 1)) (x : EuclideanSpace ℝ (Fin (n + 1))),
       x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 ∧ x ∈ F i ∧ -x ∈ F i := by
-  sorry
+  -- a point of the sphere, hence a nonempty member of the family
+  have hne : (Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1).Nonempty :=
+    NormedSpace.sphere_nonempty.mpr zero_le_one
+  obtain ⟨x₀, hx₀⟩ := hne
+  obtain ⟨i₀, hi₀⟩ := Set.mem_iUnion.mp (hcover hx₀)
+  classical
+  let G : Fin (n + 1) → Set (EuclideanSpace ℝ (Fin (n + 1))) :=
+    fun i => if (F i).Nonempty then F i else F i₀
+  have hGne : ∀ i, (G i).Nonempty := by
+    intro i
+    by_cases h : (F i).Nonempty
+    · show (if (F i).Nonempty then F i else F i₀).Nonempty
+      rw [if_pos h]; exact h
+    · show (if (F i).Nonempty then F i else F i₀).Nonempty
+      rw [if_neg h]; exact ⟨x₀, hi₀⟩
+  have hGcl : ∀ i, IsClosed (G i) := by
+    intro i
+    show IsClosed (if (F i).Nonempty then F i else F i₀)
+    split_ifs
+    · exact hclosed i
+    · exact hclosed i₀
+  have hGF : ∀ i, ∃ j, G i = F j := by
+    intro i
+    by_cases h : (F i).Nonempty
+    · exact ⟨i, if_pos h⟩
+    · exact ⟨i₀, if_neg h⟩
+  have hGcover : Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 ⊆ ⋃ i, G i := by
+    intro x hx
+    obtain ⟨i, hi⟩ := Set.mem_iUnion.mp (hcover hx)
+    refine Set.mem_iUnion.mpr ⟨i, ?_⟩
+    show x ∈ (if (F i).Nonempty then F i else F i₀)
+    rw [if_pos ⟨x, hi⟩]
+    exact hi
+  -- the distances to the first `n` sets
+  let ψ : EuclideanSpace ℝ (Fin (n + 1)) → EuclideanSpace ℝ (Fin n) :=
+    fun x => WithLp.toLp 2 fun j => Metric.infDist x (G (Fin.castSucc j))
+  have hψ : Continuous ψ :=
+    (PiLp.continuous_toLp 2 _).comp (continuous_pi fun j => Metric.continuous_infDist_pt _)
+  obtain ⟨x, hx, hxx⟩ := exists_eq_antipode n ψ hψ.continuousOn
+  have hsame : ∀ j : Fin n, x ∈ G (Fin.castSucc j) ↔ -x ∈ G (Fin.castSucc j) := by
+    intro j
+    have hj : Metric.infDist x (G (Fin.castSucc j)) = Metric.infDist (-x) (G (Fin.castSucc j)) :=
+      congrArg (fun v : EuclideanSpace ℝ (Fin n) => v j) hxx
+    rw [(hGcl _).mem_iff_infDist_zero (hGne _), (hGcl _).mem_iff_infDist_zero (hGne _), hj]
+  have hxneg : -x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 := by
+    rw [mem_sphere_zero_iff_norm, norm_neg]
+    exact mem_sphere_zero_iff_norm.mp hx
+  -- a pair inside some `G i`
+  obtain ⟨i, hxi, hxi'⟩ : ∃ i, x ∈ G i ∧ -x ∈ G i := by
+    by_cases hj : ∃ j : Fin n, x ∈ G (Fin.castSucc j)
+    · obtain ⟨j, hj⟩ := hj
+      exact ⟨Fin.castSucc j, hj, (hsame j).mp hj⟩
+    · push Not at hj
+      have hlast : ∀ y ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1,
+          (∀ j : Fin n, y ∉ G (Fin.castSucc j)) → y ∈ G (Fin.last n) := by
+        intro y hy hyj
+        obtain ⟨i, hi⟩ := Set.mem_iUnion.mp (hGcover hy)
+        cases i using Fin.lastCases with
+        | last => exact hi
+        | cast j => exact absurd hi (hyj j)
+      refine ⟨Fin.last n, hlast x hx hj, hlast (-x) hxneg fun j hj' => hj j ((hsame j).mpr hj')⟩
+  obtain ⟨j, hj⟩ := hGF i
+  rw [hj] at hxi hxi'
+  exact ⟨j, x, hx, hxi, hxi'⟩
 
 end Applications
 

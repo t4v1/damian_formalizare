@@ -35,7 +35,9 @@ because the Morse complexes the book applies Künneth to carry a canonical basis
 A basis-free formulation would have to build `(C ⊗ D)ₙ = ⨁_{i+j=n} Cᵢ ⊗ Dⱼ` as a
 dependent direct sum over `{(i,j) | i + j = n}`; Mathlib has no Künneth theorem
 to plug into (a search of this checkout for `Kunneth` returns nothing), so
-nothing would be gained by paying for that bookkeeping.
+nothing would be gained by paying for that bookkeeping.  The formula itself is
+proved in Chapter 4 (`Chapter4.betti_prod`), where it is needed first, and
+`betti_tensor` below is an alias for it.
 
 ## What is proved
 
@@ -44,15 +46,19 @@ nothing would be gained by paying for that bookkeeping.
   critical points, and splits it over a product;
 * `numCrit_prodIndex` — **the underlying graded module of Proposition 15.1.1**:
   `dim (C ⊗ D)ₖ = Σ_{i+j=k} dim Cᵢ · dim Dⱼ`, i.e. the tensor product complex
-  really is graded by `(C ⊗ D)ₖ = ⨁_{i+j=k} Cᵢ ⊗ Dⱼ`;
+  really is graded by `(C ⊗ D)ₖ = ⨁_{i+j=k} Cᵢ ⊗ Dⱼ` (proved in Chapter 4, which
+  uses it for Künneth; an alias here);
 * `numCrit_prodIndex_of_isEmpty` — the first bullet of the book's proof,
   `C ⊗ 0 = 0`;
 * `tensor_brokenPairs` — **`∂_{C⊗D} ∘ ∂_{C⊗D} = 0`**, so the object §15.1.a
   writes down is a complex.  As the book's footnote and Chapter 4 both note,
   without signs this needs characteristic `2`: the two cross terms
   `(∂ ⊗ 1)(1 ⊗ ∂)` and `(1 ⊗ ∂)(∂ ⊗ 1)` are equal, and cancel only because
-  `2 = 0`.  This is exactly Chapter 4's `brokenPairs_prod`, which is `sorry`
-  there and proved here;
+  `2 = 0`.  The proof lives in Chapter 4 as `brokenPairs_prod`; this is an
+  alias;
+* `betti_tensor` — **Proposition 15.1.1** itself, in the form Chapter 4 needs:
+  `βₖ(C ⊗ D) = Σ_{i+j=k} βᵢ(C) βⱼ(D)` over a field of characteristic `2`.  An
+  alias for `Chapter4.betti_prod`, see the proof sketch on `betti_tensor`;
 * `betti_prod_of_count_zero` — **Proposition 15.1.1 in the case both
   differentials vanish**, which is the case of every example computed in the
   book (the round sphere, the torus, `ℂPⁿ`, `Pⁿ(ℝ)`: all their mod `2`
@@ -78,17 +84,7 @@ nothing would be gained by paying for that bookkeeping.
   space is constant, which is why `c₁(TW)` does not depend on the choice of
   calibrated almost complex structure.
 
-## Stated with `sorry`
-
-* `betti_tensor` — **Proposition 15.1.1** itself, in the form Chapter 4 needs:
-  `βₖ(C ⊗ D) = Σ_{i+j=k} βᵢ(C) βⱼ(D)`.  The book proves it by induction on the
-  length of the second complex, decomposing `Dⱼ = Ker ∂ ⊕ D'ⱼ` and
-  `Dⱼ₋₁ = E'ⱼ₋₁ ⊕ Im ∂` at each step.  In the based model of Chapter 3 such a
-  decomposition changes the basis, so running the induction here would first
-  require a basis-free notion of a finite-dimensional complex, its tensor
-  product, and the direct-sum additivity of homology.  The pieces that *are*
-  reachable — the graded dimension count, the splitting of `Ker ∂`, and the case
-  of vanishing differentials — are proved above.
+Nothing in this chapter is stated with `sorry`.
 
 ## Gaps: results carrying no Lean declaration
 
@@ -163,24 +159,6 @@ theorem sum_critSet_prod {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Cr
   rw [Fintype.sum_prod_type] at h
   exact h
 
-private theorem sum_range_ite_mul (k p q : ℕ) :
-    (∑ i ∈ Finset.range (k + 1), (if p = i then (1 : ℕ) else 0) * (if q = k - i then 1 else 0))
-      = if p + q = k then 1 else 0 := by
-  by_cases hp : p ≤ k
-  · have h1 : (∑ i ∈ Finset.range (k + 1),
-        (if p = i then (1 : ℕ) else 0) * (if q = k - i then 1 else 0))
-        = (if p = p then (1 : ℕ) else 0) * (if q = k - p then 1 else 0) :=
-      Finset.sum_eq_single p (fun b _ hb => by rw [if_neg (Ne.symm hb), zero_mul])
-        (fun h => absurd (Finset.mem_range.mpr (by omega)) h)
-    rw [h1, if_pos rfl, one_mul]
-    by_cases hq : p + q = k
-    · rw [if_pos (show q = k - p by omega), if_pos hq]
-    · rw [if_neg (show ¬(q = k - p) by omega), if_neg hq]
-  · rw [if_neg (show ¬(p + q = k) by omega)]
-    refine Finset.sum_eq_zero fun i hi => ?_
-    have hi' := Finset.mem_range.mp hi
-    rw [if_neg (show ¬(p = i) by omega), zero_mul]
-
 end Sums
 
 /-! ### §15.1.a The Künneth formula over `Z/2`
@@ -196,32 +174,15 @@ variable {K : Type*} [Field K] {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fint
 
 /-- **§15.1.a, the graded module underlying `C ⊗ D`.**  The degree `k` part of
 the tensor product complex has dimension `Σ_{i+j=k} dim Cᵢ · dim Dⱼ`, which is
-the content of `(C ⊗ D)ₖ = ⨁_{i+j=k} Cᵢ ⊗ Dⱼ`. -/
+the content of `(C ⊗ D)ₖ = ⨁_{i+j=k} Cᵢ ⊗ Dⱼ`.
+
+The proof now lives in Chapter 4 as `Chapter4.numCrit_prodIndex`, where the
+Künneth formula uses it, and this is an alias for it. -/
 theorem numCrit_prodIndex {Crit₁ Crit₂ : Type*} [Fintype Crit₁] [Fintype Crit₂]
     (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (k : ℕ) :
     numCrit (prodIndex ind₁ ind₂) k
-      = ∑ i ∈ Finset.range (k + 1), numCrit ind₁ i * numCrit ind₂ (k - i) := by
-  symm
-  calc ∑ i ∈ Finset.range (k + 1), numCrit ind₁ i * numCrit ind₂ (k - i)
-      = ∑ i ∈ Finset.range (k + 1), (∑ c₁ : Crit₁, if ind₁ c₁ = i then (1 : ℕ) else 0)
-          * (∑ c₂ : Crit₂, if ind₂ c₂ = k - i then (1 : ℕ) else 0) :=
-        Finset.sum_congr rfl fun i _ => by rw [numCrit_eq_sum, numCrit_eq_sum]
-    _ = ∑ i ∈ Finset.range (k + 1), ∑ c₁ : Crit₁, ∑ c₂ : Crit₂,
-          (if ind₁ c₁ = i then (1 : ℕ) else 0) * (if ind₂ c₂ = k - i then (1 : ℕ) else 0) := by
-        refine Finset.sum_congr rfl fun i _ => ?_
-        rw [Finset.sum_mul]
-        exact Finset.sum_congr rfl fun c₁ _ => Finset.mul_sum _ _ _
-    _ = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂, ∑ i ∈ Finset.range (k + 1),
-          (if ind₁ c₁ = i then (1 : ℕ) else 0) * (if ind₂ c₂ = k - i then (1 : ℕ) else 0) := by
-        rw [Finset.sum_comm]
-        exact Finset.sum_congr rfl fun c₁ _ => Finset.sum_comm
-    _ = ∑ c₁ : Crit₁, ∑ c₂ : Crit₂, if ind₁ c₁ + ind₂ c₂ = k then (1 : ℕ) else 0 :=
-        Finset.sum_congr rfl fun c₁ _ => Finset.sum_congr rfl fun c₂ _ =>
-          sum_range_ite_mul k (ind₁ c₁) (ind₂ c₂)
-    _ = numCrit (prodIndex ind₁ ind₂) k := by
-        have h := numCrit_eq_sum (prodIndex ind₁ ind₂) k
-        rw [Fintype.sum_prod_type] at h
-        exact h.symm
+      = ∑ i ∈ Finset.range (k + 1), numCrit ind₁ i * numCrit ind₂ (k - i) :=
+  Chapter4.numCrit_prodIndex ind₁ ind₂ k
 
 omit [DecidableEq Crit₁] [DecidableEq Crit₂] in
 /-- **First bullet of the proof of Proposition 15.1.1**: `C ⊗ 0 = 0`. -/
@@ -292,28 +253,28 @@ theorem betti_prod_of_count_zero (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ �
 /-- **Proposition 15.1.1 (the Künneth formula).**  Over a field the homology of
 the tensor product complex is the tensor product of the homologies,
 `H⋆(C ⊗ D) = H⋆(C) ⊗ H⋆(D)`; on dimensions,
-`βₖ(C ⊗ D) = Σ_{i+j=k} βᵢ(C) · βⱼ(D)`.
+`βₖ(C ⊗ D) = Σ_{i+j=k} βᵢ(C) · βⱼ(D)`.  Without Koszul signs the product
+differential is only a complex in characteristic `2`, hence the hypothesis
+`2 = 0`.
 
-Not proved.  The book argues by induction on the number of nonzero terms of the
-second complex, splitting `Dⱼ = Ker ∂ ⊕ D'ⱼ` and `Dⱼ₋₁ = E'ⱼ₋₁ ⊕ Im ∂` at each
-stage and using that homology, the tensor product and the induction hypothesis
-are all compatible with direct sums.  Two ingredients are missing here: a
-basis-free notion of a complex of finite-dimensional vector spaces (the based
-model of Chapter 3 is not stable under the change of basis the splitting
-performs) and the additivity of homology along direct sums of complexes, which
-Chapter 4 also leaves open as `betti_sumComplex`.  Mathlib has no Künneth
-theorem for complexes to appeal to.
+The proof lives in Chapter 4 as `betti_prod`, which needs it first, and this is
+an alias for it.  It does not follow the book's induction, which splits
+`Dⱼ = Ker ∂ ⊕ D'ⱼ` and `Dⱼ₋₁ = E'ⱼ₋₁ ⊕ Im ∂` and so changes basis, something the
+based model of Chapter 3 does not accommodate.  Instead each complex is shown to
+retract, by explicit matrices, onto a graded vector space with zero
+differential whose dimensions are its Betti numbers (the splitting of
+Remark 15.1.2 is what builds that retraction); the Kronecker product of two such
+retractions is a retraction of `C ⊗ D`, and the dimension count
+`numCrit_prodIndex` concludes.
 
-Compare `betti_prod_of_count_zero` above, which proves the formula when both
-differentials vanish, `numCrit_prodIndex`, which proves it at the level of the
-underlying graded vector spaces, and `exists_isCompl_ker`, which supplies the
-splitting step the book's Remark 15.1.2 singles out. -/
+Compare `betti_prod_of_count_zero` above, the case where both differentials
+vanish and no retraction is needed. -/
 theorem betti_tensor {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
     {cnt₁ : Crit₁ → Crit₁ → K} {cnt₂ : Crit₂ → Crit₂ → K}
     (h₁ : BrokenPairs ind₁ cnt₁) (h₂ : BrokenPairs ind₂ cnt₂) (h2 : (2 : K) = 0) (k : ℕ) :
     betti (prodIndex ind₁ ind₂) (prodCount cnt₁ cnt₂) k
-      = ∑ i ∈ Finset.range (k + 1), betti ind₁ cnt₁ i * betti ind₂ cnt₂ (k - i) := by
-  sorry
+      = ∑ i ∈ Finset.range (k + 1), betti ind₁ cnt₁ i * betti ind₂ cnt₂ (k - i) :=
+  Chapter4.betti_prod h₁ h₂ h2 k
 
 end Kunneth
 

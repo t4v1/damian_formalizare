@@ -1,4 +1,6 @@
 import MorseFloer.Basic
+import MorseFloer.Part1.DistSqMorse
+import MorseFloer.Part1.MorseLemma
 
 /-!
 # Chapter 1: Morse functions
@@ -14,7 +16,7 @@ The chapter has four sections:
   at a critical point it is chart-independent.
 * **§1.2** proves that Morse functions exist and are generic
   (Propositions 1.2.1 and 1.2.4, Lemma 1.2.2, Theorem 1.2.5).  These rest on
-  Sard's theorem for manifolds, which Mathlib does not have.
+  Sard's theorem.
 * **§1.3** is the Morse lemma (Theorem 1.3.1) and its corollary that
   nondegenerate critical points are isolated (Corollary 1.3.2), together with
   the definition of the index and Remark 1.3.3.
@@ -35,15 +37,21 @@ lemma in one variable (`exists_analyticAt_sq_factor`), the dictionary between
 Morse lemma in dimension one (`morse_lemma_dim_one`, and in the exact form of
 `morse_lemma` as `morse_lemma_real`).
 
-Assumed (`sorry`): the Morse lemma in dimension `> 1` (Theorem 1.3.1) and
-Proposition 1.2.1, which needs Sard's theorem.  The Morse lemma's docstring says
-which of its three steps is out of reach and why: Mathlib has neither a
-multivariable Taylor expansion with integral remainder nor a smoothly
-parametrised square root of an operator near the identity.  Lemma 1.2.2,
-Proposition 1.2.4 and Theorem 1.2.5 need the
-normal bundle as a submanifold and the `Cᵏ` topology on `C^∞(V; ℝ)`; neither is
-expressible with today's Mathlib, so they appear in the blueprint with no Lean
-statement rather than as a fictitious one.
+Also proved: Proposition 1.2.1 (`ae_isMorseFunction_distSq`), restating
+`MorseFloer.ae_isMorseFunction_distSq_general` from
+`MorseFloer/Part1/DistSqMorse.lean`, where the normal-bundle argument is run in
+charts with Mathlib's equidimensional Sard theorem.
+
+Also proved: the Morse lemma in every finite dimension (Theorem 1.3.1,
+`morse_lemma`), restating `MorseFloer.morse_lemma_general` from
+`MorseFloer/Part1/MorseLemma.lean` — Hadamard's lemma with integral remainder, a
+square root of an operator near the identity from the inverse function theorem,
+and a chart from the inverse function theorem again.
+
+Nothing in this chapter is assumed.  Lemma 1.2.2, Proposition 1.2.4 and
+Theorem 1.2.5 need the normal bundle as a submanifold and the `Cᵏ` topology on
+`C^∞(V; ℝ)`; neither is expressible with today's Mathlib, so they appear in the
+blueprint with no Lean statement rather than as a fictitious one.
 -/
 
 open scoped Manifold ContDiff Real
@@ -151,15 +159,23 @@ theorem isCriticalPt_distSq_iff (p x : F) : IsCriticalPt (distSq p) x ↔ x = p 
 `x ↦ ‖ι x − p‖²` on a submanifold `V ⊆ ℝⁿ` is a Morse function.
 
 The book's proof applies Sard's theorem to the endpoint map `E(x,v) = x + v` of
-the normal bundle of `V` (Lemma 1.2.2).  Sard's theorem for manifolds is not in
-Mathlib. -/
+the normal bundle of `V` (Lemma 1.2.2).  Proved in
+`MorseFloer/Part1/DistSqMorse.lean` (`MorseFloer.ae_isMorseFunction_distSq_general`)
+by running that argument chart by chart, so that neither the normal bundle as a
+manifold nor Sard's theorem for manifolds is needed.  `V` is second countable,
+being embedded in `ℝⁿ`, so countably many small chart domains cover it.  On each,
+a smoothly varying projection onto the normal spaces turns the endpoint map into
+a map between spaces of the same dimension `n`, to which Mathlib's
+equidimensional Sard applies.  At a critical point of `‖ι · − p‖²` whose Hessian
+is degenerate, a kernel vector of the Hessian produces one of the differential
+of the endpoint map, so such `p` lie in a null set of critical values. -/
 theorem ae_isMorseFunction_distSq {d n : ℕ}
     {V : Type*} [TopologicalSpace V] [ChartedSpace (EuclideanSpace ℝ (Fin d)) V]
     [IsManifold (𝓡 d) ω V] (ι : V → EuclideanSpace ℝ (Fin n))
-    (_hι : Manifold.IsSmoothEmbedding (𝓡 d) (𝓡 n) ω ι) :
+    (hι : Manifold.IsSmoothEmbedding (𝓡 d) (𝓡 n) ω ι) :
     ∀ᵐ p : EuclideanSpace ℝ (Fin n),
-      IsMorseFunction (𝓡 d) (fun x : V => ‖ι x - p‖ ^ 2) := by
-  sorry
+      IsMorseFunction (𝓡 d) (fun x : V => ‖ι x - p‖ ^ 2) :=
+  ae_isMorseFunction_distSq_general ι hι
 
 end Genericity
 
@@ -181,38 +197,31 @@ book's normal form `f(c) − Σ_{j≤i} x_j² + Σ_{j>i} x_j²`, whose integer `
 index of the critical point.
 
 The book proves this by induction on the dimension using the implicit function
-theorem; the analyst's proof, which is the one that can be formalized, goes in
-three steps.
+theorem.  The proof here, in `MorseFloer/Part1/MorseLemma.lean`
+(`MorseFloer.morse_lemma_general`), is the analyst's one, in three steps.
 
-1. **Hadamard's lemma**: `f (c + x) = R x (x, x)` for a smooth family `R` of
-   symmetric bilinear forms with `R 0 = ½ d²f_c`.
-2. **Smooth diagonalisation**: for `x` small there is an invertible `A x`,
-   depending smoothly on `x` with `A 0 = id`, such that
-   `R x (v, v) = R 0 (A x v, A x v)`.  Classically `A x` is the square root of
-   `(R 0)⁻¹ ∘ R x`, an operator near the identity, obtained from the binomial
-   series.
-3. `φ : x ↦ A x x` has derivative `id` at `0`, so the inverse function theorem
-   turns it into a chart.
+1. **Hadamard's lemma**: `f (c + x) = f c + Q x (x, x)` with
+   `Q x = ∫₀¹ (1 − t) d²f(c + t x) dt`, a Lipschitz family of bilinear forms
+   with `Q 0 = ½ d²f_c`, from the Taylor formula with integral remainder along
+   the segment.
+2. **Diagonalisation**: for `x` small there is an invertible `A x`, depending
+   Lipschitz-continuously on `x` with `A 0 = id`, such that
+   `Q x (v, v) = Q 0 (A x v, A x v)`.  `A x` is a square root of
+   `(Q 0)⁻¹ ∘ Q x`, taken by the inverse function theorem inside the space of
+   operators self-adjoint for `Q 0`.
+3. `φ : y ↦ A (y − c) (y − c)` has strict derivative `id` at `c`, which is all
+   the inverse function theorem needs to make it a chart: the statement asks
+   only for a homeomorphism, so no smooth dependence of `A` is required.
 
-**What is missing.**  Step 1 is proved below in dimension one
-(`exists_analyticAt_sq_factor`); in dimension `> 1` it needs a multivariable
-Taylor expansion with integral remainder, which Mathlib does not have (its
-`Analysis/Calculus/Taylor.lean` covers only `f : ℝ → ℝ` with a Lagrange
-remainder, and there is no Hadamard lemma).  Step 2 needs the analytic square
-root of an operator near the identity — the continuous functional calculus
-provides a square root of a positive self-adjoint element, but not its
-smoothness in a parameter.  Step 3 alone is available
-(`HasStrictFDerivAt.toOpenPartialHomeomorph`).
-
-The one-dimensional case — the base case of the book's induction — is proved in
-full below as `morse_lemma_dim_one`, and in the exact form of this statement as
-`morse_lemma_real`. -/
+The one-dimensional case — the base case of the book's induction — is also
+proved directly below as `morse_lemma_dim_one`, and in the exact form of this
+statement as `morse_lemma_real`. -/
 theorem morse_lemma [FiniteDimensional ℝ E] [CompleteSpace E] {f : E → ℝ} {c : E}
-    (_hf : ContDiffAt ℝ ω f c) (_hcrit : IsCriticalPt f c)
-    (_hnd : IsNondegenerate (sndFDeriv f c)) :
+    (hf : ContDiffAt ℝ ω f c) (hcrit : IsCriticalPt f c)
+    (hnd : IsNondegenerate (sndFDeriv f c)) :
     ∃ φ : OpenPartialHomeomorph E E, c ∈ φ.source ∧ φ c = 0 ∧
-      ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) := by
-  sorry
+      ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) :=
+  morse_lemma_general hf hcrit hnd
 
 /-! ### The Morse lemma in dimension one
 
