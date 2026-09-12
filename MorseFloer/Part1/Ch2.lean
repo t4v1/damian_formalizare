@@ -1,5 +1,7 @@
 import MorseFloer.Basic
 import MorseFloer.Part1.Brouwer
+import MorseFloer.Part1.OneManifold
+import MorseFloer.Part1.Reeb
 
 /-!
 # Chapter 2: Pseudo-gradients
@@ -66,8 +68,22 @@ Mathlib has no homology of spheres, so that proof is analytic (Milnor–Rogers)
 rather than the book's; `brouwer_dim_zero` and `brouwer_dim_one` keep the
 elementary low-dimensional cases.
 
-Assumed (`sorry`): Reeb's theorem 2.1.9 and the classification of compact
-connected 1-manifolds (2.3.2), neither of which Mathlib can currently prove.
+Also proved: the classification of compact connected 1-manifolds (2.3.2, the
+closed case), `classification_dim_one`, restating
+`MorseFloer.OneManifold.classification_dim_one_general` from
+`MorseFloer/Part1/OneManifold.lean`, by Gale's topological argument on
+overlapping arcs.
+
+Also proved: Reeb's theorem (2.1.9), `reeb`, restating `MorseFloer.reeb_general`
+from `MorseFloer/Part1/Reeb.lean`.  The proof there is not the book's gluing of
+two disks along Theorem 2.1.7, which would need diffeomorphisms between
+sublevel sets: a gradient-like field (from a partition of unity) and its flow
+(`MorseFloer/Part1/ManifoldFlow.lean`) carry every point other than the two
+critical points to one level set, which the Morse lemma at the minimum
+identifies with `Sⁿ⁻¹`; that point together with the height of `x` gives a
+continuous bijection onto `Sⁿ`, hence a homeomorphism.
+
+Nothing in this chapter is assumed (`sorry`).
 
 Omitted, because today's Mathlib cannot even state them faithfully:
 
@@ -842,20 +858,25 @@ end Sublevel
 /-- **Corollary 2.1.9 (Reeb's theorem).**  A compact manifold carrying a Morse
 function with exactly two critical points is homeomorphic to a sphere.
 
-The smoothness hypothesis `_hsmooth` is essential: `IsMorseFunction` alone
+The smoothness hypothesis `hsmooth` is essential: `IsMorseFunction` alone
 does not ask `f` to be differentiable, and `mfderiv` is `0` wherever `f` is not,
-so without it such points would count as critical.
+so without it such points would count as critical.  So is `T2Space V`, which a
+`ChartedSpace` does not provide: the circle with one point doubled is a compact
+analytic `1`-manifold on which the height function has exactly two critical
+points, both nondegenerate, yet it is not homeomorphic to a circle.
 
-`sorry`: the proof glues two disks obtained from the Morse lemma along their
-boundary, using Theorem 2.1.7 to identify the intermediate sublevel sets.  It
-needs the Morse lemma, the diffeomorphism statement of Theorem 2.1.7, and the
-gluing construction — none available. -/
-theorem reeb {n : ℕ} {V : Type*} [TopologicalSpace V] [CompactSpace V]
+The book glues two disks obtained from the Morse lemma along their boundary,
+using Theorem 2.1.7 to identify the intermediate sublevel sets.  The proof,
+`MorseFloer.reeb_general` in `MorseFloer/Part1/Reeb.lean`, replaces the gluing
+by the flow of a gradient-like field: each non-critical point is sent to the
+point where its flow line meets a level set near the minimum, which the Morse
+lemma identifies with `Sⁿ⁻¹`, and to its height. -/
+theorem reeb {n : ℕ} {V : Type*} [TopologicalSpace V] [T2Space V] [CompactSpace V]
     [ChartedSpace (EuclideanSpace ℝ (Fin n)) V] [IsManifold (𝓡 n) ω V]
-    (f : V → ℝ) (_hsmooth : ContMDiff (𝓡 n) 𝓘(ℝ) ∞ f) (_hf : IsMorseFunction (𝓡 n) f)
-    (_hcard : {x : V | IsCriticalPoint (𝓡 n) f x}.ncard = 2) :
-    Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1) := by
-  sorry
+    (f : V → ℝ) (hsmooth : ContMDiff (𝓡 n) 𝓘(ℝ) ∞ f) (hf : IsMorseFunction (𝓡 n) f)
+    (hcard : {x : V | IsCriticalPoint (𝓡 n) f x}.ncard = 2) :
+    Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1) :=
+  reeb_general f hsmooth hf hcard
 
 /-! ## §2.2 The Smale condition
 
@@ -1048,16 +1069,24 @@ end SmaleModel
 connected manifold of dimension 1 without boundary is diffeomorphic to the
 circle.  (The book also treats the case with boundary, where `V ≅ [0,1]`;
 manifolds with boundary exist in Mathlib but the inward-field construction of
-§2.3.a does not, so only the closed case is stated.)
+§2.3.a does not, so only the closed case is stated.)  The Hausdorff hypothesis
+is part of the book's definition of a manifold and is needed: a `ChartedSpace`
+need not be Hausdorff, and the circle with one point doubled is compact,
+connected and analytic but not homeomorphic to the circle.
 
-`sorry`: the proof takes a Morse function adapted to an inward field, notes that
-the closure of the stable manifold of each minimum is a circle or a closed
-interval, and glues these along their maxima.  It needs Proposition 2.1.6 and
-the stable-manifold statement 2.1.5. -/
-theorem classification_dim_one {V : Type*} [TopologicalSpace V] [CompactSpace V]
+The statement records a homeomorphism, not a diffeomorphism.  It is proved in
+`MorseFloer/Part1/OneManifold.lean`
+(`MorseFloer.OneManifold.classification_dim_one_general`), and not by the
+book's route through a Morse function adapted to an inward field.  The proof
+there is Gale's, purely topological, and uses no smooth structure.  An *arc*
+is an open embedding of `ℝ`.  Where two arcs overlap without either containing
+the other, Hausdorffness forces the overlap to consist of at most two rays, so
+their union is again an arc or else a circle.  Merging a finite cover of `V` by
+arcs one at a time must end in the circle case, since an arc is not compact. -/
+theorem classification_dim_one {V : Type*} [TopologicalSpace V] [T2Space V] [CompactSpace V]
     [ConnectedSpace V] [ChartedSpace (EuclideanSpace ℝ (Fin 1)) V] [IsManifold (𝓡 1) ω V] :
-    Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin 2)) 1) := by
-  sorry
+    Nonempty (V ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin 2)) 1) :=
+  OneManifold.classification_dim_one_general
 
 /-- The norm on the line `EuclideanSpace ℝ (Fin 1)` is the absolute value of the
 single coordinate: this is what identifies the one-dimensional closed unit ball

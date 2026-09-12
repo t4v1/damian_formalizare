@@ -1,8 +1,12 @@
 -- Root module of the MorseFloer library.
 import MorseFloer.Basic
+import MorseFloer.Part1.BorsukUlam
 import MorseFloer.Part1.Brouwer
 import MorseFloer.Part1.DistSqMorse
+import MorseFloer.Part1.ManifoldFlow
 import MorseFloer.Part1.MorseLemma
+import MorseFloer.Part1.OneManifold
+import MorseFloer.Part1.Reeb
 import MorseFloer.Part1.Ch1
 import MorseFloer.Part1.Ch2
 import MorseFloer.Part1.Ch3

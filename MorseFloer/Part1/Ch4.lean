@@ -1,5 +1,6 @@
 import MorseFloer.Part1.Ch3
 import MorseFloer.Part1.Brouwer
+import MorseFloer.Part1.BorsukUlam
 
 /-!
 # Chapter 4: Morse homology, applications
@@ -79,6 +80,11 @@ rank–nullity theorem is available, Remark 4.4.2), we define
   dimension: the first restates `MorseFloer.brouwer_fixed_point` from
   `MorseFloer/Part1/Brouwer.lean`, proved analytically since this Mathlib has no
   homology of spheres, and the second is deduced from it;
+* `borsuk_ulam` — **Theorem 4.8.3 (Borsuk–Ulam)**, restating
+  `MorseFloer.borsuk_ulam_general` from `MorseFloer/Part1/BorsukUlam.lean`.
+  The book's proof needs the mod `2` homology of `Pⁿ(ℝ)`, which this Mathlib
+  cannot compute (no excision for singular homology), so the proof there is
+  combinatorial, through Tucker's lemma on a subdivided grid;
 * `borsuk_ulam_of_odd`, `exists_eq_antipode` and
   `exists_antipodal_pair_of_closed_cover` — **Corollaries 4.8.4, 4.8.5 and
   4.8.6** of Borsuk–Ulam, deduced from Theorem 4.8.3.
@@ -91,16 +97,7 @@ differential (`exists_retract`), whose numbers of generators are then the Betti
 numbers (`betti_eq_numCrit_of_retract`); retractions tensor
 (`betti_prod_of_retract`) and add up along block sums.
 
-**Stated with `sorry`**, because the proof needs topology Mathlib does not have:
-
-* `borsuk_ulam` — Theorem 4.8.3.  **This Mathlib version does not contain
-  Borsuk–Ulam** (a search for `borsuk` finds only the Borsuk–Mazurkiewicz
-  example on local contractibility), so it is stated here and its corollaries
-  are proved from it.  Nor can it be derived along the book's lines: Mathlib has
-  no excision or Mayer–Vietoris for its singular homology (so the mod `2`
-  homology of `Pⁿ(ℝ)` is nowhere computed), and no degree theory.  Unlike
-  Brouwer, it has no known short analytic proof; the realistic routes are
-  Tucker's combinatorial lemma or a mod `2` degree built on Sard's theorem.
+Nothing in this chapter is stated with `sorry`.
 
 ## Gaps: results carrying no Lean declaration
 
@@ -2021,19 +2018,28 @@ theorem eulerChar_torus : eulerChar Chapter3.torusIndex Chapter3.torusCount 2 = 
 
 /-! ### §4.8.d The Borsuk–Ulam theorem
 
-Theorem 4.8.3 itself needs the mod `2` homology of the projective spaces and the
-commutation of the connecting map with `ψ⋆`, so it is stated without proof (and
-is not in this Mathlib version).  Its corollaries 4.8.4, 4.8.5 and 4.8.6 are
-deduced from it here. -/
+The book proves Theorem 4.8.3 from the mod `2` homology of the projective spaces
+and the commutation of the connecting map with `ψ⋆`.  Neither is available in
+this Mathlib, whose singular homology has no excision, so the theorem is proved
+combinatorially instead, in `MorseFloer/Part1/BorsukUlam.lean`.  Its corollaries
+4.8.4, 4.8.5 and 4.8.6 are deduced from it here, as in the book. -/
 
 /-- **Theorem 4.8.3 (Borsuk–Ulam).**  There is no continuous odd map
-`Sⁿ → Sⁿ⁻¹`.  Not in this Mathlib version. -/
+`Sⁿ → Sⁿ⁻¹`.
+
+This restates `MorseFloer.borsuk_ulam_general`.  The proof there goes through
+Tucker's lemma: on the barycentric subdivision of the grid `[−m, m]ⁿ`, a
+labelling by `±1, …, ±n` that is antipodal on the boundary has an edge whose
+two ends carry opposite labels, by a parity count in the style of Freund and
+Todd.  Labelling by the largest coordinate of a zero-free map that is odd on the
+boundary of the cube then contradicts uniform continuity for fine grids, and the
+cube is carried onto a hemisphere by a map that is odd on its boundary. -/
 theorem borsuk_ulam (n : ℕ) :
     ¬ ∃ φ : EuclideanSpace ℝ (Fin (n + 1)) → EuclideanSpace ℝ (Fin n),
         ContinuousOn φ (Metric.sphere 0 1) ∧
         Set.MapsTo φ (Metric.sphere 0 1) (Metric.sphere 0 1) ∧
-        ∀ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, φ (-x) = -φ x := by
-  sorry
+        ∀ x ∈ Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1, φ (-x) = -φ x :=
+  borsuk_ulam_general n
 
 /-- **Corollary 4.8.4.**  A continuous odd map `Sⁿ → ℝⁿ` vanishes somewhere: if
 it did not, dividing by its norm would produce a map forbidden by Theorem

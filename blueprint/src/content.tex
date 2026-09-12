@@ -426,6 +426,32 @@ recorded here are what force the assumed results elsewhere.
   --- needs manifolds with boundary, which Mathlib does not have.
 \end{theorem}
 
+\begin{corollary}[Corollary 2.1.9, Reeb's theorem]
+  \label{cor:2.1.9}
+  \lean{MorseFloer.Chapter2.reeb, MorseFloer.reeb_general,
+        MorseFloer.exists_flow,
+        MorseFloer.Reeb.exists_gradientLike_field,
+        MorseFloer.Reeb.exists_level_sphere,
+        MorseFloer.Reeb.GradientLikeFlow.nonempty_homeomorph_sphere}
+  \leanok
+  \uses{def:hessian, thm:1.3.1}
+  A compact manifold carrying a Morse function with exactly two critical points
+  is homeomorphic to a sphere.  Stated for a smooth $f$ on a compact
+  \emph{Hausdorff} manifold: a chart atlas does not imply Hausdorff, and the
+  circle with a doubled point is a counterexample without it.
+  \emph{Proved} (\texttt{MorseFloer/Part1/Reeb.lean}), but not by the book's
+  gluing of two disks along \ref{thm:2.1.7}, which would need diffeomorphisms
+  between sublevel sets.  A partition of unity glues coordinate gradients into a
+  $C^1$ field $v$ with $df(v) > 0$ off the two critical points, the minimum $m$
+  and the maximum $M$.  Its flow (\texttt{MorseFloer/Part1/ManifoldFlow.lean}:
+  Picard--Lindel\"of in charts, with continuous dependence on the initial point,
+  made global by compactness) carries every other point, continuously, to one
+  level $f = c$ just above $f(m)$.  The Morse lemma at $m$ identifies that level
+  with $S^{n-1}$, and together with the height of the point this gives a
+  continuous bijection $V \to S^n$, which is a homeomorphism since $V$ is
+  compact.
+\end{corollary}
+
 \section{\S2.2 The Smale condition}
 
 \begin{proposition}[Remark 2.2.1, Proposition 2.2.2, Remark 2.2.3]
@@ -469,13 +495,22 @@ recorded here are what force the assumed results elsewhere.
 
 \begin{theorem}[Theorem 2.3.2]
   \label{thm:2.3.2}
-  \lean{MorseFloer.Chapter2.classification_dim_one}
-  \notready
+  \lean{MorseFloer.Chapter2.classification_dim_one,
+        MorseFloer.OneManifold.classification_dim_one_general,
+        MorseFloer.OneManifold.nonempty_homeomorph_sphere_of_chartedSpace}
+  \leanok
   A compact connected $1$-manifold is a circle or a segment --- so a compact
   $1$-manifold has an even number of boundary points, which is exactly what
   \ref{def:brokenPairs} needs.
-  \emph{Assumed} (the classification for the closed case only); the manifolds
-  with boundary needed for the general statement are not available.
+  \emph{Proved for the closed case} (\texttt{MorseFloer/Part1/OneManifold.lean}),
+  up to homeomorphism, for any compact connected Hausdorff space locally
+  homeomorphic to $\mathbb{R}$; the Hausdorff hypothesis is necessary, as the
+  circle with a doubled point shows.  The proof is Gale's topological one, not
+  the book's Morse-theoretic one.  Where two open arcs overlap without either
+  containing the other, the overlap is at most two rays, so their union is an
+  arc or a circle; merging a finite cover by arcs ends in the circle.  The case
+  with boundary is not stated, since it needs the manifolds with boundary of
+  \S2.3.a.
 \end{theorem}
 
 \begin{theorem}[Theorem 2.3.3, Brouwer]
@@ -732,14 +767,22 @@ skeleton of the chapter --- is formalized and proved.
   \label{thm:4.8.3}
   \lean{MorseFloer.Chapter4.borsuk_ulam, MorseFloer.Chapter4.borsuk_ulam_of_odd,
         MorseFloer.Chapter4.exists_eq_antipode,
-        MorseFloer.Chapter4.exists_antipodal_pair_of_closed_cover}
-  \notready
+        MorseFloer.Chapter4.exists_antipodal_pair_of_closed_cover,
+        MorseFloer.borsuk_ulam_general, MorseFloer.BorsukUlam.tucker,
+        MorseFloer.BorsukUlam.cube_zero}
+  \leanok
   There is no continuous odd map $S^n \to S^{n-1}$; hence every map
   $S^n\to\mathbb{R}^n$ identifies an antipodal pair, and one of $n+1$ closed
-  sets covering $S^n$ contains an antipodal pair.  Borsuk--Ulam itself is
-  assumed --- it is \emph{not} in this Mathlib, whose singular homology cannot
-  compute the mod $2$ homology of $P^n(\mathbb{R})$ --- but all three corollaries
-  are derived from it.
+  sets covering $S^n$ contains an antipodal pair.  \emph{Proved}
+  (\texttt{MorseFloer/Part1/BorsukUlam.lean}), combinatorially, since this
+  Mathlib's singular homology cannot compute the mod $2$ homology of
+  $P^n(\mathbb{R})$ that the book uses.  The core is Tucker's lemma on the
+  barycentric subdivision of the grid $[-m,m]^n$: a labelling by
+  $\pm1,\dots,\pm n$ that is antipodal on the boundary has an edge with opposite
+  labels, by a parity count of ``doors'' in the style of Freund and Todd.
+  Labelling by the largest coordinate of a zero-free map, odd on the boundary of
+  the cube, contradicts uniform continuity on fine grids.  The three corollaries
+  are derived as in the book.
 \end{theorem}
 
 \begin{theorem}[\S4.8.b, Brouwer and no retraction]

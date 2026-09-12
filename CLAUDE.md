@@ -97,10 +97,14 @@ verifies every cited declaration still exists.
 | `Part1/Brouwer.lean` | helper for 2.3.3 / §4.8.b | 0 | Brouwer in every dimension, analytically (Milnor–Rogers) |
 | `Part1/MorseLemma.lean` | helper for 1.3.1 | 0 | the Morse lemma in every finite dimension |
 | `Part1/DistSqMorse.lean` | helper for 1.2.1 | 0 | normal-bundle argument in charts + equidimensional Sard |
+| `Part1/BorsukUlam.lean` | helper for 4.8.3 | 0 | Borsuk–Ulam in every dimension, by Tucker's lemma (no algebraic topology) |
+| `Part1/ManifoldFlow.lean` | helper for 2.1.9 | 0 | the flow of a `C¹` field on a compact manifold, jointly continuous |
+| `Part1/Reeb.lean` | helper for 2.1.9 | 0 | Reeb's theorem, by a gradient-like flow and the Morse lemma at the minimum |
+| `Part1/OneManifold.lean` | helper for 2.3.2 | 0 | compact connected 1-manifolds are circles (Gale) |
 | `Part1/Ch1.lean` | 1 Morse functions | 0 | Morse lemma and Prop 1.2.1, restated from the two helpers above |
-| `Part1/Ch2.lean` | 2 Pseudo-gradients | 2 | Reeb (2.1.9) and the classification of 1-manifolds (2.3.2); Prop 2.1.6 and Brouwer proved |
+| `Part1/Ch2.lean` | 2 Pseudo-gradients | 0 | Reeb (2.1.9), the classification of 1-manifolds (2.3.2), Prop 2.1.6 and Brouwer, restated from the helpers above |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
-| `Part1/Ch4.lean` | 4 Morse homology | 1 | Borsuk–Ulam only; Künneth, integral duality, disjoint unions, Brouwer all proved |
+| `Part1/Ch4.lean` | 4 Morse homology | 0 | Künneth, integral duality, disjoint unions, Brouwer and Borsuk–Ulam all proved |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 6 | symplectic basis theorem proved in full |
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
@@ -203,20 +207,22 @@ result recorded in the blueprint with no Lean statement at all:
    homology as a functor with homotopy invariance and `H₀`, but cannot compute
    `H_{n-1}(Sⁿ⁻¹)` or the mod 2 homology of `Pⁿ(ℝ)`. It no longer blocks
    Brouwer, which has an analytic proof (Milnor–Rogers, in `Part1/Brouwer.lean`,
-   from the change of variables formula and partitions of unity). It still
-   blocks Borsuk–Ulam (Chapter 4), which has no comparably short analytic proof;
-   the realistic routes are Tucker's combinatorial lemma, or a mod 2 degree
-   built on Sard. `π₁(S¹) ≅ ℤ`, Sperner's lemma and degree theory are all absent
-   too. Two names are traps when grepping for these: Mathlib's
+   from the change of variables formula and partitions of unity), nor
+   Borsuk–Ulam, which `Part1/BorsukUlam.lean` proves combinatorially from
+   Tucker's lemma on the barycentric subdivision of the cube. Neither route uses
+   algebraic topology, so `π₁(S¹) ≅ ℤ` and degree theory are still absent, and
+   nothing in Part I now waits on them. Two names are traps when grepping:
+   Mathlib's
    `IsAntichain.sperner` is Sperner's *theorem* on antichains, not the
    simplicial lemma, and its `MayerVietoris` files are for sheaf cohomology,
    not singular homology.
 
-The rest of Part I's assumptions are Reeb's theorem and the classification of
-compact 1-manifolds (Chapter 2). Neither is blocked by a single missing lemma:
-Reeb needs the flow of a vector field on a compact manifold, continuous in the
-initial point, and gluing of disks; the classification needs either that or
-Gale's purely topological argument. Each is a multi-week project.
+Chapter 2 no longer assumes anything. Reeb's theorem avoids the gluing of
+disks: `Part1/ManifoldFlow.lean` builds the flow of a vector field on a compact
+manifold, continuous in the initial point (Mathlib stops at integral curves),
+and `Part1/Reeb.lean` sends each point along it to a level set that the Morse
+lemma identifies with `Sⁿ⁻¹`. The classification of 1-manifolds is Gale's
+purely topological argument.
 
 
 ## What Mathlib does and does not have
@@ -313,6 +319,17 @@ These are specific to this Mathlib version and were each hit during the build:
   million-heartbeat `isDefEq` timeout into an instant check. If you find
   yourself raising `maxHeartbeats`, split the declaration instead.
 - `ContDiff.differentiable` takes `n ≠ 0`, like `ContDiffAt.differentiableAt`.
+- **Tangent spaces leak into types.** A definition like
+  `dF (f : M → ℝ) (x : M) : E →L[ℝ] ℝ := mfderiv 𝓘(ℝ, E) 𝓘(ℝ) f x` cannot infer
+  `E`, and at `dF f x (v x)` Lean unifies it with `TangentSpace 𝓘(ℝ, E) x`, then
+  fails on `NormedAddCommGroup (TangentSpace …)`. Make `E` explicit
+  (`variable (E) in`). Likewise a `HasFDerivAt` obtained from
+  `hasMFDerivAt_iff_hasFDerivAt` has tangent-space types, and `.hasDerivAt` on
+  it fails with `ContinuousSMul ℝ ℝ`; restate it first with the model-space
+  types (`have h3 : HasFDerivAt … := h2`, which holds by defeq).
+- The unused-section-variable linter reports in rounds: after adding
+  `omit [X] in`, a rebuild can flag `[Y]` on the same theorem, or `[X]` on the
+  theorems that use it. Rebuild until clean.
 - `le_or_lt` does not exist in this Mathlib; it is `le_or_gt`. And `push_neg` is
   deprecated in favour of `push Not` — it emits a warning, which breaks the
   project's warning-clean build.

@@ -11,6 +11,9 @@ nondegenerate critical point `c`:
 open neighbourhood of `c` onto an open set, with `φ c = 0` and
 `f y = f c + ½ · d²f_c (φ y, φ y)` on its source.
 
+Only three derivatives are used: `MorseFloer.morse_lemma_of_contDiffAt` is the same
+statement for `f` merely `C³` at `c`, and the analytic version is derived from it.
+
 The book argues by induction on the dimension.  We follow instead the analyst's
 route, which needs no induction and — because the conclusion only asks for a
 *homeomorphism* — no smooth dependence on parameters beyond a Lipschitz bound.
@@ -287,12 +290,11 @@ theorem hadamardQ_lipschitz {f : E → ℝ} {c : E} {ρ : ℝ} {K : ℝ≥0}
       ≤ 1 * (K * ‖y - z‖) := mul_le_mul h1 h2 (norm_nonneg _) zero_le_one
     _ = K * ‖y - z‖ := one_mul _
 
-/-- Near a point where `f` is analytic, there is a ball on which `f` is `C²` and its
+/-- Near a point where `f` is `C³`, there is a ball on which `f` is `C²` and its
 second differential is Lipschitz. -/
-theorem exists_ball_regular {f : E → ℝ} {c : E} (hf : ContDiffAt ℝ ω f c) :
+theorem exists_ball_regular {f : E → ℝ} {c : E} (hf3 : ContDiffAt ℝ 3 f c) :
     ∃ ρ > 0, ∃ K : ℝ≥0, (∀ y ∈ ball c ρ, ContDiffAt ℝ 2 f y) ∧
       LipschitzOnWith K (sndFDeriv f) (ball c ρ) := by
-  have hf3 : ContDiffAt ℝ 3 f c := hf.of_le le_top
   have hev : ∀ᶠ y in 𝓝 c, ContDiffAt ℝ 2 f y := (hf3.of_le (by norm_num)).eventually (by simp)
   have h1 : ContDiffAt ℝ 1 (sndFDeriv f) c :=
     (hf3.fderiv_right (m := 2) (by norm_num)).fderiv_right (m := 1) (by norm_num)
@@ -567,24 +569,25 @@ end Chart
 end MorseLemma
 
 open MorseLemma in
-/-- **Theorem 1.3.1 (the Morse lemma), in every finite dimension.**
+/-- **The Morse lemma for a `C³` function.**
 
-Near a nondegenerate critical point `c` of a function `f` analytic at `c`, there is
-a chart `φ` centred at `c` in which `f` is exactly its quadratic model:
+Near a nondegenerate critical point `c` of a function `f` that is `C³` at `c`, there
+is a chart `φ` centred at `c` in which `f` is exactly its quadratic model:
 `f y = f c + ½ · d²f_c (φ y, φ y)` on the source of `φ`.
 
 The proof combines Hadamard's lemma (`hadamard_eq`), a Lipschitz square root of a
 `d²f_c`-self-adjoint operator near `½ id` (`exists_sqrt`), and the inverse function
-theorem (`morse_of_family`); see the module docstring. -/
-theorem morse_lemma_general {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+theorem (`morse_of_family`); see the module docstring.  Three derivatives are all it
+uses: they make the second differential Lipschitz near `c`. -/
+theorem morse_lemma_of_contDiffAt {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [FiniteDimensional ℝ E] [CompleteSpace E] {f : E → ℝ} {c : E}
-    (hf : ContDiffAt ℝ ω f c) (hcrit : fderiv ℝ f c = 0)
+    (hf : ContDiffAt ℝ 3 f c) (hcrit : fderiv ℝ f c = 0)
     (hnd : IsNondegenerate (sndFDeriv f c)) :
     ∃ φ : OpenPartialHomeomorph E E, c ∈ φ.source ∧ φ c = 0 ∧
       ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) := by
   obtain ⟨ρ, hρ, K, hC2, hL⟩ := exists_ball_regular hf
   have hBsymm : ∀ v w, sndFDeriv f c v w = sndFDeriv f c w v :=
-    sndFDeriv_symm (hf.of_le le_top)
+    sndFDeriv_symm (hf.of_le (by norm_num))
   have hBinj := (isNondegenerate_iff_injective _).mp hnd
   obtain ⟨T, K', hT0, hTL, hfT⟩ := exists_family (f := f) (c := c) hBsymm hBinj
     (hadamardQ f c) (hadamardQ_zero f c) (fun y z hy hz => hadamardQ_lipschitz hL hy hz)
@@ -592,5 +595,19 @@ theorem morse_lemma_general {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ 
       rw [hadamard_eq hC2 hL.continuousOn hx, hcrit]
       simp)
   exact morse_of_family T hρ hT0 hTL hfT
+
+/-- **Theorem 1.3.1 (the Morse lemma), in every finite dimension.**
+
+Near a nondegenerate critical point `c` of a function `f` analytic at `c`, there is
+a chart `φ` centred at `c` in which `f` is exactly its quadratic model:
+`f y = f c + ½ · d²f_c (φ y, φ y)` on the source of `φ`.  This is
+`morse_lemma_of_contDiffAt`, which needs only three derivatives. -/
+theorem morse_lemma_general {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    [FiniteDimensional ℝ E] [CompleteSpace E] {f : E → ℝ} {c : E}
+    (hf : ContDiffAt ℝ ω f c) (hcrit : fderiv ℝ f c = 0)
+    (hnd : IsNondegenerate (sndFDeriv f c)) :
+    ∃ φ : OpenPartialHomeomorph E E, c ∈ φ.source ∧ φ c = 0 ∧
+      ∀ y ∈ φ.source, f y = f c + (1 / 2 : ℝ) * sndFDeriv f c (φ y) (φ y) :=
+  morse_lemma_of_contDiffAt (hf.of_le le_top) hcrit hnd
 
 end MorseFloer
