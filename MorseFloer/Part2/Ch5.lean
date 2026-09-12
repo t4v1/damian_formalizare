@@ -1,4 +1,5 @@
 import MorseFloer.Basic
+import MorseFloer.Part2.Calibrated
 
 /-!
 # Chapter 5: What one needs to know about symplectic geometry
@@ -67,28 +68,27 @@ Proved here:
   "`ℝ²ⁿ = ℂⁿ`, `J₀ =` multiplication by `i`");
 * the antisymmetry of the operator `A` of Lemma 5.5.3, and the symmetry
   computation behind Proposition 5.5.7;
+* **Lemma 5.5.3**, existence: every symplectic vector space carries a calibrated
+  complex structure, `J₀` carried along a symplectic basis;
+* **Proposition 5.5.4 / Corollary 5.5.5**: the space of calibrated complex
+  structures is contractible, by the Cayley transform
+  (`MorseFloer/Part2/Calibrated.lean`);
+* **Proposition 5.4.5** in its linear-model form, from the spectral mapping
+  property of the exponential;
 * **Proposition 5.6.2** in its matrix form: any two of "symplectic",
   "orthogonal", "complex linear" imply the third;
 * the characterisation of `Matrix.symplecticGroup` as the isometry group of the
-  standard form, **Proposition 5.6.3** in the form `Aᵀ J = J A⁻¹`, and
-  **Corollary 5.6.10** (`det A = 1`, which is Mathlib's
-  `SymplecticGroup.det_eq_one`).
+  standard form, **Proposition 5.6.3** in the form `Aᵀ J = J A⁻¹`,
+  **Proposition 5.6.4** (the characteristic polynomial of a symplectic matrix is
+  symmetric), **Proposition 5.6.6** (`ω(Eλ, Eμ) = 0` for `λμ ≠ 1`, generalised
+  eigenvectors included) and **Corollary 5.6.10** (`det A = 1`, which is
+  Mathlib's `SymplecticGroup.det_eq_one`);
+* **Example 5.6.1**, `Sp(2) = SL(2; ℝ)`.
 
-Assumed (`sorry`):
-
-* **Theorem 5.3.2** (Darboux), stated in the local model;
-* **Proposition 5.5.4** / **Corollary 5.5.5**, the contractibility of the space
-  of calibrated complex structures, and the existence part of **Lemma 5.5.3**
-  (Mathlib has no polar decomposition of a linear automorphism of a Euclidean
-  space in a usable form);
-* **Proposition 5.4.5** (a critical point nondegenerate as a periodic orbit is
-  nondegenerate as a critical point), in its linear-model form; the missing
-  ingredient is `exp A · v = v` for `A · v = 0`, i.e. a `mulVec` version of the
-  matrix exponential series;
-* **Proposition 5.6.4** (the characteristic polynomial of a symplectic matrix is
-  symmetric) and **Proposition 5.6.6** (`ω(Eλ, Eμ) = 0` for `λμ ≠ 1`) beyond the
-  case of genuine eigenvectors, which is proved;
-* **Example 5.6.1**, `Sp(2) ≃ SL(2; ℝ)`.
+Assumed (`sorry`): only **Theorem 5.3.2** (Darboux), stated in the local model
+for a smooth closed form.  Moser's proof needs the flow of a time-dependent
+vector field to be differentiable in the initial point, which Mathlib's ODE
+theory does not provide.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -602,12 +602,23 @@ coordinates in which the form is the constant standard one.
 Stated here in the local model: near `x₀` there is a chart `φ` centred at `x₀`
 whose differential carries `ω x` to the constant form `ω x₀`.
 
+The smoothness hypothesis `_hsmooth` is the book's standing assumption and is
+needed: without it the closedness condition in `IsSymplecticForm2` is vacuous
+wherever `ω` is not differentiable (`fderiv` is then `0`), and `ω x = c(x) ω₀`
+with `c` a positive function taking two values on a set with no measurable
+trace on any open set is "closed" but has no Darboux chart, since `fderiv` of
+any map is measurable.
+
 The book proves it by Moser's path method — integrating a well chosen
-time-dependent vector field.  That argument needs the Lie derivative of a
-differential form and the flow of a time-dependent vector field on a manifold,
-neither of which Mathlib has. -/
+time-dependent vector field.  In the local model that argument needs the
+Poincaré lemma for `2`-forms and, above all, the *differentiability* of the
+flow of a time-dependent vector field with respect to the initial point, so as
+to differentiate the pulled-back forms `ψ_t⋆ω_t` in `t`.  Mathlib's ODE theory
+stops at existence, uniqueness and continuous dependence (`IsPicardLindelof`);
+it has no differentiable dependence on initial conditions. -/
 theorem darboux [FiniteDimensional ℝ E] (ω : E → BilinForm ℝ E)
-    (_hω : IsSymplecticForm2 ω) (x₀ : E) :
+    (_hω : IsSymplecticForm2 ω) (_hsmooth : ∀ (v w : E) (n : ℕ), ContDiff ℝ n fun x => ω x v w)
+    (x₀ : E) :
     ∃ φ : OpenPartialHomeomorph E E, x₀ ∈ φ.source ∧
       ∀ x ∈ φ.source, ∀ u v : E,
         ω x₀ (fderiv ℝ (fun y => φ y) x u) (fderiv ℝ (fun y => φ y) x v) = ω x u v := by
@@ -790,12 +801,25 @@ periodic orbit of the Hamiltonian system is nondegenerate as a critical point.
 
 In the quadratic model the return map is `exp A` with `A = −J·Hess H`, so the
 statement is: if `Hess H` is singular then `exp A` has `1` as an eigenvalue.
-This needs `exp A ·ᵥ v = v` whenever `A ·ᵥ v = 0`, which is a `mulVec` version of
-the exponential series that Mathlib does not provide. -/
+That is the spectral mapping property of the exponential
+(`spectrum.exp_mem_exp`): `0` is in the spectrum of `A`, so `exp 0 = 1` is in
+the spectrum of `exp A`.  Mathlib states it in a normed algebra, so the matrices
+are given the `L^∞` operator norm for the duration of the proof; `exp` itself
+depends only on the topology. -/
 theorem nondegenerate_of_nondegenerate_orbit (S : Matrix (l ⊕ l) (l ⊕ l) ℝ)
-    (_hS : Sᵀ = S) (_hdet : (NormedSpace.exp (-(Matrix.J l ℝ) * S) - 1).det ≠ 0) :
+    (_hS : Sᵀ = S) (hdet : (NormedSpace.exp (-(Matrix.J l ℝ) * S) - 1).det ≠ 0) :
     S.det ≠ 0 := by
-  sorry
+  intro hS0
+  let _ : NormedRing (Matrix (l ⊕ l) (l ⊕ l) ℝ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℝ (Matrix (l ⊕ l) (l ⊕ l) ℝ) := Matrix.linftyOpNormedAlgebra
+  have h0 : (0 : ℝ) ∈ spectrum ℝ (-(Matrix.J l ℝ) * S) := by
+    rw [spectrum.zero_mem_iff, Matrix.isUnit_iff_isUnit_det, Matrix.det_mul, hS0, mul_zero]
+    exact not_isUnit_zero
+  have h1 := spectrum.exp_mem_exp (-(Matrix.J l ℝ) * S) h0
+  rw [NormedSpace.exp_zero, spectrum.mem_iff, map_one] at h1
+  apply h1
+  rw [Matrix.isUnit_iff_isUnit_det, ← neg_sub, Matrix.det_neg]
+  exact (mul_ne_zero (pow_ne_zero _ (by norm_num)) hdet).isUnit
 
 end HamiltonStandard
 
@@ -946,12 +970,41 @@ structure calibrated by its form.
 The book gives two proofs: one uses a symplectic basis (Proposition 5.1.1) to
 write down `J₀` explicitly, the other picks any inner product, defines `A` by
 `(X, AY) = ω(X,Y)` and takes the orthogonal part `J` of the polar decomposition
-`A = BJ`.  Mathlib has neither a polar decomposition for automorphisms of a
-Euclidean space nor a transport of `stdJ` along the symplectic basis, so this is
-left open. -/
-theorem exists_isCalibrated (ω : BilinForm ℝ V) (_hω : IsSymplecticForm ω) :
+`A = BJ`.  The first is formalized: in the coordinates of a symplectic basis `ω`
+is the standard form, so `stdJ` carried back along those coordinates is
+calibrated by `stdJ_isCalibrated`. -/
+theorem exists_isCalibrated (ω : BilinForm ℝ V) (hω : IsSymplecticForm ω) :
     ∃ J : V →ₗ[ℝ] V, IsCalibrated ω J := by
-  sorry
+  classical
+  obtain ⟨ι, _, b, hb⟩ := exists_isSymplecticBasis ω hω
+  have hb_single : ∀ k, b.equivFun (b k) = Pi.single k 1 := fun k => by
+    ext k'
+    rw [b.equivFun_self, Pi.single_apply]
+    simp [eq_comm]
+  -- in the coordinates of the symplectic basis, `ω` is the standard form
+  have hform : ω = (stdForm ι).compl₁₂ b.equivFun.toLinearMap b.equivFun.toLinearMap := by
+    refine LinearMap.BilinForm.ext_basis b fun k k' => ?_
+    rw [LinearMap.compl₁₂_apply, LinearEquiv.coe_coe, hb_single, hb_single, stdForm_single]
+    rcases k with i | i <;> rcases k' with i' | i'
+    · simp [Matrix.J, hb.ee]
+    · by_cases h : i = i'
+      · subst h; simp [Matrix.J, hb.ef_self]
+      · simp [Matrix.J, hb.ef_ne i i' h, h]
+    · by_cases h : i = i'
+      · subst h; simp [Matrix.J, hω.skew _ (b (Sum.inl i)), hb.ef_self]
+      · simp [Matrix.J, hω.skew _ (b (Sum.inl i')), hb.ef_ne i' i (Ne.symm h), h]
+    · simp [Matrix.J, hb.ff]
+  have key : ∀ x y, ω x y = stdForm ι (b.equivFun x) (b.equivFun y) := fun x y => by
+    rw [hform]; rfl
+  have hc := stdJ_isCalibrated ι
+  refine ⟨b.equivFun.symm.toLinearMap ∘ₗ stdJ ι ∘ₗ b.equivFun.toLinearMap, ⟨fun v => ?_,
+    fun v w => ?_, fun v hv => ?_⟩⟩
+  · simp only [LinearMap.comp_apply, LinearEquiv.coe_coe, LinearEquiv.apply_symm_apply, hc.sq,
+      map_neg, LinearEquiv.symm_apply_apply]
+  · simp only [key, LinearMap.comp_apply, LinearEquiv.coe_coe, LinearEquiv.apply_symm_apply]
+    exact hc.symplectic _ _
+  · simp only [key, LinearMap.comp_apply, LinearEquiv.coe_coe, LinearEquiv.apply_symm_apply]
+    exact hc.pos _ ((LinearEquiv.map_ne_zero_iff _).mpr hv)
 
 /-- **Proposition 5.5.4 / Corollary 5.5.5.**  The space `Jc(ω)` of complex
 structures calibrated by `ω` is contractible: the map
@@ -959,11 +1012,19 @@ structures calibrated by `ω` is contractible: the map
 space of symmetric endomorphisms anticommuting with a fixed `j ∈ Jc(ω)`.
 
 This is what lets one use calibrated structures without caring which one; on a
-manifold it gives Proposition 5.5.6, which cannot be stated here. -/
+manifold it gives Proposition 5.5.6, which cannot be stated here.
+
+Proved in `MorseFloer/Part2/Calibrated.lean` (`MorseFloer.Calibrated.contractibleSpace`)
+by the book's Cayley transform: based at a calibrated `j`, which exists by
+`exists_isCalibrated`, the transform identifies the space with a set of
+endomorphisms that is star-shaped about `0`, and shrinking to `0` contracts it. -/
 theorem contractibleSpace_calibrated {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
-    [FiniteDimensional ℝ E] (ω : BilinForm ℝ E) (_hω : IsSymplecticForm ω) :
+    [FiniteDimensional ℝ E] (ω : BilinForm ℝ E) (hω : IsSymplecticForm ω) :
     ContractibleSpace {J : E →L[ℝ] E // IsCalibrated ω J.toLinearMap} := by
-  sorry
+  obtain ⟨j, hj⟩ := exists_isCalibrated ω hω
+  exact Calibrated.contractibleSpace ω (fun J => IsCalibrated ω J.toLinearMap)
+    (fun J => ⟨fun h => ⟨h.sq, h.symplectic, h.pos⟩, fun h => ⟨h.1, h.2.1, h.2.2⟩⟩)
+    (LinearMap.toContinuousLinearMap j) hj
 
 end CalibratedExistence
 
@@ -1156,26 +1217,85 @@ theorem stdForm_eq_zero_of_eigen {A : Matrix (l ⊕ l) (l ⊕ l) ℂ}
   · exact absurd (sub_eq_zero.mp h1) hne
   · exact h1
 
+/-- The bilinear form of a matrix `M`, evaluated on `AX` and `AY`, is the bilinear
+form of `AᵀMA`. -/
+theorem toBilin'_mulVec_mulVec {n R : Type*} [Fintype n] [DecidableEq n] [CommRing R]
+    (M A : Matrix n n R) (X Y : n → R) :
+    Matrix.toBilin' M (A *ᵥ X) (A *ᵥ Y) = Matrix.toBilin' (Aᵀ * M * A) X Y := by
+  rw [Matrix.toBilin'_apply', Matrix.toBilin'_apply', Matrix.mulVec_mulVec,
+    Matrix.dotProduct_mulVec, Matrix.dotProduct_mulVec, ← Matrix.vecMul_transpose A X,
+    Matrix.vecMul_vecMul, Matrix.mul_assoc]
+
 /-- **Proposition 5.6.6** in general: the same vanishing for generalised
 eigenvectors, `X ∈ ker(A − λ)^r` and `Y ∈ ker(A − μ)^s`.
 
-The book proves it by a double induction on `(r, s)`.  Only the case
-`r = s = 1` is formalized above. -/
+The proof is the book's double induction on `(r, s)`.  Write `AX = λX + X'` and
+`AY = μY + Y'`, where `X' = (A − λ)X` and `Y' = (A − μ)Y` lie one step lower in
+their filtrations.  Expanding `ω(AX, AY) = ω(X, Y)`, the three terms involving
+`X'` or `Y'` vanish by induction, which leaves `(λμ − 1) ω(X, Y) = 0`. -/
 theorem stdForm_eq_zero_of_generalised_eigen {A : Matrix (l ⊕ l) (l ⊕ l) ℂ}
-    (_hA : A ∈ Matrix.symplecticGroup l ℂ) {lam mu : ℂ} (_hne : lam * mu ≠ 1)
+    (hA : A ∈ Matrix.symplecticGroup l ℂ) {lam mu : ℂ} (hne : lam * mu ≠ 1)
     (r s : ℕ) {X Y : (l ⊕ l) → ℂ}
-    (_hX : ((A - lam • 1) ^ r) *ᵥ X = 0) (_hY : ((A - mu • 1) ^ s) *ᵥ Y = 0) :
+    (hX : ((A - lam • 1) ^ r) *ᵥ X = 0) (hY : ((A - mu • 1) ^ s) *ᵥ Y = 0) :
     Matrix.toBilin' (-(Matrix.J l ℂ)) X Y = 0 := by
-  sorry
+  have hM : Aᵀ * (-(Matrix.J l ℂ)) * A = -(Matrix.J l ℂ) := by
+    rw [Matrix.mul_neg, Matrix.neg_mul, SymplecticGroup.mem_iff'.mp hA]
+  have hpres : ∀ X Y : (l ⊕ l) → ℂ, Matrix.toBilin' (-(Matrix.J l ℂ)) (A *ᵥ X) (A *ᵥ Y)
+      = Matrix.toBilin' (-(Matrix.J l ℂ)) X Y := fun X Y => by
+    rw [toBilin'_mulVec_mulVec, hM]
+  have hstep : ∀ (c : ℂ) (k : ℕ) (Z : (l ⊕ l) → ℂ), ((A - c • 1) ^ (k + 1)) *ᵥ Z = 0 →
+      ((A - c • 1) ^ k) *ᵥ ((A - c • 1) *ᵥ Z) = 0 := fun c k Z h => by
+    rwa [Matrix.mulVec_mulVec, ← pow_succ]
+  have hsplit : ∀ (c : ℂ) (Z : (l ⊕ l) → ℂ), A *ᵥ Z = c • Z + (A - c • 1) *ᵥ Z := fun c Z => by
+    rw [Matrix.sub_mulVec, Matrix.smul_mulVec, Matrix.one_mulVec]
+    abel
+  induction r generalizing X s Y with
+  | zero =>
+    rw [pow_zero, Matrix.one_mulVec] at hX
+    rw [hX, map_zero, LinearMap.zero_apply]
+  | succ r ihr =>
+    induction s generalizing Y with
+    | zero =>
+      rw [pow_zero, Matrix.one_mulVec] at hY
+      rw [hY, map_zero]
+    | succ s ihs =>
+      have hX' := hstep lam r X hX
+      have hY' := hstep mu s Y hY
+      have h1 := ihr (s + 1) hX' hY
+      have h2 := ihs hY'
+      have h3 := ihr s hX' hY'
+      have key := hpres X Y
+      rw [hsplit lam X, hsplit mu Y] at key
+      simp only [map_add, map_smul, LinearMap.add_apply, LinearMap.smul_apply, smul_eq_mul,
+        h1, h2, h3] at key
+      have h : (lam * mu - 1) * Matrix.toBilin' (-(Matrix.J l ℂ)) X Y = 0 := by
+        linear_combination key
+      rcases mul_eq_zero.mp h with h' | h'
+      · exact absurd (sub_eq_zero.mp h') hne
+      · exact h'
 
 /-- **Example 5.6.1.**  `Sp(2) = SL(2; ℝ)`: for `n = 1` a matrix is symplectic
 exactly when its determinant is `1`.
 
 One direction is `SymplecticGroup.det_eq_one`; the converse is the `2 × 2`
-computation `A J Aᵀ = (det A) J`, which is not done here. -/
+computation `A J Aᵀ = (det A) J`, done entrywise after reading the determinant
+off `Fin 2` through `finSumFinEquiv`. -/
 theorem mem_symplecticGroup_fin_one_iff (A : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ) :
     A ∈ Matrix.symplecticGroup (Fin 1) ℝ ↔ A.det = 1 := by
-  sorry
+  refine ⟨SymplecticGroup.det_eq_one, fun hdet => ?_⟩
+  have e0 : (finSumFinEquiv.symm (0 : Fin 2) : Fin 1 ⊕ Fin 1) = Sum.inl 0 :=
+    finSumFinEquiv_symm_apply_castAdd 0
+  have e1 : (finSumFinEquiv.symm (1 : Fin 2) : Fin 1 ⊕ Fin 1) = Sum.inr 0 :=
+    finSumFinEquiv_symm_apply_natAdd 0
+  have hd : A (Sum.inl 0) (Sum.inl 0) * A (Sum.inr 0) (Sum.inr 0)
+      - A (Sum.inl 0) (Sum.inr 0) * A (Sum.inr 0) (Sum.inl 0) = 1 := by
+    rw [← hdet, ← Matrix.det_reindex_self finSumFinEquiv A, Matrix.det_fin_two]
+    simp only [Matrix.reindex_apply, Matrix.submatrix_apply, e0, e1]
+  rw [SymplecticGroup.mem_iff]
+  ext i j
+  rcases i with i | i <;> rcases j with j | j <;>
+    obtain rfl : i = 0 := Subsingleton.elim _ _ <;> obtain rfl : j = 0 := Subsingleton.elim _ _ <;>
+    simp [Matrix.mul_apply, Matrix.J, Fintype.sum_sum_type] <;> linarith
 
 end SymplecticGroupSection
 

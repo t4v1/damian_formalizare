@@ -105,7 +105,8 @@ verifies every cited declaration still exists.
 | `Part1/Ch2.lean` | 2 Pseudo-gradients | 0 | Reeb (2.1.9), the classification of 1-manifolds (2.3.2), Prop 2.1.6 and Brouwer, restated from the helpers above |
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 0 | Künneth, integral duality, disjoint unions, Brouwer and Borsuk–Ulam all proved |
-| `Part2/Ch5.lean` | 5 Symplectic geometry | 6 | symplectic basis theorem proved in full |
+| `Part2/Calibrated.lean` | helper for 5.5.4 | 0 | calibrated complex structures form a contractible space (Cayley transform) |
+| `Part2/Ch5.lean` | 5 Symplectic geometry | 1 | Darboux only (needs differentiable dependence of ODE flows on initial data) |
 | `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |

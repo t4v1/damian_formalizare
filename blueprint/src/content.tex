@@ -957,21 +957,32 @@ formalized in depth while the manifold statements are gaps.
   \notready
   \uses{def:5.1}
   Every symplectic form is locally the standard one.  \emph{Assumed}, stated in
-  the local model; the manifold statement needs differential forms.
+  the local model for a \emph{smooth} closed form (without smoothness the
+  closedness condition is vacuous where $\omega$ is not differentiable, and the
+  statement is false); the manifold statement needs differential forms.  Moser's
+  proof needs the flow of a time-dependent vector field to be differentiable in
+  the initial point, and Mathlib's ODE theory stops at continuous dependence.
 \end{theorem}
 
 \begin{proposition}[\S5.5, calibrated complex structures]
   \label{prop:5.5}
   \lean{MorseFloer.Chapter5.IsCalibrated, MorseFloer.Chapter5.calibratedMetric,
-        MorseFloer.Chapter5.calibratedMetric_pos, MorseFloer.Chapter5.stdJ_isCalibrated}
+        MorseFloer.Chapter5.calibratedMetric_pos, MorseFloer.Chapter5.stdJ_isCalibrated,
+        MorseFloer.Chapter5.exists_isCalibrated,
+        MorseFloer.Chapter5.contractibleSpace_calibrated,
+        MorseFloer.Calibrated.contractibleSpace}
   \leanok
   \uses{def:5.1}
   A complex structure compatible with $\omega$ induces an inner product
   $\omega(\cdot,J\cdot)$; the standard $J_0$ on $\mathbb{R}^{2n}=\mathbb{C}^n$ is
-  calibrated and induces the Euclidean product.  Existence for a general
-  $\omega$ (Lemma 5.5.3) and contractibility of the space of such $J$
-  (Proposition 5.5.4) are assumed: the first needs polar decomposition, which
-  Mathlib lacks.
+  calibrated and induces the Euclidean product.  \emph{Proved}: every symplectic
+  vector space carries a calibrated $J$ (Lemma 5.5.3, by carrying $J_0$ along a
+  symplectic basis), and the space of such $J$ is contractible (Proposition
+  5.5.4, \texttt{MorseFloer/Part2/Calibrated.lean}).  The Cayley transform
+  $J \mapsto (J+j)^{-1}(J-j)$ based at a calibrated $j$ identifies that space
+  with the endomorphisms anticommuting with $j$, symmetric for
+  $\omega(\cdot, j\cdot)$ and of norm $<1$ for it; that set is star-shaped
+  about $0$.
 \end{proposition}
 
 \begin{proposition}[\S5.6, the symplectic group]
@@ -981,13 +992,23 @@ formalized in depth while the manifold statements are gaps.
         MorseFloer.Chapter5.det_eq_one_of_symplectic,
         MorseFloer.Chapter5.transpose_mul_J_eq,
         MorseFloer.Chapter5.exp_mem_symplecticGroup,
-        MorseFloer.Chapter7.det_charpoly_symmetric}
+        MorseFloer.Chapter5.nondegenerate_of_nondegenerate_orbit,
+        MorseFloer.Chapter5.det_charpoly_symmetric,
+        MorseFloer.Chapter7.det_charpoly_symmetric,
+        MorseFloer.Chapter5.stdForm_eq_zero_of_generalised_eigen,
+        MorseFloer.Chapter5.mem_symplecticGroup_fin_one_iff}
   \leanok
   \uses{prop:5.5}
   Mathlib's \texttt{Matrix.symplecticGroup} is the isometry group of the standard
   form; symplectic, orthogonal and complex-linear --- any two imply the third
   (Proposition 5.6.2); symplectic matrices have determinant one (Corollary
-  5.6.10); and the flow of a quadratic Hamiltonian is symplectic.  That
+  5.6.10); and the flow of a quadratic Hamiltonian is symplectic.  Also proved:
+  a critical point nondegenerate as a periodic orbit is nondegenerate
+  (Proposition 5.4.5, linear model, from the spectral mapping property of
+  $\exp$); the characteristic polynomial of a symplectic matrix is symmetric
+  (5.6.4); $\omega(E_\lambda, E_\mu) = 0$ on generalised eigenspaces with
+  $\lambda\mu \neq 1$ (5.6.6, by double induction); and $Sp(2) = SL(2;\mathbb{R})$
+  (Example 5.6.1).  That
   $Sp(2n)$ retracts onto $U(n)$ with $\pi_1 \simeq \mathbb{Z}$ (Proposition
   5.6.9) --- the input to the Maslov index of Chapter 7 --- is a gap: $U(n)$ is
   not available as a subgroup of $GL(2n;\mathbb{R})$.
