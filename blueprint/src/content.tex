@@ -1619,13 +1619,27 @@ the exponent arithmetic of the bootstrap.
 \begin{lemma}[Lemma 12.1.1, distributional form: Weyl's lemma]
   \label{lem:12.1.1w}
   \lean{MorseFloer.Chapter12.IsWeakCauchyRiemann,
-        MorseFloer.Chapter12.exists_differentiable_of_isWeakCauchyRiemann}
-  \notready
+        MorseFloer.Chapter12.exists_differentiable_of_isWeakCauchyRiemann,
+        MorseFloer.Weyl.exists_differentiableOn_ae_eq,
+        MorseFloer.Weyl.integral_moll_smul_eq,
+        MorseFloer.Weyl.smooth_eq_smooth,
+        MorseFloer.Weyl.ae_tendsto_smooth,
+        MorseFloer.Weyl.dbar_smooth_eq_zero}
+  \leanok
   \uses{lem:12.1.1}
   A locally integrable weak solution of $\bar\partial u = 0$ agrees almost
-  everywhere with a holomorphic function.  \emph{Assumed}: Mathlib has
-  distributions, so the weak formulation is expressible and is written out here,
-  but it has no elliptic regularity for them.
+  everywhere with a holomorphic function.  Proved by mollification, with no
+  elliptic estimate: a radial mollifier $\rho_\varepsilon(w) = \psi(|w|^2)$ is
+  built by hand (Mathlib's bump functions do not expose radiality); the
+  mollification $\rho_\varepsilon * u$ is smooth and its $\bar\partial$ is the
+  weak equation tested against $\rho_\varepsilon(x-\cdot)$, so it is
+  holomorphic; a holomorphic function equals its own mollification, by polar
+  coordinates, Fubini and Cauchy's formula on each circle, so two
+  mollifications agree wherever both are holomorphic (associativity and
+  commutativity of convolution); and mollifications converge to $u$ almost
+  everywhere by the Lebesgue differentiation theorem.  The local holomorphic
+  representatives are glued by uniqueness of continuous representatives on a
+  countable cover.
 \end{lemma}
 
 \begin{definition}[\S12.1.c, the thread of Ariadne]

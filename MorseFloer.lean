@@ -23,6 +23,7 @@ import MorseFloer.Part2.Ch8
 import MorseFloer.Part2.Ch9
 import MorseFloer.Part2.Ch10
 import MorseFloer.Part2.Ch11
+import MorseFloer.Part2.Weyl
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.Ch14

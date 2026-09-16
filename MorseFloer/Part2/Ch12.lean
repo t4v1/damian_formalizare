@@ -1,4 +1,5 @@
 import MorseFloer.Part2.Ch16
+import MorseFloer.Part2.Weyl
 
 /-!
 # Chapter 12: Elliptic regularity for the Floer operator
@@ -96,8 +97,13 @@ proved:
   with a compactly supported smooth test function — and
   `exists_differentiable_of_isWeakCauchyRiemann` states that a locally
   integrable weak solution agrees almost everywhere with a holomorphic
-  function.  This is the statement the book actually needs; it is left as
-  `sorry`, since Mathlib has no elliptic regularity for distributions.
+  function.  This is the statement the book actually needs, and it is
+  **proved**, in `Part2/Weyl.lean`, by mollification with a radial kernel: the
+  mollifications are smooth classical solutions, hence holomorphic; any two of
+  them agree where both are holomorphic, by the mean value property against a
+  radial weight (polar coordinates and Cauchy's formula on circles); and they
+  converge to `u` almost everywhere by the Lebesgue differentiation theorem.
+  Mathlib has no elliptic regularity for distributions, and none is used.
 * **§12.1.c, the fil d'Ariane**, as an explicit chain of implications:
   `ArianeThread` bundles the eight propositions of the chapter's diagram
   together with the seven implications the chapter proves between them, and
@@ -254,15 +260,18 @@ statement the book uses: the solutions produced by the analysis live a priori
 only in a Sobolev or `L^p` space and satisfy the equation in the sense of
 distributions, and regularity upgrades them to genuine smooth solutions.
 
-*Assumed.*  Mathlib has distributions and their derivatives but no elliptic
-regularity for them: neither Weyl's lemma for the Laplacian nor the
-hypoellipticity of `∂̄`.  The book's own route is Proposition 12.3.1, hence the
-Calderón–Zygmund inequality 16.5.8, and none of those is available. -/
-theorem exists_differentiable_of_isWeakCauchyRiemann {U : Set ℂ} (_hU : IsOpen U) {u : ℂ → ℂ}
-    (_hu : LocallyIntegrableOn u U) (_h : IsWeakCauchyRiemann U u) :
+Proved in `Part2/Weyl.lean` by mollification with a radial kernel, and restated
+here: the mollifications of `u` are smooth and satisfy the classical equation,
+hence are holomorphic; two of them agree wherever both are holomorphic, by the
+mean value property against a radial weight; and they converge to `u` almost
+everywhere by the Lebesgue differentiation theorem.  The book's own route is
+Proposition 12.3.1, hence the Calderón–Zygmund inequality 16.5.8; the
+mollification argument needs neither. -/
+theorem exists_differentiable_of_isWeakCauchyRiemann {U : Set ℂ} (hU : IsOpen U) {u : ℂ → ℂ}
+    (hu : LocallyIntegrableOn u U) (h : IsWeakCauchyRiemann U u) :
     ∃ v : ℂ → ℂ, DifferentiableOn ℂ v U ∧
-      ∀ᵐ z ∂(volume : Measure ℂ), z ∈ U → u z = v z := by
-  sorry
+      ∀ᵐ z ∂(volume : Measure ℂ), z ∈ U → u z = v z :=
+  Weyl.exists_differentiableOn_ae_eq hU hu h
 
 end CauchyRiemann
 
