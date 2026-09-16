@@ -869,18 +869,28 @@ skeleton of the chapter --- is formalized and proved.
 \begin{proposition}[Proposition 16.2.7, compact perturbations]
   \label{prop:16.2.7}
   \lean{MorseFloer.Chapter16.fredholmIndex_add_compact,
-        MorseFloer.Chapter16.isFredholm_add_and_fredholmIndex_eq_of_hasNoetherianRange}
-  \notready
+        MorseFloer.Chapter16.isFredholm_add_and_fredholmIndex_eq_of_hasNoetherianRange,
+        MorseFloer.Chapter16.isFredholm_one_add_of_isCompactOperator,
+        MorseFloer.Chapter16.fredholmIndex_one_add_of_isCompactOperator,
+        MorseFloer.Chapter16.finiteDimensional_coker_one_add_of_isCompactOperator}
+  \leanok
   \uses{thm:16.2.stability}
   Adding a compact operator changes neither the Fredholm property nor the index.
-  The \emph{finite-rank} case is proved outright.  Compactness is the wall:
-  $q(u+k) = 1 + (qu-1) + qk$ has $qk$ compact but not of finite rank, and a
-  compact operator need not be a limit of finite-rank ones in a general Banach
-  space.  What is needed is Riesz--Schauder, that $1+c$ is Fredholm of index
-  zero; Mathlib's compact-operator file gives only the spectral dichotomy, which
-  yields nothing about closed range in the eigenvalue branch.  Chapter 8 uses
-  this statement to reduce the linearised Floer operator to a
-  constant-coefficient model whose index is computable.
+  The finite-rank case is the quasi-inverse computation
+  $q(u+k) = 1 + (qu-1) + qk$.  The general case is Riesz--Schauder, that $1+c$
+  is Fredholm of index zero for $c$ compact, proved from Mathlib's Fredholm
+  alternative by a counting argument that needs neither Riesz's ascent--descent
+  chains nor the adjoint.  With $T = 1 + c$: the kernel $N$ is
+  finite-dimensional since $c = -\mathrm{Id}$ on it; $T$ is bounded below on a
+  closed complement $M$ of $N$ (Hahn--Banach), so the range $R$ is closed; and
+  if $E/R$ were infinite-dimensional there would be $h : N \to E$ injective
+  modulo $R$, making the finite-rank correction $T + h\circ P_N$ injective,
+  hence surjective by the alternative --- but its range is $R + h(N)$, so $E/R$
+  would be a quotient of $N$.  The index vanishes because $t \mapsto
+  \operatorname{ind}(1 + tc)$ is locally constant on $[0,1]$
+  (\ref{thm:16.2.stability}).  Chapter 8 uses the proposition to reduce the
+  linearised Floer operator to a constant-coefficient model whose index is
+  computable.  Stated over $\mathbb{R}$, where Part II works.
 \end{proposition}
 
 

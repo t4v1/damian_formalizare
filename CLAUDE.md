@@ -121,7 +121,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/Ch14.lean` | 14 Differential geometry | 1 | Morse–Sard for `dim E > dim F` only; the other two regimes proved |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 0 | long exact sequence; Künneth over a field (alias of Ch4's `betti_prod`) |
-| `Part2/Ch16.lean` | 16 Analysis | 1 | the Fredholm index for operators; additivity and local constancy proved (see the Fredholm note below) |
+| `Part2/Ch16.lean` | 16 Analysis | 0 | the Fredholm index for operators; additivity, local constancy and compact perturbations (Riesz–Schauder, from the Fredholm alternative by a counting argument, over `ℝ`) proved; see the Fredholm note below |
 
 **All sixteen chapters of the book are now formalized.**
 

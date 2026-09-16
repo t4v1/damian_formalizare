@@ -63,10 +63,10 @@ bookkeeping**, and it is proved in full from the Fredholm hypotheses:
   `quotientProdEquiv` that Mathlib does not have);
 * `fredholmIndex_comp_of_bijective_left/right` — additivity under composition,
   specialised to the case that makes a change of trivialisation harmless,
-  derived from Chapter 16's assumed `fredholmIndex_comp`;
+  derived from Chapter 16's `fredholmIndex_comp`;
 * `isFredholm_and_fredholmIndex_eq_of_sub_compact` — invariance of the
   Fredholm property and of the index under a compact perturbation, derived
-  from Chapter 16's assumed `fredholmIndex_add_compact`.  This is the engine of
+  from Chapter 16's `fredholmIndex_add_compact` (Riesz–Schauder).  This is the engine of
   Lemma 8.8.4, where the `0`-th order term `S(s,t)` of the linearised operator
   is deformed to its limits `S^±(t)`.
 * `ker_ne_bot_of_ne_zero`, `finrank_ker_pos_of_ne_zero` — the linear content of
@@ -154,8 +154,8 @@ them: the index of a surjective operator (which is what transversality buys),
 and the invariance of the index under the two deformations of §8.8 (composition
 with an isomorphism, and a compact perturbation of the `0`-th order term).
 
-Everything here is proved, except where it explicitly consumes one of the three
-stability theorems that `MorseFloer.Chapter16` assumes. -/
+Everything here is proved; the three stability theorems it consumes are proved
+in `MorseFloer.Chapter16`. -/
 
 section IndexBookkeeping
 
@@ -298,11 +298,10 @@ theorem fredholmIndex_prodMap {u : E →L[𝕜] F} {v : G →L[𝕜] K}
 The two deformations of §8.8: composing with an isomorphism (a change of
 unitary trivialisation along `u`, which must not change the index), and adding a
 compact operator (the deformation of the `0`-th order term `S(s,t)` to its
-limits `S^±(t)`, Lemma 8.8.4).  Both consume a stability theorem that Chapter 16
-assumes. -/
+limits `S^±(t)`, Lemma 8.8.4).  Both consume a stability theorem of Chapter 16. -/
 
 /-- Composing on the left with an isomorphism does not change the index.  Uses
-Chapter 16's assumed additivity `fredholmIndex_comp`. -/
+Chapter 16's additivity `fredholmIndex_comp`. -/
 theorem fredholmIndex_comp_of_bijective_left [CompleteSpace 𝕜] [CompleteSpace E] [CompleteSpace F]
     [CompleteSpace G] {u : E →L[𝕜] F} {v : F →L[𝕜] G}
     (hu : ContinuousLinearMap.IsFredholm u) (hv : ContinuousLinearMap.IsFredholm v)
@@ -320,11 +319,12 @@ theorem fredholmIndex_comp_of_bijective_right [CompleteSpace 𝕜] [CompleteSpac
 
 /-- **Invariance under a compact perturbation** (Proposition 16.2.7), in the form
 Lemma 8.8.4 uses: two operators differing by a compact operator are
-simultaneously Fredholm with the same index.  Uses Chapter 16's assumed
-`fredholmIndex_add_compact`. -/
-theorem isFredholm_and_fredholmIndex_eq_of_sub_compact [CompleteSpace 𝕜] [CompleteSpace E]
-    [CompleteSpace F]
-    {u v : E →L[𝕜] F} (hu : ContinuousLinearMap.IsFredholm u)
+simultaneously Fredholm with the same index.  Uses Chapter 16's
+`fredholmIndex_add_compact`, which is proved over `ℝ`; the statement is over
+`ℝ` accordingly. -/
+theorem isFredholm_and_fredholmIndex_eq_of_sub_compact {X Y : Type*} [NormedAddCommGroup X]
+    [NormedSpace ℝ X] [NormedAddCommGroup Y] [NormedSpace ℝ Y] [CompleteSpace X] [CompleteSpace Y]
+    {u v : X →L[ℝ] Y} (hu : ContinuousLinearMap.IsFredholm u)
     (hk : IsCompactOperator (v - u)) :
     ContinuousLinearMap.IsFredholm v
       ∧ Chapter16.fredholmIndex v = Chapter16.fredholmIndex u := by
