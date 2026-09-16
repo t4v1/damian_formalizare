@@ -113,10 +113,11 @@ For §8.3 the situation is better: the `ε`-norm is a sum of `Cᵏ` sup-norms, a
 convention (and the book's own reduction to a finite atlas `Ψᵢ : Bᵢ → B(0,1)`),
 `cSupNorm`, `cNorm`, `epsNorm`, `EpsFinite`, `c1Dist` and `CinftyEpsOf` are
 defined for functions on a compact subset of a normed space.  With them,
-**Proposition 8.3.1**, **Lemma 8.3.2** and **Proposition 8.3.4** are stated
-faithfully and left as `sorry`: the proofs are a mollification argument
-(Mathlib has convolution and smooth bump functions, but not the `C¹`
-convergence statement of the book's proof) plus a diagonal choice of `ε`.
+**Lemma 8.3.2** is *proved* for a finite-dimensional `V`, by separability of
+`C(K, ℝ) × C(K, V*)` rather than the book's mollification, and **Proposition
+8.3.1** is *proved* from it by the book's diagonal choice of `ε`.
+**Proposition 8.3.4** is *proved* too, by the same separability argument
+applied to functions supported in a countable family of balls, with no cut-off.
 That `C^∞_ε` is a Banach space, and the closing remark of §8.3 that for `‖h‖_ε`
 small `H₀ + h` has exactly the periodic orbits of `H₀`, are not stated: the
 first needs the completeness argument for the `ε`-norm, the second is a
@@ -600,10 +601,10 @@ the subspace of those vanishing near the `1`-periodic orbits of `H₀`.
 
 Following the book's own reduction to charts and the project's local-model
 convention, this is set up below for functions on a compact subset `K` of a
-normed space `V`, with `iteratedFDeriv` for `d^k`.  All three numbered results
-of the section are stated and left as `sorry`; the `C⁰` half of Lemma 8.3.2 —
-separability of `C(K, ℝ)`, which the book gets from Stone–Weierstrass — is
-recorded as a proved consequence of Mathlib's instance. -/
+normed space `V`, with `iteratedFDeriv` for `d^k`.  Lemma 8.3.2 and
+Propositions 8.3.1 and 8.3.4 are proved; the `C⁰` half of Lemma 8.3.2 — separability of
+`C(K, ℝ)`, which the book gets from Stone–Weierstrass — is recorded as a proved
+consequence of Mathlib's instance. -/
 
 section Perturbations
 
@@ -646,48 +647,223 @@ theorem separableSpace_continuousMap (Kt : Type*) [TopologicalSpace Kt]
     TopologicalSpace.SeparableSpace C(Kt, ℝ) :=
   inferInstance
 
+set_option maxSynthPendingDepth 3 in
+/-- **The separability argument behind Lemma 8.3.2**, for an arbitrary family
+`P` of `C¹` functions: `P` has a countable subfamily that is `C¹`-dense in it on
+the compact `K`.
+
+The proof is purely topological.  A `C¹` function is recorded on `K` by the pair
+`(f|_K, Df|_K)` in `C(K, ℝ) × C(K, V*)`, a separable metric space when `V` is
+finite-dimensional; any subset of it is separable, so the image of `P` has a
+countable dense subset, and a preimage in `P` of each of its points gives the
+subfamily.  Since `c1Dist` is the sum of the two sup-distances, it is at most
+twice the distance of the pairs.  Working with an arbitrary `P` is what lets
+Proposition 8.3.4 impose a support condition on the approximations. -/
+theorem exists_countable_c1_dense [FiniteDimensional ℝ V] (K : Set V) (hK : IsCompact K)
+    (P : Set (V → ℝ)) (hP : ∀ f ∈ P, ContDiff ℝ 1 f) :
+    ∃ S ⊆ P, S.Countable ∧ ∀ f ∈ P, ∀ δ > 0, ∃ g ∈ S, c1Dist K f g < δ := by
+  have : CompactSpace K := isCompact_iff_compactSpace.mp hK
+  -- a `C¹` function, recorded by its values and its derivative on `K`
+  let Φ : P → C(K, ℝ) × C(K, V →L[ℝ] ℝ) := fun f =>
+    (⟨fun x => f.1 x, (hP f.1 f.2).continuous.comp continuous_subtype_val⟩,
+     ⟨fun x => fderiv ℝ f.1 x,
+      ((hP f.1 f.2).continuous_fderiv one_ne_zero).comp continuous_subtype_val⟩)
+  have hsep : TopologicalSpace.IsSeparable (Set.range Φ) :=
+    (TopologicalSpace.isSeparable_univ_iff.2 inferInstance).mono (Set.subset_univ _)
+  obtain ⟨t, hts, htc, hdense⟩ := hsep.exists_countable_dense_subset
+  have hpre : ∀ τ : t, ∃ f : P, Φ f = τ := fun τ => hts τ.2
+  choose pick hpick using hpre
+  have : Countable t := htc.to_subtype
+  refine ⟨Set.range fun τ : t => (pick τ).1, ?_, Set.countable_range _, ?_⟩
+  · rintro g ⟨τ, rfl⟩
+    exact (pick τ).2
+  intro f hf δ hδ
+  have hmem : Φ ⟨f, hf⟩ ∈ closure t := hdense ⟨⟨f, hf⟩, rfl⟩
+  obtain ⟨τ, hτt, hdist⟩ := Metric.mem_closure_iff.mp hmem (δ / 2) (by positivity)
+  refine ⟨(pick ⟨τ, hτt⟩).1, ⟨⟨τ, hτt⟩, rfl⟩, ?_⟩
+  have hΦg : Φ (pick ⟨τ, hτt⟩) = τ := hpick ⟨τ, hτt⟩
+  rw [← hΦg] at hdist
+  set g := pick ⟨τ, hτt⟩ with hg
+  set d := dist (Φ ⟨f, hf⟩) (Φ g) with hd
+  have hd0 : 0 ≤ d := dist_nonneg
+  have hval : ∀ x ∈ K, ‖f x - g.1 x‖ ≤ d := fun x hx => by
+    have h := ContinuousMap.dist_apply_le_dist (f := (Φ ⟨f, hf⟩).1) (g := (Φ g).1) ⟨x, hx⟩
+    have hp : dist (Φ ⟨f, hf⟩).1 (Φ g).1 ≤ d := by
+      rw [hd, Prod.dist_eq]
+      exact le_max_left _ _
+    rw [← dist_eq_norm]
+    exact h.trans hp
+  have hder : ∀ x ∈ K, ‖fderiv ℝ f x - fderiv ℝ g.1 x‖ ≤ d := fun x hx => by
+    have h := ContinuousMap.dist_apply_le_dist (f := (Φ ⟨f, hf⟩).2) (g := (Φ g).2) ⟨x, hx⟩
+    have hp : dist (Φ ⟨f, hf⟩).2 (Φ g).2 ≤ d := by
+      rw [hd, Prod.dist_eq]
+      exact le_max_right _ _
+    rw [← dist_eq_norm]
+    exact h.trans hp
+  have hfd : Differentiable ℝ f := (hP f hf).differentiable one_ne_zero
+  have hgd : Differentiable ℝ g.1 := (hP g.1 g.2).differentiable one_ne_zero
+  have hc0 : cSupNorm K 0 (f - g.1) ≤ d := Real.sSup_le (by
+    rintro _ ⟨x, hx, rfl⟩
+    dsimp only
+    rw [norm_iteratedFDeriv_zero]
+    exact hval x hx) hd0
+  have hc1 : cSupNorm K 1 (f - g.1) ≤ d := Real.sSup_le (by
+    rintro _ ⟨x, hx, rfl⟩
+    dsimp only
+    rw [norm_iteratedFDeriv_one, fderiv_sub (hfd x) (hgd x)]
+    exact hder x hx) hd0
+  calc c1Dist K f g.1 = cSupNorm K 0 (f - g.1) + cSupNorm K 1 (f - g.1) := by
+        simp [c1Dist, cNorm, Finset.sum_range_succ]
+    _ ≤ d + d := add_le_add hc0 hc1
+    _ < δ := by linarith
+
 /-- **Lemma 8.3.2.**  `C^∞(W × S¹)` with the `C¹` topology is separable: there
 is a countable family of smooth functions that is `C¹`-dense among the smooth
 functions.
 
-*Assumed.*  Mathlib has Stone–Weierstrass, hence the `C⁰` statement recorded
-above, but the book's upgrade to `C¹` mollifies a countable `C⁰`-dense family
-against a fixed approximate identity `χ_k` and uses that `g ⋆ χ_k → f ⋆ χ_k` in
-`C¹_loc`.  Mathlib has convolution and smooth bump functions but not that
-convergence statement, and it has no `C¹` topology on a space of smooth
-functions at all. -/
-theorem lemma_8_3_2 (K : Set V) (_hK : IsCompact K) :
+The book mollifies a countable `C⁰`-dense family.  The proof here is the
+topological argument of `exists_countable_c1_dense`, applied to all smooth
+functions.
+
+`FiniteDimensional ℝ V` was missing from an earlier statement and is
+necessary: for `V = ℓ¹` and `K = {0}`, the `C¹` distance between two linear
+functionals is at least their distance in the non-separable dual `ℓ∞`, so no
+countable family approximates them all.  The book's `W × S¹` is covered by
+charts in `ℝ^{2n+1}`. -/
+theorem lemma_8_3_2 [FiniteDimensional ℝ V] (K : Set V) (hK : IsCompact K) :
     ∃ S : Set (V → ℝ), S.Countable ∧ (∀ g ∈ S, ContDiff ℝ ∞ g) ∧
       ∀ f : V → ℝ, ContDiff ℝ ∞ f → ∀ δ > 0, ∃ g ∈ S, c1Dist K f g < δ := by
-  sorry
+  obtain ⟨S, hSP, hSc, hS⟩ := exists_countable_c1_dense K hK {f | ContDiff ℝ ∞ f}
+    (fun f (hf : ContDiff ℝ ∞ f) => hf.of_le (by exact_mod_cast (le_top : (1 : ℕ∞) ≤ ⊤)))
+  exact ⟨S, hSc, hSP, hS⟩
+
+/-- Each sup-seminorm is nonnegative (as a supremum of norms; Mathlib's `sSup`
+returns `0` on an empty or unbounded set, which is nonnegative too). -/
+theorem cSupNorm_nonneg (K : Set V) (k : ℕ) (h : V → ℝ) : 0 ≤ cSupNorm K k h :=
+  Real.sSup_nonneg (by rintro y ⟨x, -, rfl⟩; exact norm_nonneg _)
+
+/-- The `Cⁿ` norm is nonnegative. -/
+theorem cNorm_nonneg (K : Set V) (n : ℕ) (h : V → ℝ) : 0 ≤ cNorm K n h :=
+  Finset.sum_nonneg fun k _ => cSupNorm_nonneg K k h
+
+/-- The top sup-seminorm is bounded by the `Cⁿ` norm. -/
+theorem cSupNorm_le_cNorm (K : Set V) (n : ℕ) (h : V → ℝ) : cSupNorm K n h ≤ cNorm K n h :=
+  Finset.single_le_sum (fun k _ => cSupNorm_nonneg K k h)
+    (Finset.mem_range.mpr (Nat.lt_succ_self n))
+
+/-- **The diagonal argument of Proposition 8.3.1.**  For countably many
+functions `f_k` there is one positive sequence `ε` giving every `f_k` a finite
+`ε`-norm on `K`: enumerate them and set
+`ε_n = 1 / (2ⁿ (1 + Σ_{k ≤ n} ‖f_k‖_{Cⁿ}))`.  Then for `n ≥ k` one has
+`ε_n ‖d^n f_k‖_∞ ≤ 2⁻ⁿ`. -/
+theorem exists_eps_summable (K : Set V) (S : Set (V → ℝ)) (hSc : S.Countable) :
+    ∃ ε : ℕ → ℝ, (∀ k, 0 < ε k) ∧ ∀ g ∈ S, Summable fun k => ε k * cSupNorm K k g := by
+  obtain ⟨e, he⟩ := (hSc.insert 0).exists_eq_range (Set.insert_nonempty 0 S)
+  set D : ℕ → ℝ := fun n => 1 + ∑ k ∈ Finset.range (n + 1), cNorm K n (e k) with hD
+  have hDpos : ∀ n, 0 < D n := fun n => by
+    have := Finset.sum_nonneg fun k (_ : k ∈ Finset.range (n + 1)) => cNorm_nonneg K n (e k)
+    simp only [hD]; linarith
+  refine ⟨fun n => 1 / (2 ^ n * D n),
+    fun n => div_pos one_pos (mul_pos (by positivity) (hDpos n)), ?_⟩
+  intro g hg
+  obtain ⟨k, rfl⟩ : g ∈ Set.range e := by
+    rw [← he]
+    exact Set.mem_insert_of_mem 0 hg
+  have hle : ∀ n, k ≤ n → 1 / (2 ^ n * D n) * cSupNorm K n (e k) ≤ (1 / 2) ^ n := by
+    intro n hn
+    have h1 : cSupNorm K n (e k) ≤ D n := by
+      have h2 := cSupNorm_le_cNorm K n (e k)
+      have h3 : cNorm K n (e k) ≤ ∑ j ∈ Finset.range (n + 1), cNorm K n (e j) :=
+        Finset.single_le_sum (fun j _ => cNorm_nonneg K n (e j))
+          (Finset.mem_range.mpr (Nat.lt_succ_of_le hn))
+      simp only [hD]; linarith
+    calc 1 / (2 ^ n * D n) * cSupNorm K n (e k) ≤ 1 / (2 ^ n * D n) * D n := by
+          exact mul_le_mul_of_nonneg_left h1
+            (div_nonneg one_pos.le (mul_nonneg (by positivity) (hDpos n).le))
+      _ = (1 / 2) ^ n := by
+          have hne := (hDpos n).ne'
+          rw [one_div_pow]; field_simp
+  refine Summable.of_norm_bounded_eventually_nat
+    (summable_geometric_of_lt_one (by norm_num) (by norm_num : (1 / 2 : ℝ) < 1)) ?_
+  rw [Filter.eventually_atTop]
+  refine ⟨k, fun n hn => ?_⟩
+  rw [Real.norm_of_nonneg (mul_nonneg (div_nonneg one_pos.le
+    (mul_nonneg (by positivity) (hDpos n).le)) (cSupNorm_nonneg K n (e k)))]
+  exact hle n hn
 
 /-- **Proposition 8.3.1.**  The sequence `ε` can be chosen so that `C^∞_ε` is
 `C¹`-dense in `C^∞(W × S¹)`.
 
-*Assumed.*  The book's proof takes a `C¹`-dense sequence `(f_n)` from Lemma
-8.3.2 and sets `ε_n = 1/(2ⁿ max_{k ≤ n} ‖f_k‖_{Cⁿ})`, so that every `f_k` lies
-in `C^∞_ε`.  That diagonal argument is elementary, but it rests on Lemma 8.3.2,
-which is itself assumed. -/
-theorem prop_8_3_1 (K : Set V) (_hK : IsCompact K) :
+Proved from Lemma 8.3.2 by the book's diagonal argument
+(`exists_eps_summable`): the `ε` that makes every member of the countable dense
+family of finite `ε`-norm works, and the family itself does the approximating. -/
+theorem prop_8_3_1 [FiniteDimensional ℝ V] (K : Set V) (hK : IsCompact K) :
     ∃ ε : ℕ → ℝ, (∀ k, 0 < ε k) ∧
       ∀ f : V → ℝ, ContDiff ℝ ∞ f → ∀ δ > 0,
         ∃ h : V → ℝ, EpsFinite ε K h ∧ c1Dist K f h < δ := by
-  sorry
+  obtain ⟨S, hSc, hSsmooth, hSdense⟩ := lemma_8_3_2 K hK
+  obtain ⟨ε, hε, hsum⟩ := exists_eps_summable K S hSc
+  refine ⟨ε, hε, fun f hf δ hδ => ?_⟩
+  obtain ⟨g, hg, hgδ⟩ := hSdense f hf δ hδ
+  exact ⟨g, ⟨hSsmooth g hg, hsum g hg⟩, hgδ⟩
 
 /-- **Proposition 8.3.4**, the compactly supported refinement of Proposition
 8.3.1: for a suitable `ε`, every function supported in a small enough
 neighbourhood `V₀` of a point can be `C¹`-approximated by functions of `C^∞_ε`
 supported in a prescribed neighbourhood `U`.
 
-*Assumed.*  The proof multiplies the approximations of Proposition 8.3.1 by a
-cut-off `β` and re-scales the sequence `ε` to `ε'_k = ε_k /(k^k ‖β‖_{C^k})`; it
-depends on Proposition 8.3.1. -/
-theorem prop_8_3_4 (K : Set V) (_hK : IsCompact K) :
+The book multiplies the approximations of Proposition 8.3.1 by a cut-off and
+rescales `ε`.  The proof here needs no cut-off.  Fix a countable dense set `D`
+of centres and the radii `1/(n+1)`.  For each closed ball `B(c, 1/(n+1))`,
+`exists_countable_c1_dense` gives a countable family, `C¹`-dense among the
+smooth functions supported in that ball, and one `ε` makes all these countably
+many functions of finite `ε`-norm (`exists_eps_summable`).  Given `x₀` and `U`,
+a ball `B(c, ρ)` with `B(x₀, ρ/2) ⊆ B(c, ρ) ⊆ U` exists, and `V₀ = B(x₀, ρ/2)`
+works: a function supported in `V₀` is supported in `B(c, ρ)`, and so are its
+approximations.
+
+`FiniteDimensional ℝ V` is assumed, as in Lemma 8.3.2 and Proposition 8.3.1; the
+book works in charts of `ℝ^{2n+1}`. -/
+theorem prop_8_3_4 [FiniteDimensional ℝ V] (K : Set V) (hK : IsCompact K) :
     ∃ ε : ℕ → ℝ, (∀ k, 0 < ε k) ∧
       ∀ x₀ ∈ K, ∀ U ∈ 𝓝 x₀, ∃ V₀ ∈ 𝓝 x₀, V₀ ⊆ U ∧
         ∀ h : V → ℝ, ContDiff ℝ ∞ h → tsupport h ⊆ V₀ → ∀ δ > 0,
           ∃ g : V → ℝ, EpsFinite ε K g ∧ tsupport g ⊆ U ∧ c1Dist K h g < δ := by
-  sorry
+  obtain ⟨D, hDc, hDd⟩ := TopologicalSpace.exists_countable_dense V
+  -- the smooth functions supported in the closed ball `B(c, 1/(n+1))`
+  let P : V × ℕ → Set (V → ℝ) := fun p =>
+    {f | ContDiff ℝ ∞ f ∧ tsupport f ⊆ Metric.closedBall p.1 (1 / ((p.2 : ℝ) + 1))}
+  have h1 : ∀ p, ∀ f ∈ P p, ContDiff ℝ 1 f := fun p f
+      (hf : ContDiff ℝ ∞ f ∧ tsupport f ⊆ Metric.closedBall p.1 (1 / ((p.2 : ℝ) + 1))) =>
+    hf.1.of_le (by exact_mod_cast (le_top : (1 : ℕ∞) ≤ ⊤))
+  choose S hSP hSc hSd using fun p => exists_countable_c1_dense K hK (P p) (h1 p)
+  have : Countable D := hDc.to_subtype
+  let T : Set (V → ℝ) := ⋃ c : D, ⋃ n : ℕ, S (c.1, n)
+  have hTc : T.Countable := Set.countable_iUnion fun c => Set.countable_iUnion fun n => hSc _
+  obtain ⟨ε, hε, hsum⟩ := exists_eps_summable K T hTc
+  refine ⟨ε, hε, fun x₀ _ U hU => ?_⟩
+  obtain ⟨r, hr, hrU⟩ := Metric.mem_nhds_iff.mp hU
+  obtain ⟨n, hn⟩ := exists_nat_one_div_lt (half_pos hr)
+  set ρ : ℝ := 1 / ((n : ℝ) + 1) with hρ
+  have hρpos : 0 < ρ := by positivity
+  obtain ⟨c, hc, hcD⟩ :=
+    hDd.inter_open_nonempty (Metric.ball x₀ (ρ / 2)) Metric.isOpen_ball
+      ⟨x₀, Metric.mem_ball_self (half_pos hρpos)⟩
+  have hc' : dist c x₀ < ρ / 2 := hc
+  refine ⟨Metric.ball x₀ (ρ / 2), Metric.ball_mem_nhds x₀ (half_pos hρpos), fun y hy => ?_, ?_⟩
+  · have hy' : dist y x₀ < ρ / 2 := hy
+    exact hrU (by rw [Metric.mem_ball]; linarith)
+  intro h hh hsupp δ hδ
+  have hhP : h ∈ P (c, n) := ⟨hh, hsupp.trans fun y hy => by
+    have hy' : dist y x₀ < ρ / 2 := hy
+    show dist y c ≤ ρ
+    linarith [dist_triangle y x₀ c, dist_comm x₀ c]⟩
+  obtain ⟨g, hgS, hgδ⟩ := hSd (c, n) h hhP δ hδ
+  have hgP : ContDiff ℝ ∞ g ∧ tsupport g ⊆ Metric.closedBall c ρ := hSP (c, n) hgS
+  have hgT : g ∈ T := Set.mem_iUnion.2 ⟨⟨c, hcD⟩, Set.mem_iUnion.2 ⟨n, hgS⟩⟩
+  refine ⟨g, ⟨hgP.1, hsum g hgT⟩, hgP.2.trans fun y hy => ?_, hgδ⟩
+  have hy' : dist y c ≤ ρ := hy
+  exact hrU (by rw [Metric.mem_ball]; linarith [dist_triangle y c x₀])
 
 end Perturbations
 

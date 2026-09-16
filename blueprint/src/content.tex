@@ -953,15 +953,29 @@ formalized in depth while the manifold statements are gaps.
 
 \begin{theorem}[Theorem 5.3.2, Darboux]
   \label{thm:5.3.2}
-  \lean{MorseFloer.Chapter5.darboux}
-  \notready
+  \lean{MorseFloer.Chapter5.darboux, MorseFloer.Darboux.darboux,
+        MorseFloer.Darboux.poincare_d, MorseFloer.Darboux.exists_vectorField,
+        MorseFloer.Darboux.exists_pullback, MorseFloer.FlowC1.exists_flow,
+        MorseFloer.FlowC1.exists_flow_of_lipschitz,
+        MorseFloer.FlowC1.exists_fderiv_flow}
+  \leanok
   \uses{def:5.1}
-  Every symplectic form is locally the standard one.  \emph{Assumed}, stated in
-  the local model for a \emph{smooth} closed form (without smoothness the
-  closedness condition is vacuous where $\omega$ is not differentiable, and the
-  statement is false); the manifold statement needs differential forms.  Moser's
-  proof needs the flow of a time-dependent vector field to be differentiable in
-  the initial point, and Mathlib's ODE theory stops at continuous dependence.
+  Every symplectic form is locally the standard one.  Proved in the local model
+  for a \emph{smooth} closed form (without smoothness the closedness condition is
+  vacuous where $\omega$ is not differentiable, and the statement is false); the
+  manifold statement needs differential forms.  The proof is Moser's path method.
+  The Poincar\'e lemma gives $\omega - \omega_{x_0} = d\alpha$ with
+  $\alpha_x = \int_0^1 s\,(\omega - \omega_{x_0})_{x_0 + s(x - x_0)}(x - x_0)\,ds$.
+  Along $\omega_t = \omega + t(\omega_{x_0} - \omega)$, which is invertible near
+  $\{x_0\}\times\mathbb{R}$, Moser's field solves $\omega_t(X_t) = \alpha$; a cut-off
+  makes the suspended field $(x,t) \mapsto (X_t x, 1)$ globally Lipschitz.  Its
+  flow is $C^1$ with the variational equation
+  $\partial_t D\psi_t = DX(\psi_t)\circ D\psi_t$, which Mathlib lacks and is
+  proved here from Picard--Lindel\"of and Gr\"onwall.  Differentiating
+  $\omega_t(X_t) = \alpha$ in space, the derivative of
+  $\omega_t(\psi_t x)(D\psi_t a, D\psi_t b)$ cancels by closedness, alternation and
+  $d\alpha = \omega - \omega_{x_0}$, so the time-one map pulls $\omega_{x_0}$ back to
+  $\omega$, and the inverse function theorem makes it a chart.
 \end{theorem}
 
 \begin{proposition}[\S5.5, calibrated complex structures]
@@ -1077,13 +1091,24 @@ Mathlib has no Sobolev spaces, so the Banach manifold $\mathcal{P}^{1,p}(x,y)$ o
   \label{prop:8.2}
   \lean{MorseFloer.Chapter8.eLpNorm_mul_le_mul_ofReal,
         MorseFloer.Chapter8.separableSpace_continuousMap,
-        MorseFloer.Chapter8.lemma_8_3_2, MorseFloer.Chapter8.prop_8_3_1,
-        MorseFloer.Chapter8.prop_8_3_4}
+        MorseFloer.Chapter8.exists_countable_c1_dense,
+        MorseFloer.Chapter8.lemma_8_3_2, MorseFloer.Chapter8.exists_eps_summable,
+        MorseFloer.Chapter8.prop_8_3_1, MorseFloer.Chapter8.prop_8_3_4}
   \notready
   \uses{thm:16.4}
   The second inequality of Lemma 8.2.4 and the $C^0$ half of Lemma 8.3.2 are
-  proved with Mathlib's $L^p$ and Stone--Weierstrass.  The $C^1$ statements of
-  \S8.3 are assumed, and Proposition 8.1.3, Definition 8.2.2, Proposition 8.2.3
+  proved with Mathlib's $L^p$ and Stone--Weierstrass.  Proposition 8.3.1 is
+  proved from Lemma 8.3.2 by the book's diagonal choice
+  $\varepsilon_n = 1/(2^n(1 + \sum_{k \le n} \lVert f_k\rVert_{C^n}))$.  Lemma 8.3.2
+  is proved too, for a finite-dimensional model space, by topology rather than
+  mollification: $f \mapsto (f|_K, Df|_K)$ lands in the separable metric space
+  $C(K,\mathbb{R}) \times C(K, V^*)$, whose subsets are separable.  Finite
+  dimension is necessary, since on $\ell^1$ the linear functionals alone are not
+  $C^1$-separable.  Proposition 8.3.4 is proved as well, without a cut-off: the
+  same separability argument, applied to the smooth functions supported in each
+  ball $\bar B(c, 1/(n+1))$ with $c$ in a countable dense set, gives countably
+  many functions, all of finite $\varepsilon$-norm for one diagonal
+  $\varepsilon$.  Proposition 8.1.3, Definition 8.2.2, Proposition 8.2.3
   and the whole Banach-manifold atlas of \S8.2.d carry no Lean statement: there
   are no Sobolev spaces to give a structure to.
 \end{proposition}
@@ -1101,7 +1126,10 @@ gaps.
   \lean{MorseFloer.Chapter6.IsPeriodicOrbit, MorseFloer.Chapter6.IsFlow,
         MorseFloer.Chapter6.isPeriodicOrbit_iff_flow_fixed,
         MorseFloer.Chapter6.IsNondegenerateOrbit,
-        MorseFloer.Chapter6.isConst_of_isPeriodicOrbit_of_lipschitz_lt_four}
+        MorseFloer.Chapter6.isConst_of_isPeriodicOrbit_of_lipschitz_lt_four,
+        MorseFloer.Chapter6.isConst_of_isPeriodicOrbit_of_lipschitz,
+        MorseFloer.Wirtinger.complex, MorseFloer.Wirtinger.inner_space,
+        MorseFloer.Wirtinger.yorke}
   \leanok
   \uses{def:5.4}
   A $1$-periodic orbit through $p$ is exactly a fixed point of the time-$1$ map,
@@ -1109,15 +1137,18 @@ gaps.
   an eigenvalue of the linearised return map.
 
   Proposition 6.1.5 --- that a sufficiently Lipschitz field has only constant
-  $1$-periodic orbits --- is proved here \emph{for every norm}, with the
-  elementary constant $4$: the mean of $\dot x$ over a period vanishes, so
-  $\dot x(t)$ is an average of differences of $X$ along the orbit, bounded by $K$
-  times the mean distance on the circle, which is $\tfrac14$.  The book's sharp
-  constant $2\pi$ is Yorke's theorem and needs Wirtinger's inequality, which
-  Mathlib lacks; it also needs the norm to come from an inner product, since for a
-  general Banach norm the sharp bound is $6 < 2\pi$ (Busenberg--Fisher--Martelli).
-  The statement carrying $2\pi$ was corrected to assume an inner product and
-  remains assumed.
+  $1$-periodic orbits --- is proved twice.  With the book's sharp constant
+  $2\pi$ it is Yorke's theorem, and the proof is the book's: Wirtinger's
+  inequality $\int_0^1 |y|^2 \le \tfrac{1}{4\pi^2} \int_0^1 |y'|^2$ for a
+  $C^1$ periodic $y$ of mean zero, obtained from Parseval and the integration by
+  parts $\widehat{y'}(n) = 2\pi i n\,\hat y(n)$, both in Mathlib, and applied
+  to the difference $y(s) = x(s+t) - x(s)$.  The norm must come from an inner
+  product: for a general Banach norm the sharp bound is $6 < 2\pi$
+  (Busenberg--Fisher--Martelli), so the statement carries that hypothesis.  For
+  every norm it is proved with the elementary constant $4$: the mean of $\dot x$
+  over a period vanishes, so $\dot x(t)$ is an average of differences of $X$
+  along the orbit, bounded by $K$ times the mean distance on the circle, which is
+  $\tfrac14$.
 \end{definition}
 
 \begin{proposition}[Proposition 6.3.4, the action functional]
@@ -1147,22 +1178,53 @@ gaps.
   \lean{MorseFloer.Chapter6.IsFloerSolution, MorseFloer.Chapter6.floer_eq,
         MorseFloer.Chapter6.energy, MorseFloer.Chapter6.energy_nonneg,
         MorseFloer.Chapter6.hasDerivAt_action_of_floer,
-        MorseFloer.Chapter6.action_antitone}
+        MorseFloer.Chapter6.action_antitone,
+        MorseFloer.Chapter6.energy_eq_sub_action,
+        MorseFloer.Chapter6.dS_eq_zero_of_energy_eq_zero,
+        MorseFloer.Chapter6.finite_fixedPoints,
+        MorseFloer.Chapter6.exists_bound_of_lattice_periodic,
+        MorseFloer.Chapter6.exists_bound_action_of_isPeriodicOrbit,
+        MorseFloer.Chapter6.exists_half_maximum}
   \leanok
   \uses{prop:6.3.4}
   The Floer equation, the energy of a solution, and --- proved --- that the
   action decreases along a solution, with derivative $-\int_0^1|\partial_s u|^2$.
   This is the exact analogue of Chapter 2's ``$f$ decreases along a
   pseudo-gradient trajectory'' (\ref{prop:2.1.traj}), and it is what makes the
-  Floer complex behave like the Morse complex.
+  Floer complex behave like the Morse complex.  Also proved: Remark 6.5.2, that
+  a solution of zero energy is a periodic orbit and that
+  $E(u) = \mathcal{A}_H(x) - \mathcal{A}_H(y)$ when the action converges to
+  $\mathcal{A}_H(x)$, $\mathcal{A}_H(y)$ at the two ends (the fundamental theorem
+  of calculus on $\mathbb{R}$, the integrability of the energy density in $s$
+  being automatic for the derivative of a monotone function with finite limits);
+  Lemma 6.5.10, that the nondegenerate fixed points of $\psi_1$ are finite in
+  every compact set, by the first-order expansion of $\psi_1 - \mathrm{Id}$ at a
+  fixed point; Lemma 6.6.3, Hofer's lemma, which is Mathlib's \texttt{hofer};
+  and the bound on the critical values behind Corollary 6.5.11, without
+  nondegeneracy: on the torus $H$ and $X_t$ are bounded, a periodic orbit moves
+  at most $\sup\|X_t\|$ from $x(0)$ in one period, and $\int_0^1 \dot x = 0$
+  lets $x(0)$ be subtracted inside the action.
 \end{definition}
+
+\begin{proposition}[Proposition 6.5.7 and Corollary 6.5.11]
+  \label{prop:6.5.7}
+  \lean{MorseFloer.Chapter6.exists_tendsto_action,
+        MorseFloer.Chapter6.exists_bound_action_energy}
+  \notready
+  \uses{def:6.4}
+  The action of a finite-energy solution converges at both ends to critical
+  values (6.5.7, \emph{assumed}: it needs Ascoli and elliptic bootstrapping),
+  and consequently the energy of every finite-energy solution is bounded by a
+  constant (6.5.11, \emph{proved from 6.5.7} with the bound on the critical
+  values of \ref{def:6.4} and $E(u) = \mathcal{A}_H(x) - \mathcal{A}_H(y)$).
+\end{proposition}
 
 \begin{theorem}[Theorem 6.5.4, compactness; Conjecture 6.1.2]
   \label{thm:6.5.4}
   \lean{MorseFloer.Chapter6.compactness_of_energy_bounded,
         MorseFloer.Chapter6.arnold_conjecture_torus}
   \notready
-  \uses{def:6.4}
+  \uses{prop:6.5.7}
   Solutions of bounded energy are compact up to breaking, and the Arnold
   conjecture on the torus.  \emph{Assumed}: the compactness proof needs elliptic
   bootstrapping, hence the Sobolev theory of \ref{thm:16.4}.
@@ -1219,13 +1281,45 @@ gaps.
   \lean{MorseFloer.Chapter7.isSymplectic2_iff_det_eq_one,
         MorseFloer.Chapter7.det_sub_one_fin_two_of_det_eq_one,
         MorseFloer.Chapter7.det_sub_one_pos_iff,
-        MorseFloer.Chapter7.rot_mem_plus, MorseFloer.Chapter7.hyp_mem_minus}
+        MorseFloer.Chapter7.rot_mem_plus, MorseFloer.Chapter7.hyp_mem_minus,
+        MorseFloer.Chapter7.exp_smul_J2, MorseFloer.Chapter7.exp_rotation_fin_two}
   \leanok
   \uses{def:7.1.c}
   $Sp(2) = SL(2;\mathbb{R})$, $\det(A-\mathrm{Id}) = 2 - \operatorname{tr} A$, and
   the two components are $\operatorname{tr} A < 2$ and $\operatorname{tr} A > 2$,
-  with the rotation and the hyperbolic matrix as their representatives.
+  with the rotation and the hyperbolic matrix as their representatives.  The
+  rotation case of the $2\times 2$ computation in the proof of Proposition 7.2.1,
+  $\exp(\theta J_2) = \mathrm{rot}\,\theta$, is proved through the algebra
+  embedding $\mathbb{C} \to M_2(\mathbb{R})$, $i \mapsto J_2$, which commutes with
+  $\exp$.  (With Mathlib's $J_2 = \begin{pmatrix} 0 & -1 \\ 1 & 0\end{pmatrix}$
+  the angle is $+\theta$; the book's sign follows its own convention for $J$.)
 \end{proposition}
+
+\begin{lemma}[Remark 7.1.2 and the lift of $\rho$ along a path]
+  \label{lem:7.1.2}
+  \lean{MorseFloer.Chapter7.exp_smul_J_mul_mem_symplecticGroup,
+        MorseFloer.Chapter7.exp_J_mul_mem_symplecticStar,
+        MorseFloer.LinearYorke.det_exp_sub_one_ne_zero,
+        MorseFloer.LinearYorke.exists_norm_toEuclideanCLM_apply_le,
+        MorseFloer.LinearYorke.norm_toEuclideanCLM_apply_of_transpose_mul,
+        MorseFloer.Chapter7.IsAngleLift, MorseFloer.Chapter7.Delta,
+        MorseFloer.Chapter7.Delta_eq_of_isAngleLift}
+  \leanok
+  \uses{def:7.1.c, def:6.1}
+  For a symmetric $S$ the path $\exp(tJS)$ is symplectic, and if moreover $S$ is
+  invertible with all eigenvalues of absolute value $< 2\pi$ its endpoint
+  $\exp(JS)$ has no eigenvalue $1$.  The book reads this off the spectrum of
+  $\exp$; here it is deduced from Yorke's theorem (Proposition 6.1.5): a fixed
+  vector $v \ne 0$ of $\exp(JS)$ would give a nonconstant $1$-periodic orbit
+  $t \mapsto \exp(tJS)v$ of the linear field $JS$, whose Lipschitz constant is the
+  Euclidean operator norm $\lVert JS\rVert = \lVert S\rVert = \max|\lambda_i(S)| <
+  2\pi$, the last equality by the spectral theorem for symmetric matrices.
+
+  The number of half-turns $\Delta(\gamma) = (\alpha(1)-\alpha(0))/\pi$ of a loop
+  $\rho\circ\gamma$ in $S^1$, computed from a continuous lift $\alpha$, does not
+  depend on the lift: two lifts differ by a continuous function into $2\pi\mathbb{Z}$
+  on the connected $\mathbb{R}$, hence by a constant.
+\end{lemma}
 
 \chapter{From Floer to Morse (Chapter 10)}
 
@@ -1250,10 +1344,18 @@ gaps.
   \label{lem:10.2.4}
   \lean{MorseFloer.Chapter10.inner_estimate_of_symm,
         MorseFloer.Chapter10.lemma_10_2_4_symbol,
+        MorseFloer.Chapter10.lemma_10_2_4,
+        MorseFloer.Chapter10.limit_eq_zero_of_integrable_atTop,
         MorseFloer.Chapter10.half_normSq_sub_le,
         MorseFloer.Chapter10.lemma_10_2_5}
   \leanok
-  The two matrix estimates behind the elliptic inequality, proved in full.  Note
+  Both lemmas proved in full.  Lemma 10.2.4, the estimate
+  $\lVert Y\rVert_{W^{1,2}}^2 \le C_1 \lVert Y' + BY\rVert_{L^2}^2$ for an invertible
+  symmetric $B$, is proved without the Fourier transform: the cross term
+  $2\langle Y', BY\rangle$ is the derivative of $\langle Y, BY\rangle$, integrable
+  together with its derivative, hence of integral zero, so
+  $\int \lVert Y'+BY\rVert^2 = \int \lVert Y'\rVert^2 + \int \lVert BY\rVert^2$.  The
+  book's symbol estimate is proved too, as the matrix inequality it is.  Note
   that the book's intermediate claim $\lVert v\,\mathrm{Id} + B\rVert^2 =
   u^2 + \lVert B\rVert^2$ is false for non-symmetric $B$: the cross terms cancel
   precisely by the symmetry of $B$, so that hypothesis is genuinely needed.
@@ -1275,13 +1377,23 @@ gaps.
 \begin{theorem}[Theorem 10.1.3 and the elliptic estimate]
   \label{thm:10.1.3}
   \lean{MorseFloer.Chapter10.IsFredholmOfIndex, MorseFloer.Chapter10.prop_10_2_3,
+        MorseFloer.Chapter10.end_piece_estimate,
+        MorseFloer.Chapter10.middle_piece_estimate,
         MorseFloer.Chapter10.prop_10_2_2, MorseFloer.Chapter10.lemma_10_4_1}
   \notready
   \uses{prop:10.2, thm:16.4}
   That $L_u$ is Fredholm of the expected index.  Recorded as a \emph{predicate},
   not an assumed theorem: $L_u$ lives on a Sobolev space Mathlib cannot form, so
   quantifying over an arbitrary continuous linear map would make the statement
-  false.
+  false.  Of the analytic input, Proposition 10.2.3 --- the estimate
+  $\lVert Y\rVert_{W^{1,2}} \le C(\lVert L_uY\rVert_{L^2} + \lVert Y\rVert_{L^2[-T,T]})$
+  --- is proved by the book's cut-off argument, and Lemma 10.4.1 by Jensen's
+  inequality (with the two hypotheses the statement needs: completeness of the
+  target and integrability of $\lVert f'\rVert^p$).  Proposition 10.2.2, that the
+  estimate with a compact remainder and a finite-dimensional cokernel makes $L_u$
+  Fredholm, is proved too, by the argument of Proposition 8.7.4: Riesz's theorem
+  for the kernel, a closed complement of the kernel by Hahn--Banach, and the open
+  mapping theorem for the closed range and for the restriction of $L_u$.
 \end{theorem}
 
 \chapter{A little algebraic topology (Chapter 15)}

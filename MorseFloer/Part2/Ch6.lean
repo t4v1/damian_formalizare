@@ -1,4 +1,5 @@
 import MorseFloer.Part2.Ch5
+import MorseFloer.Part2.Wirtinger
 
 /-!
 # Chapter 6: The Arnold conjecture and the Floer equation
@@ -52,12 +53,16 @@ Proved here:
   map of the flow (`isPeriodicOrbit_iff_flow_fixed`), from Mathlib's uniqueness
   theorem for ODEs; and the elementary consequence of Definition 5.4.4 that a
   nondegenerate orbit has no nonzero fixed tangent vector;
-* the **elementary half of Proposition 6.1.5**
-  (`isConst_of_isPeriodicOrbit_of_lipschitz_lt_four`): a `K`-Lipschitz vector
-  field with `K < 4` has only constant `1`-periodic orbits.  No Fourier analysis
-  and no hypothesis on the norm: the velocity has zero mean over a period, so it
-  is the average of its own increments over the circle seen from `t`, and the
-  mean distance along that circle is `1/4` (`integral_abs_sub_half`);
+* **Proposition 6.1.5** (`isConst_of_isPeriodicOrbit_of_lipschitz`): a
+  `K`-Lipschitz vector field on a Euclidean space with `K < 2π` has only constant
+  `1`-periodic orbits.  This is Yorke's theorem; the proof, in
+  `Part2/Wirtinger.lean`, is the book's: Wirtinger's inequality from Parseval
+  and the integration by parts for Fourier coefficients, both in Mathlib;
+* its **elementary half** (`isConst_of_isPeriodicOrbit_of_lipschitz_lt_four`):
+  the same with `K < 4`, for every norm.  No Fourier analysis: the velocity has
+  zero mean over a period, so it is the average of its own increments over the
+  circle seen from `t`, and the mean distance along that circle is `1/4`
+  (`integral_abs_sub_half`);
 * Hamilton's equations in the standard model, `X_t = J₀ · grad H_t`
   (`hamField_eq_stdJ_grad`), and the `1`-periodicity of `X_t` in `t` when `H` is;
 * the algebra of `stdForm` and `stdJ` used throughout: `ω(X, J₀ Y) = X ⬝ᵥ Y`,
@@ -80,7 +85,28 @@ Proved here:
 * **Remarks 6.5.2**: the energy is nonnegative, the two terms in the energy
   integrand agree on a solution (`energyDensity_eq_of_floer`), a solution with
   vanishing `∂u/∂s` is a periodic orbit and conversely
-  (`isPeriodicOrbit_of_dS_eq_zero`, `isFloerSolution_of_isPeriodicOrbit`);
+  (`isPeriodicOrbit_of_dS_eq_zero`, `isFloerSolution_of_isPeriodicOrbit`), and
+  **6.5.2(2)** in the hard direction: a solution of zero energy does not depend
+  on `s` (`dS_eq_zero_of_energy_eq_zero`);
+* **Lemma 6.6.3**, Hofer's half-maximum lemma, which is Mathlib's `hofer`;
+* **Remark 6.5.2(3)**, `E(u) = A_H(x) − A_H(y)` for a solution whose action
+  converges to `A_H(x)` and `A_H(y)` at the two ends (`energy_eq_sub_action`):
+  the fundamental theorem of calculus on `ℝ` for the monotone function
+  `s ↦ A_H(u_s)`, whose derivative `−∫|∂u/∂s|²` is then automatically integrable;
+* **Lemma 6.5.10**, the finiteness of the nondegenerate fixed points of `ψ_1`
+  in every compact set (`finite_fixedPoints`), by the first-order expansion of
+  `ψ_1 − Id` at a fixed point — no transversality theory is needed;
+* **Corollary 6.5.11** (`exists_bound_action_energy`), *from* Proposition
+  6.5.7: the energy of every finite-energy solution is bounded by a constant.
+  The book's proof is followed — the action converges at both ends to critical
+  values and `E(u) = A_H(x) − A_H(y)` — and the missing step, that the
+  critical values form a bounded set, is proved without nondegeneracy
+  (`exists_bound_action_of_isPeriodicOrbit`): on the torus `H` and `X_t` are
+  bounded (`exists_bound_of_lattice_periodic`, a continuous function on
+  `T^{2n} × S¹` is bounded), so a periodic orbit moves at most `sup ‖X_t‖` away
+  from `x(0)` in one period, and since `∫₀¹ ẋ = 0` the action of `x` is that
+  of `x − x(0)`, whose integrand is bounded.  The corollary therefore rests on
+  Proposition 6.5.7 alone;
 * the **first variation of the action** (`hasDerivAt_action`), the analytic
   half of Proposition 6.3.4: `d/dσ A_H(u_σ) = (α_H)_{u_s}(∂u/∂s)`.  It is
   obtained by differentiating under the integral sign with Mathlib's
@@ -96,24 +122,14 @@ Proved here:
 
 Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 
-* **Proposition 6.1.5** — a `2π`-Lipschitz vector field has only constant
-  `1`-periodic orbits.  The proof is Wirtinger's inequality (Parseval for the
-  Fourier series of a loop), which Mathlib does not have; and the constant `2π`
-  is in any case only correct for a Euclidean norm on `E`, so the statement as
-  written is false for a general norm.  The elementary bound valid for every
-  norm, `K < 4`, is proved in full as
-  `isConst_of_isPeriodicOrbit_of_lipschitz_lt_four`;
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
 * **Proposition 6.5.3** (elliptic regularity, i.e. Lemma 12.1.1),
-  **Proposition 6.5.7**, **Lemma 6.5.10**, **Corollary 6.5.11**,
+  **Proposition 6.5.7**,
   **Theorem 6.5.6** and **Proposition 6.5.15** (finite-energy solutions converge
-  to periodic orbits), **Theorem 6.5.4** (compactness), **Proposition 6.6.2**
-  (the uniform gradient bound) and **Lemma 6.6.3** (Hofer's half-maximum lemma),
-  the last of which is elementary but needs a dependent-choice recursion;
-* **Remark 6.5.2(3)**, `E(u) = A_H(x) − A_H(y)` for a solution joining two
-  critical points.
+  to periodic orbits), **Theorem 6.5.4** (compactness) and **Proposition 6.6.2**
+  (the uniform gradient bound).
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -395,17 +411,11 @@ assumes `‖dX_H‖_{L²} < 2π`, and remarks that a Lipschitz bound suffices), 
 the only `1`-periodic solutions are the constant ones, i.e. the critical points
 of `H`.
 
-Assumed, for two independent reasons.
-
-**What is missing in Mathlib.**  The book's proof expands `ẋ` in Fourier series
-and applies Parseval: `‖ẋ‖_{L²} ≤ (1/2π) ‖ẍ‖_{L²}` because `ẋ` has zero mean.
-That is Wirtinger's inequality.  Mathlib has the Fourier–Hilbert basis of
-`L²(S¹)` (`fourierBasis`) and Parseval (`tsum_sq_fourierCoeff`), but it has no
-lemma relating the Fourier coefficients of a function to those of its
-derivative — the integration by parts `ĝ′(n) = 2πin·ĝ(n)` — and that is precisely
-the step Wirtinger needs, so the inequality cannot be assembled from what is
-there.  (Its Fourier material is also `ℂ`-valued, so an `E`-valued statement
-would need a further reduction to coordinates.)
+This is Yorke's theorem, proved in `Part2/Wirtinger.lean` by the book's own
+route: Wirtinger's inequality `∫₀¹ ‖y‖² ≤ (1/4π²) ∫₀¹ ‖y'‖²` for a `C¹`
+`1`-periodic `y` of mean zero, obtained from Parseval and the integration by
+parts `ŷ'(n) = 2πin·ŷ(n)` (`fourierCoeffOn_of_hasDerivAt`), applied to the
+difference `y(s) = x(s + t) − x(s)`.
 
 **Why the inner product is a hypothesis here.**  The constant `2π` is Yorke's,
 and Yorke's theorem is a Hilbert space statement.  For a general Banach norm the
@@ -418,15 +428,15 @@ an earlier version of this file stated it that way.  The hypothesis
 has: it works on `ℝ^{2n}` with the Euclidean structure throughout.  Note this
 strengthens the hypotheses, so nothing is lost.
 
-What *is* proved, for every norm and with the elementary constant `4`, is
+What holds for every norm, with the elementary constant `4`, is
 `isConst_of_isPeriodicOrbit_of_lipschitz_lt_four` just above; `4 < 6 ≤` the sharp
 Banach bound, so it is a correct, if not optimal, general statement. -/
 theorem isConst_of_isPeriodicOrbit_of_lipschitz
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V]
     {X : V → V} {K : ℝ≥0}
-    (_hX : LipschitzWith K X) (_hK : (K : ℝ) < 2 * Real.pi) {x : ℝ → V}
-    (_hx : IsPeriodicOrbit (fun _ => X) x) (t : ℝ) : x t = x 0 := by
-  sorry
+    (hX : LipschitzWith K X) (hK : (K : ℝ) < 2 * Real.pi) {x : ℝ → V}
+    (hx : IsPeriodicOrbit (fun _ => X) x) (t : ℝ) : x t = x 0 :=
+  Wirtinger.yorke hX hK hx.hasDerivAt hx.periodic t
 
 end Nondegenerate
 
@@ -601,6 +611,33 @@ theorem hamGrad_periodic {H : ((l ⊕ l) → ℝ) → ℝ → ℝ} (hH : ∀ y t
 theorem hamField_periodic {H : ((l ⊕ l) → ℝ) → ℝ → ℝ} (hH : ∀ y t, H y (t + 1) = H y t)
     (t : ℝ) (x : (l ⊕ l) → ℝ) : hamField H (t + 1) x = hamField H t x := by
   rw [hamField_eq_stdJ_grad, hamField_eq_stdJ_grad, hamGrad_periodic hH]
+
+/-- If `H` is invariant under the lattice `ℤ^{2n}` — a Hamiltonian on the torus —
+then so is its gradient: translation by a lattice vector does not change the
+differential. -/
+theorem hamGrad_lattice {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    (k : (l ⊕ l) → ℤ) (t : ℝ) (x : (l ⊕ l) → ℝ) :
+    hamGrad H t (x + fun i => (k i : ℝ)) = hamGrad H t x := by
+  have e : fderiv ℝ (fun z => H (z + fun i => (k i : ℝ)) t) x
+      = fderiv ℝ (fun y => H y t) (x + fun i => (k i : ℝ)) :=
+    fderiv_comp_add_right (f := fun y => H y t) _
+  have h : (fun z => H (z + fun i => (k i : ℝ)) t) = fun y => H y t :=
+    funext fun y => hHlat k y t
+  rw [h] at e
+  funext i
+  show fderiv ℝ (fun y => H y t) (x + fun i => (k i : ℝ)) (Pi.single i 1)
+    = fderiv ℝ (fun y => H y t) x (Pi.single i 1)
+  rw [← e]
+
+/-- If `H` is lattice-invariant then so is `X_t`. -/
+theorem hamField_lattice {H : ((l ⊕ l) → ℝ) → ℝ → ℝ}
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    (k : (l ⊕ l) → ℤ) (t : ℝ) (x : (l ⊕ l) → ℝ) :
+    hamField H t (x + fun i => (k i : ℝ)) = hamField H t x := by
+  rw [hamField_eq_stdJ_grad, hamField_eq_stdJ_grad, hamGrad_lattice hHlat]
 
 end Standard
 
@@ -1057,21 +1094,58 @@ theorem energy_eq_zero_of_dS_eq_zero {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (
     energy u = 0 := by
   simp [energy, energyDensity, h]
 
+omit [DecidableEq l] in
 /-- **Remark 6.5.2(2)**, hard direction: a solution of zero energy does not
 depend on `s`, hence is a `1`-periodic orbit.
 
-What is missing is purely measure-theoretic: a nonnegative continuous function
-on `ℝ × S¹` whose (double) integral vanishes is identically zero.  Mathlib has
-the `a.e.` statement `MeasureTheory.integral_eq_zero_iff_of_nonneg` but the step
-from "`a.e.` zero" to "zero" for a continuous function, together with the
-integrability of the inner integral in `s` needed to apply it, has not been
-carried out here.  The one-variable case is proved above as
-`eq_zero_of_integral_eq_zero`. -/
+The proof is measure-theoretic.  The inner integral `F(s) = ∫₀¹ |∂u/∂s|² dt` is
+continuous (continuity of a parametric interval integral) and nonnegative, and
+`∫ F = 0`, so `F = 0` almost everywhere, hence everywhere because `F` is
+continuous (`Continuous.ae_eq_iff_eq`).  For each `s` the one-variable lemma
+`eq_zero_of_integral_eq_zero` then gives `|∂u/∂s|² = 0` on `[0, 1]`, and
+periodicity carries that to every `t`.
+
+The hypothesis `hper` — that `u` really is a map into loops, i.e. `1`-periodic
+in `t` — is necessary and was missing from the earlier statement of this lemma:
+the energy only sees `t ∈ [0, 1]`, so for `u s t = f t + s · g t` with `g`
+continuous and supported away from `[0, 1]` the energy vanishes while
+`∂u/∂s = g` does not. -/
 theorem dS_eq_zero_of_energy_eq_zero {u : ℝ → ℝ → ((l ⊕ l) → ℝ)}
-    (_hc : Continuous fun p : ℝ × ℝ => dS u p.1 p.2)
-    (_hi : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t)
-    (_h : energy u = 0) (s t : ℝ) : dS u s t = 0 := by
-  sorry
+    (hc : Continuous fun p : ℝ × ℝ => dS u p.1 p.2)
+    (hi : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t)
+    (hper : ∀ s, Function.Periodic (u s) 1)
+    (h : energy u = 0) (s t : ℝ) : dS u s t = 0 := by
+  have hdens : Continuous fun p : ℝ × ℝ => energyDensity u p.1 p.2 := by
+    show Continuous fun p : ℝ × ℝ => dS u p.1 p.2 ⬝ᵥ dS u p.1 p.2
+    simp only [dotProduct]
+    exact continuous_finsetSum _ fun i _ =>
+      ((continuous_apply i).comp hc).mul ((continuous_apply i).comp hc)
+  have hF : Continuous fun σ : ℝ => ∫ τ in (0:ℝ)..1, energyDensity u σ τ :=
+    intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+      (f := fun σ τ => energyDensity u σ τ) (by exact hdens) 0 1
+  have hFnonneg : (0 : ℝ → ℝ) ≤ fun σ => ∫ τ in (0:ℝ)..1, energyDensity u σ τ := fun σ =>
+    intervalIntegral.integral_nonneg zero_le_one fun τ _ => energyDensity_nonneg u σ τ
+  have hae := (MeasureTheory.integral_eq_zero_iff_of_nonneg hFnonneg hi).mp h
+  have hFzero : ∀ σ : ℝ, (∫ τ in (0:ℝ)..1, energyDensity u σ τ) = 0 := by
+    have heq := (hF.ae_eq_iff_eq MeasureTheory.volume continuous_const).mp hae
+    intro σ
+    exact congrFun heq σ
+  have hIcc : ∀ σ τ, τ ∈ Set.Icc (0:ℝ) 1 → dS u σ τ = 0 := by
+    intro σ τ hτ
+    rw [← energyDensity_eq_zero_iff]
+    exact eq_zero_of_integral_eq_zero (hdens.comp (Continuous.prodMk continuous_const
+      continuous_id)) (fun τ => energyDensity_nonneg u σ τ) (hFzero σ) hτ
+  have hdSper : Function.Periodic (fun τ => dS u s τ) 1 := by
+    intro τ
+    show dS u s (τ + 1) = dS u s τ
+    have hfun : (fun ρ => u ρ (τ + 1)) = fun ρ => u ρ τ := funext fun ρ => hper ρ τ
+    show deriv (fun ρ => u ρ (τ + 1)) s = deriv (fun ρ => u ρ τ) s
+    rw [hfun]
+  have hfract : dS u s (Int.fract t) = dS u s t := by
+    have h1 : dS u s (t - (⌊t⌋ : ℝ) * 1) = dS u s t := hdSper.sub_int_mul_eq ⌊t⌋
+    rwa [mul_one] at h1
+  rw [← hfract]
+  exact hIcc s _ ⟨Int.fract_nonneg t, (Int.fract_lt_one t).le⟩
 
 end Energy
 
@@ -1382,17 +1456,46 @@ theorem action_antitone (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
 `E(u) = A_H(x) − A_H(y)`; in particular such solutions have finite energy.
 
 Given the two statements above the proof is the fundamental theorem of calculus
-applied on `ℝ`, i.e. `∫_ℝ (−d/ds A_H(u_s)) ds = lim_{−∞} A_H(u_s) − lim_{+∞}`;
-formalizing it needs the improper integral of the derivative of a monotone
-function with limits at both ends, which is not carried out here. -/
+applied on `ℝ`: `∫_ℝ (−d/ds A_H(u_s)) ds = lim_{+∞} A_H(u_s) − lim_{−∞} A_H(u_s)`
+(`integral_of_hasDerivAt_of_tendsto`).  The integrability of the energy
+density in `s`, which the identity needs, is automatic: it is minus the
+derivative of the monotone function `s ↦ A_H(u_s)`, which has finite limits at
+both ends (`integrableOn_Ioi_deriv_of_nonpos'`). -/
 theorem energy_eq_sub_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u)
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u)
     {x y : ℝ → ((l ⊕ l) → ℝ)}
-    (_hx : Filter.Tendsto (fun s => action H (u s)) Filter.atBot (nhds (action H x)))
-    (_hy : Filter.Tendsto (fun s => action H (u s)) Filter.atTop (nhds (action H y))) :
+    (hx : Filter.Tendsto (fun s => action H (u s)) Filter.atBot (nhds (action H x)))
+    (hy : Filter.Tendsto (fun s => action H (u s)) Filter.atTop (nhds (action H y))) :
     energy u = action H x - action H y := by
-  sorry
+  set F : ℝ → ℝ := fun s => ∫ t in (0:ℝ)..1, energyDensity u s t with hF
+  have hd : ∀ s, HasDerivAt (fun σ => action H (u σ)) (-F s) s :=
+    hasDerivAt_action_of_floer H hH hu
+  have hFnn : ∀ s, 0 ≤ F s := fun s =>
+    intervalIntegral.integral_nonneg zero_le_one fun t _ => energyDensity_nonneg u s t
+  have hint_top : MeasureTheory.IntegrableOn (fun s => -F s) (Set.Ioi 0) :=
+    MeasureTheory.integrableOn_Ioi_deriv_of_nonpos' (fun s _ => hd s)
+      (fun s _ => neg_nonpos.mpr (hFnn s)) hy
+  -- Mathlib has the `(a, ∞)` version only; reflect `s ↦ −s` for `(−∞, 0]`
+  have hint_bot : MeasureTheory.IntegrableOn (fun s => -F s) (Set.Iic 0) := by
+    have hd' : ∀ s, HasDerivAt (fun σ => action H (u (-σ))) (F (-s)) s := fun s => by
+      have h := (hd (-s)).comp s (hasDerivAt_neg s)
+      simpa [Function.comp_def] using h
+    have h1 : MeasureTheory.IntegrableOn (fun s => F (-s)) (Set.Ioi 0) :=
+      MeasureTheory.integrableOn_Ioi_deriv_of_nonneg' (fun s _ => hd' s) (fun s _ => hFnn _)
+        (hx.comp Filter.tendsto_neg_atTop_atBot)
+    have h2 := h1.comp_neg
+    rw [Set.neg_Ioi, neg_zero] at h2
+    simp only [neg_neg] at h2
+    rw [integrableOn_Iic_iff_integrableOn_Iio' (by simp)]
+    exact h2.neg
+  have hint : MeasureTheory.Integrable (fun s => -F s) := by
+    rw [← MeasureTheory.integrableOn_univ, ← Set.Iic_union_Ioi (a := (0:ℝ))]
+    exact hint_bot.union hint_top
+  have h := MeasureTheory.integral_of_hasDerivAt_of_tendsto hd hint hx hy
+  rw [MeasureTheory.integral_neg] at h
+  show ∫ s, F s = action H x - action H y
+  linarith
 
 end Variation
 
@@ -1429,6 +1532,7 @@ theorem contDiff_of_isFloerSolution (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
     ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2 := by
   sorry
 
+omit [DecidableEq l] in
 /-- **Lemma 6.5.10.**  Under the nondegeneracy hypothesis the `1`-periodic
 orbits are finitely many: they are the intersection points of the diagonal with
 the graph of `ψ_1` in `W × W`, two submanifolds that nondegeneracy makes
@@ -1436,15 +1540,71 @@ transverse, so their intersection is a compact `0`-dimensional manifold.
 
 On the torus the fixed-point set of `ψ_1` is invariant under the lattice, so the
 finiteness statement is finiteness in every compact set.  Mathlib has neither
-transversality nor tubular neighbourhoods; the statement is nevertheless
-provable from the inverse function theorem (nondegeneracy makes `p ↦ ψ_1 p − p`
-a local diffeomorphism at a fixed point, so fixed points are isolated), which is
-not carried out here. -/
+transversality nor tubular neighbourhoods, and none is needed: at a fixed point
+`p` the map `g(q) = ψ_1 q − q` has the injective, hence (in finite dimension)
+antilipschitz, differential `dψ_1(p) − Id`, so the first-order expansion
+`g(q) = (dψ_1(p) − Id)(q − p) + o(q − p)` shows `g(q) ≠ 0` for `q ≠ p` close to
+`p`: fixed points are isolated, and a compact discrete set is finite.
+
+The hypothesis `hdiff` — that `ψ_1` is differentiable at its fixed points — was
+missing from an earlier statement and is necessary: `fderiv` is `0` where `ψ_1`
+is not differentiable, which makes `IsNondegenerateOrbit` hold vacuously there,
+and a continuous map with a non-isolated fixed point at which it is not
+differentiable would be a counterexample. -/
 theorem finite_fixedPoints (ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ))
-    (_hψ : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
-    (_hcont : Continuous (ψ 1)) {K : Set ((l ⊕ l) → ℝ)} (_hK : IsCompact K) :
+    (hψ : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
+    (hdiff : ∀ p, ψ 1 p = p → DifferentiableAt ℝ (ψ 1) p)
+    (hcont : Continuous (ψ 1)) {K : Set ((l ⊕ l) → ℝ)} (hK : IsCompact K) :
     (K ∩ {p | ψ 1 p = p}).Finite := by
-  sorry
+  set Fix : Set ((l ⊕ l) → ℝ) := {p | ψ 1 p = p} with hFix
+  have hclosed : IsClosed Fix := isClosed_eq hcont continuous_id
+  refine (hK.inter_right hclosed).finite ?_
+  rw [isDiscrete_iff_forall_mem_exists_isOpen]
+  intro p hp
+  have hp' : ψ 1 p = p := hp.2
+  -- `p` is an isolated fixed point
+  obtain ⟨ε, hε, hball⟩ : ∃ ε > 0, ∀ q ∈ Metric.ball p ε, ψ 1 q = q → q = p := by
+    set L := fderiv ℝ (ψ 1) p with hL
+    set M : ((l ⊕ l) → ℝ) →L[ℝ] ((l ⊕ l) → ℝ) :=
+      L - ContinuousLinearMap.id ℝ ((l ⊕ l) → ℝ) with hM
+    have hbij : Function.Bijective (ContinuousLinearMap.id ℝ ((l ⊕ l) → ℝ) - L) := hψ p hp'
+    have hMinj : Function.Injective M := by
+      intro a b hab
+      apply hbij.1
+      have h1 : (ContinuousLinearMap.id ℝ ((l ⊕ l) → ℝ) - L) a = -(M a) := by simp [hM]
+      have h2 : (ContinuousLinearMap.id ℝ ((l ⊕ l) → ℝ) - L) b = -(M b) := by simp [hM]
+      rw [h1, h2, hab]
+    obtain ⟨Kc, hKc, hanti⟩ :=
+      (M : ((l ⊕ l) → ℝ) →ₗ[ℝ] ((l ⊕ l) → ℝ)).exists_antilipschitzWith
+        (LinearMap.ker_eq_bot.mpr hMinj)
+    have hKc' : (0:ℝ) < Kc := NNReal.coe_pos.mpr hKc
+    have hg : HasFDerivAt (fun q => ψ 1 q - q) M p :=
+      (hdiff p hp').hasFDerivAt.sub (hasFDerivAt_id p)
+    have hlo := (hasFDerivAt_iff_isLittleO.mp hg).def (by positivity : (0:ℝ) < 1 / (2 * Kc))
+    rw [Metric.eventually_nhds_iff] at hlo
+    obtain ⟨ε, hε, hlo⟩ := hlo
+    refine ⟨ε, hε, fun q hq hqfix => ?_⟩
+    have h1 := hlo hq
+    simp only [hqfix, hp', sub_self, zero_sub, norm_neg] at h1
+    have h2 : dist q p ≤ Kc * dist (M q) (M p) := hanti.le_mul_dist q p
+    rw [dist_eq_norm, dist_eq_norm, ← map_sub] at h2
+    have hKcc : (Kc:ℝ) * (1 / (2 * Kc)) = 1 / 2 := by field_simp
+    have h3 : ‖q - p‖ ≤ 1 / 2 * ‖q - p‖ := by
+      calc ‖q - p‖ ≤ Kc * ‖M (q - p)‖ := h2
+        _ ≤ Kc * (1 / (2 * Kc) * ‖q - p‖) := by gcongr
+        _ = (Kc * (1 / (2 * Kc))) * ‖q - p‖ := by ring
+        _ = 1 / 2 * ‖q - p‖ := by rw [hKcc]
+    have h4 : ‖q - p‖ ≤ 0 := by linarith
+    exact sub_eq_zero.mp (norm_le_zero_iff.mp h4)
+  refine ⟨Metric.ball p ε, Metric.isOpen_ball, ?_⟩
+  ext q
+  constructor
+  · rintro ⟨hq, -, hqfix⟩
+    exact hball q hq hqfix
+  · intro hq
+    rw [Set.mem_singleton_iff] at hq
+    subst hq
+    exact ⟨Metric.mem_ball_self hε, hp⟩
 
 /-- **Proposition 6.5.7.**  For a finite-energy solution the action converges at
 both ends to critical values of `A_H`.
@@ -1452,25 +1612,185 @@ both ends to critical values of `A_H`.
 The proof extracts a sequence `s_k → ±∞` along which `‖∂u/∂t − X_t(u)‖_{L²}`
 tends to `0`, applies Ascoli to get a `C⁰` limit, bootstraps it to a smooth
 periodic orbit (Lemma 6.5.9), and checks that the action passes to the limit.
-Ascoli is in Mathlib, the rest is not. -/
+Ascoli is in Mathlib, the rest is not.
+
+The finite-energy hypothesis and the torus hypotheses on `H` were missing from an
+earlier statement, which was false without them.  For `H = 0` a non-constant
+holomorphic cylinder `u(s, t) = e^{2π(s ± it)}` in `ℂ = ℝ²`, the sign fixed by
+`J₀`, solves the Floer equation, and its action `± π e^{±4πs}` has no finite
+limit.  For `H = e^{−|y|²}` on `ℝ²`, which is not lattice-invariant, the
+negative gradient line leaving the origin has energy `1` and escapes to
+infinity, so the action tends to `0`, which is not a critical value.
+Smoothness of `H` is the book's standing assumption. -/
 theorem exists_tendsto_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u) :
+    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (_hHt : ∀ y t, H y (t + 1) = H y t)
+    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u)
+    (_hE : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) :
     ∃ x y : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x ∧ IsPeriodicOrbit (hamField H) y ∧
       Filter.Tendsto (fun s => action H (u s)) Filter.atBot (nhds (action H x)) ∧
       Filter.Tendsto (fun s => action H (u s)) Filter.atTop (nhds (action H y)) := by
   sorry
 
-/-- **Corollary 6.5.11.**  There is a constant `C > 0` bounding the action and
-the energy of every element of `M`: the critical values form a finite set, and
-`E(u) = A_H(x) − A_H(y)`. -/
+omit [DecidableEq l] in
+/-- A continuous function on `ℝ^{2n} × ℝ` which is invariant under the lattice
+`ℤ^{2n}` and `1`-periodic in time — that is, a continuous function on the
+compact torus `T^{2n} × S¹` — is bounded: every point is congruent to one of
+the compact fundamental domain `[0,1]^{2n} × [0,1]`. -/
+theorem exists_bound_of_lattice_periodic {E : Type*} [NormedAddCommGroup E]
+    {f : ((l ⊕ l) → ℝ) → ℝ → E} (hf : Continuous fun p : ((l ⊕ l) → ℝ) × ℝ => f p.1 p.2)
+    (ht : ∀ y t, f y (t + 1) = f y t)
+    (hlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      f (y + fun i => (k i : ℝ)) t = f y t) :
+    ∃ M : ℝ, ∀ x t, ‖f x t‖ ≤ M := by
+  have hK : IsCompact ((Metric.closedBall (0 : (l ⊕ l) → ℝ) 1) ×ˢ Set.Icc (0:ℝ) 1) :=
+    (isCompact_closedBall _ _).prod isCompact_Icc
+  obtain ⟨M, hM⟩ := hK.exists_bound_of_continuousOn hf.continuousOn
+  refine ⟨M, fun x t => ?_⟩
+  have e1 : f x t = f (x - fun i => (⌊x i⌋ : ℝ)) t := by
+    have := hlat (fun i => ⌊x i⌋) (x - fun i => (⌊x i⌋ : ℝ)) t
+    rw [sub_add_cancel] at this
+    exact this
+  have e2 : f (x - fun i => (⌊x i⌋ : ℝ)) t = f (x - fun i => (⌊x i⌋ : ℝ)) (t - ⌊t⌋) := by
+    have hper : Function.Periodic (f (x - fun i => (⌊x i⌋ : ℝ))) 1 := ht _
+    have := hper.sub_int_mul_eq (x := t) ⌊t⌋
+    rw [mul_one] at this
+    exact this.symm
+  rw [e1, e2]
+  refine hM (_, _) ⟨?_, ?_⟩
+  · rw [mem_closedBall_zero_iff, pi_norm_le_iff_of_nonneg zero_le_one]
+    intro i
+    show ‖x i - ⌊x i⌋‖ ≤ 1
+    rw [Int.self_sub_floor, Real.norm_eq_abs, abs_of_nonneg (Int.fract_nonneg _)]
+    exact (Int.fract_lt_one _).le
+  · show t - ⌊t⌋ ∈ Set.Icc (0:ℝ) 1
+    rw [Int.self_sub_floor]
+    exact ⟨Int.fract_nonneg _, (Int.fract_lt_one _).le⟩
+
+/-- On the torus the action functional is bounded on the set of `1`-periodic
+orbits, without any nondegeneracy hypothesis.  The book gets this from the
+finiteness of the critical points (Lemma 6.5.10); here it is elementary.  For a
+periodic orbit `x`, `‖ẋ‖ = ‖X_t(x)‖` is bounded by the maximum `M₁` of `X_t` on
+the torus, so `‖x(t) − x(0)‖ ≤ M₁` on `[0, 1]`; and since `∫₀¹ ẋ = 0`, the term
+`∫₀¹ ω(x, ẋ)` of the action equals `∫₀¹ ω(x − x(0), ẋ)`, whose integrand is
+bounded.  The other term, `∫₀¹ H_t(x)`, is bounded by the maximum of `H`. -/
+theorem exists_bound_action_of_isPeriodicOrbit (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) :
+    ∃ B : ℝ, ∀ x : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x → |action H x| ≤ B := by
+  -- `H` and `X_t` are bounded on the torus
+  obtain ⟨M₀, hM₀⟩ := exists_bound_of_lattice_periodic (f := H) hH.continuous hHt hHlat
+  obtain ⟨M₁, hM₁⟩ := exists_bound_of_lattice_periodic (f := fun x t => hamField H t x)
+    (continuous_hamField hH continuous_fst continuous_snd) (fun y t => hamField_periodic hHt t y)
+    (fun k y t => hamField_lattice hHlat k t y)
+  have hM₁' : ∀ y t, ‖hamField H t y‖ ≤ M₁ := fun y t => hM₁ y t
+  -- `ω` is bounded on the ball of radius `M₁`
+  obtain ⟨Cω, hCω⟩ := ((isCompact_closedBall (0 : (l ⊕ l) → ℝ) M₁).prod
+    (isCompact_closedBall (0 : (l ⊕ l) → ℝ) M₁)).exists_bound_of_continuousOn
+    (continuous_stdForm₂ (l := l) continuous_fst continuous_snd).continuousOn
+  refine ⟨M₀ + 1 / 2 * Cω, fun x hx => ?_⟩
+  have hd : ∀ t, HasDerivAt x (hamField H t (x t)) t := hx.hasDerivAt
+  have hderiv : ∀ t, deriv x t = hamField H t (x t) := fun t => (hd t).deriv
+  have hcx : Continuous x := continuous_iff_continuousAt.2 fun t => (hd t).continuousAt
+  have hcd : Continuous (deriv x) := by
+    have : deriv x = fun t => hamField H t (x t) := funext hderiv
+    rw [this]
+    exact continuous_hamField hH hcx continuous_id
+  have hHc : Continuous fun t => H (x t) t := hH.continuous.comp (hcx.prodMk continuous_id)
+  -- `∫₀¹ ω(x(0), ẋ) = 0`, since `ẋ` integrates to `x(1) − x(0) = 0`
+  have hzero : (∫ t in (0:ℝ)..1, stdForm l (x 0) (deriv x t)) = 0 := by
+    have hder : ∀ t, HasDerivAt (fun τ => stdForm l (x 0) (x τ))
+        (stdForm l (x 0) (deriv x t)) t := fun t => by
+      have := hasDerivAt_stdForm (l := l) (hasDerivAt_const t (x 0)) (hd t)
+      rw [hderiv t]
+      exact this.congr_deriv (by simp)
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hder t)
+      ((continuous_stdForm continuous_const hcd).intervalIntegrable 0 1)]
+    have h1 : x 1 = x 0 := by simpa using hx.periodic 0
+    rw [h1, sub_self]
+  -- so the action can be computed with `x − x(0)` in place of `x`
+  have hInt1 : IntervalIntegrable
+      (fun t => H (x t) t - 1 / 2 * stdForm l (x t - x 0) (deriv x t)) MeasureTheory.volume 0 1 :=
+    (hHc.sub (continuous_const.mul
+      (continuous_stdForm (hcx.sub continuous_const) hcd))).intervalIntegrable 0 1
+  have hInt2 : IntervalIntegrable
+      (fun t => 1 / 2 * stdForm l (x 0) (deriv x t)) MeasureTheory.volume 0 1 :=
+    (continuous_const.mul (continuous_stdForm continuous_const hcd)).intervalIntegrable 0 1
+  have hsplit : action H x
+      = ∫ t in (0:ℝ)..1, (H (x t) t - 1 / 2 * stdForm l (x t - x 0) (deriv x t)) := by
+    have e : (∫ t in (0:ℝ)..1, (H (x t) t - 1 / 2 * stdForm l (x t - x 0) (deriv x t)))
+        - (∫ t in (0:ℝ)..1, 1 / 2 * stdForm l (x 0) (deriv x t)) = action H x := by
+      rw [← intervalIntegral.integral_sub hInt1 hInt2]
+      refine intervalIntegral.integral_congr fun t _ => ?_
+      show H (x t) t - 1 / 2 * stdForm l (x t - x 0) (deriv x t)
+          - 1 / 2 * stdForm l (x 0) (deriv x t)
+        = H (x t) t - 1 / 2 * stdForm l (x t) (deriv x t)
+      rw [map_sub, LinearMap.sub_apply]
+      ring
+    rw [intervalIntegral.integral_const_mul, hzero, mul_zero, sub_zero] at e
+    exact e.symm
+  -- and the new integrand is bounded on `[0, 1]`
+  have hbound : ∀ t ∈ Set.uIoc (0:ℝ) 1,
+      ‖H (x t) t - 1 / 2 * stdForm l (x t - x 0) (deriv x t)‖ ≤ M₀ + 1 / 2 * Cω := by
+    intro t ht
+    rw [Set.uIoc_of_le zero_le_one] at ht
+    have ht' : t ∈ Set.Icc (0:ℝ) 1 := Set.Ioc_subset_Icc_self ht
+    have hmvt : ‖x t - x 0‖ ≤ M₁ := by
+      have := norm_image_sub_le_of_norm_deriv_le_segment' (a := 0) (b := 1) (f := x)
+        (f' := fun t => hamField H t (x t)) (fun s _ => (hd s).hasDerivWithinAt)
+        (fun s _ => hM₁' (x s) s) t ht'
+      calc ‖x t - x 0‖ ≤ M₁ * (t - 0) := this
+        _ ≤ M₁ * 1 := by
+          have hM₁0 : 0 ≤ M₁ := (norm_nonneg _).trans (hM₁' 0 0)
+          gcongr
+          linarith [ht'.2]
+        _ = M₁ := mul_one _
+    have hω : |stdForm l (x t - x 0) (deriv x t)| ≤ Cω := by
+      have := hCω (x t - x 0, deriv x t) ⟨mem_closedBall_zero_iff.2 hmvt,
+        mem_closedBall_zero_iff.2 (by rw [hderiv t]; exact hM₁' (x t) t)⟩
+      simpa using this
+    have hH0 : |H (x t) t| ≤ M₀ := by
+      have := hM₀ (x t) t
+      rwa [Real.norm_eq_abs] at this
+    rw [Real.norm_eq_abs]
+    obtain ⟨h1, h2⟩ := abs_le.mp hω
+    obtain ⟨h3, h4⟩ := abs_le.mp hH0
+    exact abs_le.mpr ⟨by linarith, by linarith⟩
+  rw [hsplit]
+  have := intervalIntegral.norm_integral_le_of_norm_le_const hbound
+  rwa [sub_zero, abs_one, mul_one, Real.norm_eq_abs] at this
+
+/-- **Corollary 6.5.11.**  There is a constant `C > 0` bounding the energy of
+every element of `M`.  The book's proof: the action converges at both ends to
+critical values (Proposition 6.5.7), these form a bounded set, and
+`E(u) = A_H(x) − A_H(y)` (Remark 6.5.2(3)); that is exactly the proof here,
+with the boundedness of the critical values supplied by
+`exists_bound_action_of_isPeriodicOrbit`.  The only assumption it rests on is
+Proposition 6.5.7.
+
+The smoothness of `H`, which Proposition 6.5.7 needs, was missing from an
+earlier statement. -/
 theorem exists_bound_action_energy (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hHt : ∀ y t, H y (t + 1) = H y t)
-    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
       H (y + fun i => (k i : ℝ)) t = H y t) :
     ∃ C : ℝ, 0 < C ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
       MeasureTheory.Integrable (fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) →
       energy u ≤ C := by
-  sorry
+  have hH1 : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2 :=
+    hH.of_le (by exact_mod_cast (le_top : (1 : ℕ∞) ≤ ⊤))
+  obtain ⟨B, hB⟩ := exists_bound_action_of_isPeriodicOrbit H hH1 hHt hHlat
+  refine ⟨2 * |B| + 1, by positivity, fun u hu hE => ?_⟩
+  obtain ⟨x, y, hx, hy, hlx, hly⟩ := exists_tendsto_action H hH hHt hHlat hu hE
+  rw [energy_eq_sub_action H hH1 hu hlx hly]
+  obtain ⟨h1, h2⟩ := abs_le.mp (hB x hx)
+  obtain ⟨h3, h4⟩ := abs_le.mp (hB y hy)
+  linarith [le_abs_self B]
 
 /-- **Theorem 6.5.6** (with Lemmas 6.5.13, 6.5.14 and Proposition 6.5.15).  If
 all the periodic orbits of `X_t` are nondegenerate, every finite-energy solution
@@ -1479,8 +1799,19 @@ converges at `s → ±∞` to `1`-periodic orbits, and `∂u/∂s → 0` uniform
 The book's proof uses the compactness of `M` (Theorem 6.5.4), the finiteness of
 the set of critical points (Lemma 6.5.10) and the connectedness of the image of
 a half-line.  It is stated here with pointwise convergence rather than
-convergence in `C^∞(S¹; W)`, which has no topology available. -/
+convergence in `C^∞(S¹; W)`, which has no topology available.
+
+The torus hypotheses on `H` were missing from an earlier statement, which was
+false without them: for `H = e^{−|y|²}` on `ℝ²` the only `1`-periodic orbit is
+the origin, where the time-one map is the rotation by the angle `2`, so it is
+nondegenerate; yet the negative gradient line leaving the origin is a solution
+of energy `1` that escapes to infinity.  On the torus, `W` is compact and this
+cannot happen. -/
 theorem tendsto_of_finite_energy (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (_hHt : ∀ y t, H y (t + 1) = H y t)
+    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
     (ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)) (_hψ : IsFlow (hamField H) ψ)
     (_hnd : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
     {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u)
@@ -1500,12 +1831,19 @@ around the blow-up point would produce a nonconstant `J`-holomorphic plane of
 finite, nonzero symplectic area — a *bubble* — whose existence Hypothesis 6.2.1
 forbids.  Both the rescaling (Lemma 6.6.3) and the area computation
 (Lemmas 6.6.4, 6.6.5) are out of reach; the torus satisfies the hypothesis
-because `π₂(T^{2n}) = 0`. -/
+because `π₂(T^{2n}) = 0`.
+
+Finite energy was missing from an earlier statement, which was false without
+it: `energy` is a Bochner integral, hence `0` when the energy density is not
+integrable, and for `H = 0` a non-constant holomorphic cylinder then has
+"energy" `0` and an unbounded gradient. -/
 theorem exists_gradient_bound (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
     (_hHt : ∀ y t, H y (t + 1) = H y t)
     (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
       H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ) :
-    ∃ A : ℝ, 0 < A ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u → energy u ≤ C →
+    ∃ A : ℝ, 0 < A ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
+      (MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) → energy u ≤ C →
       ∀ s t, dS u s t ⬝ᵥ dS u s t + dT u s t ⬝ᵥ dT u s t ≤ A := by
   sorry
 
@@ -1516,12 +1854,19 @@ Stated sequentially and on the torus: a sequence of solutions of uniformly
 bounded energy has a subsequence which, after translation by lattice vectors,
 converges uniformly on every compact subset of `ℝ × S¹` to a solution.  The
 proof combines the gradient bound of Proposition 6.6.2, Ascoli's theorem and the
-elliptic regularity of Proposition 6.5.3. -/
+elliptic regularity of Proposition 6.5.3.
+
+Finite energy was missing from an earlier statement, which was false without
+it: with `H = 0` the holomorphic cylinders `u_n(s, t) = n e^{2π(s ± it)}` have
+non-integrable energy density, so "energy" `0`, and their loops at `s = 0` have
+radius `n`, so no translates converge. -/
 theorem compactness_of_energy_bounded (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
     (_hHt : ∀ y t, H y (t + 1) = H y t)
     (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
       H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ)
     (u : ℕ → ℝ → ℝ → ((l ⊕ l) → ℝ)) (_hu : ∀ n, IsFloerSolution H (u n))
+    (_hEi : ∀ n, MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity (u n) s t)
     (_hE : ∀ n, energy (u n) ≤ C) :
     ∃ (φ : ℕ → ℕ) (k : ℕ → ((l ⊕ l) → ℤ)) (v : ℝ → ℝ → ((l ⊕ l) → ℝ)),
       StrictMono φ ∧ IsFloerSolution H v ∧
@@ -1544,16 +1889,21 @@ ball `B(y, ε)`.
 
 The proof is a doubling recursion: if the third condition fails at `(x_n, ε_n)`,
 choose `x_{n+1}` in the ball with `g(x_{n+1}) > 2 g(x_n)` and halve the radius;
-the sequence is Cauchy, so `g` would be unbounded near its limit.  Formalizing
-this needs a dependent-choice recursion which is not carried out here.
+the sequence is Cauchy, so `g` would be unbounded near its limit.  Mathlib has
+exactly this as `hofer` (`Mathlib/Analysis/Hofer.lean`), written for the same
+bubbling-off application, so all that is left here is to match the two
+statements: Mathlib concludes on the closed ball `d(y, x) ≤ ε`, which contains
+the open ball asked for here.
 
 The book prints the first condition as `d(y, x₀) ≤ 2ε`; what the recursion gives
 is `d(y, x₀) ≤ 2ε₀`, which is what is stated here. -/
 theorem exists_half_maximum {X : Type*} [MetricSpace X] [CompleteSpace X] {g : X → ℝ}
-    (_hg : Continuous g) (_hpos : ∀ x, 0 ≤ g x) (x₀ : X) {ε₀ : ℝ} (_hε₀ : 0 < ε₀) :
+    (hg : Continuous g) (hpos : ∀ x, 0 ≤ g x) (x₀ : X) {ε₀ : ℝ} (hε₀ : 0 < ε₀) :
     ∃ (y : X) (ε : ℝ), 0 < ε ∧ ε ≤ ε₀ ∧ dist y x₀ ≤ 2 * ε₀ ∧ ε₀ * g x₀ ≤ ε * g y ∧
       ∀ x ∈ Metric.ball y ε, g x ≤ 2 * g y := by
-  sorry
+  obtain ⟨ε, hεpos, y, hεle, hdist, hmul, hball⟩ := hofer x₀ ε₀ hε₀ hg hpos
+  exact ⟨y, ε, hεpos, hεle, hdist, hmul, fun x hx => hball x
+    (by rw [dist_comm]; exact (Metric.mem_ball.mp hx).le)⟩
 
 end HalfMaximum
 

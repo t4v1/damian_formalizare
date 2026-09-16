@@ -1,5 +1,6 @@
 import MorseFloer.Basic
 import MorseFloer.Part2.Calibrated
+import MorseFloer.Part2.Darboux
 
 /-!
 # Chapter 5: What one needs to know about symplectic geometry
@@ -85,10 +86,12 @@ Proved here:
   Mathlib's `SymplecticGroup.det_eq_one`);
 * **Example 5.6.1**, `Sp(2) = SL(2; ℝ)`.
 
-Assumed (`sorry`): only **Theorem 5.3.2** (Darboux), stated in the local model
-for a smooth closed form.  Moser's proof needs the flow of a time-dependent
-vector field to be differentiable in the initial point, which Mathlib's ODE
-theory does not provide.
+* **Theorem 5.3.2** (Darboux), in the local model for a smooth closed form, by
+  Moser's path method.  The argument lives in `Part2/Darboux.lean` (Poincaré
+  lemma, Moser's field, invariance, inverse function theorem) and uses the
+  `C¹` flow of `Part2/FlowC1.lean`, which Mathlib's ODE theory does not provide.
+
+Nothing in this chapter is assumed.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -596,6 +599,7 @@ theorem isSymplectomorphism_translation (ω₀ : BilinForm ℝ E) (c : E) :
 
 /-! ## §5.3 Examples; Darboux's theorem -/
 
+set_option maxSynthPendingDepth 3 in
 /-- **Theorem 5.3.2 (Darboux).**  Every point of a symplectic manifold has local
 coordinates in which the form is the constant standard one.
 
@@ -609,20 +613,46 @@ with `c` a positive function taking two values on a set with no measurable
 trace on any open set is "closed" but has no Darboux chart, since `fderiv` of
 any map is measurable.
 
-The book proves it by Moser's path method — integrating a well chosen
-time-dependent vector field.  In the local model that argument needs the
-Poincaré lemma for `2`-forms and, above all, the *differentiability* of the
-flow of a time-dependent vector field with respect to the initial point, so as
-to differentiate the pulled-back forms `ψ_t⋆ω_t` in `t`.  Mathlib's ODE theory
-stops at existence, uniqueness and continuous dependence (`IsPicardLindelof`);
-it has no differentiable dependence on initial conditions. -/
+The proof is the book's, Moser's path method, carried out in
+`Part2/Darboux.lean`: the Poincaré lemma writes `ω − ω x₀ = dα`; Moser's field
+solves `ω_t(X_t) = α` along `ω_t = ω + t (ω x₀ − ω)`; its flow, `C¹` by
+`Part2/FlowC1.lean`, preserves `ω_t(ψ_t x)(Dψ_t ·, Dψ_t ·)` because the
+derivative cancels by closedness; and the inverse function theorem turns the
+time-one map into a chart.  Here the bilinear forms are made continuous and
+closedness is read through the evaluation maps. -/
 theorem darboux [FiniteDimensional ℝ E] (ω : E → BilinForm ℝ E)
-    (_hω : IsSymplecticForm2 ω) (_hsmooth : ∀ (v w : E) (n : ℕ), ContDiff ℝ n fun x => ω x v w)
+    (hω : IsSymplecticForm2 ω) (hsmooth : ∀ (v w : E) (n : ℕ), ContDiff ℝ n fun x => ω x v w)
     (x₀ : E) :
     ∃ φ : OpenPartialHomeomorph E E, x₀ ∈ φ.source ∧
       ∀ x ∈ φ.source, ∀ u v : E,
         ω x₀ (fderiv ℝ (fun y => φ y) x u) (fderiv ℝ (fun y => φ y) x v) = ω x u v := by
-  sorry
+  -- the form as a field of continuous bilinear maps
+  let Ω : E → E →L[ℝ] E →L[ℝ] ℝ := fun x => LinearMap.toContinuousLinearMap
+    ((LinearMap.toContinuousLinearMap : (E →ₗ[ℝ] ℝ) ≃ₗ[ℝ] (E →L[ℝ] ℝ)).toLinearMap ∘ₗ ω x)
+  have hΩ : ContDiff ℝ 1 Ω := by
+    rw [contDiff_clm_apply_iff]
+    intro v
+    rw [contDiff_clm_apply_iff]
+    intro w
+    exact_mod_cast hsmooth v w 1
+  -- closedness of `ω` is closedness of `Ω`, read through the evaluation maps
+  have hev : ∀ x u v w, fderiv ℝ (fun y => ω y v w) x u = fderiv ℝ Ω x u v w := by
+    intro x u v w
+    have h : HasFDerivAt (fun y => ω y v w)
+        (((ContinuousLinearMap.apply ℝ ℝ w).comp
+          (ContinuousLinearMap.apply ℝ (E →L[ℝ] ℝ) v)).comp (fderiv ℝ Ω x)) x :=
+      ((ContinuousLinearMap.apply ℝ ℝ w).comp
+        (ContinuousLinearMap.apply ℝ (E →L[ℝ] ℝ) v)).hasFDerivAt.comp x
+        ((hΩ.differentiable one_ne_zero) x).hasFDerivAt
+    rw [h.fderiv]
+    rfl
+  obtain ⟨φ, hφ, hφ'⟩ := Darboux.darboux Ω x₀ hΩ
+    (fun y v w => (hω.pointwise y).skew v w)
+    (fun v hv => (hω.pointwise x₀).nondegenerate.1 v hv)
+    (fun y u v w => by
+      rw [← hev, ← hev, ← hev]
+      exact hω.isClosed y u v w)
+  exact ⟨φ, hφ, fun x hx u v => hφ' x hx u v⟩
 
 end Forms
 

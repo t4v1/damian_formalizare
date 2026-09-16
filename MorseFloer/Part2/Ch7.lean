@@ -1,4 +1,5 @@
 import MorseFloer.Part2.Ch5
+import MorseFloer.Part2.LinearYorke
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -57,10 +58,21 @@ Rather than inventing a construction, this file
   `Matrix (Fin 2) (Fin 2) ℝ`: `Sp(2) = SL(2; ℝ)`, `det(A − Id) = 2 − tr A`, so
   that the two components are `tr A < 2` and `tr A > 2`, and the rotations and
   the hyperbolic matrices `diag(λ, λ⁻¹)` land where the book says they do;
-* *proves* the algebraic core of Lemma 7.2.3 in both directions;
+* *proves* **Lemma 7.2.3** in both directions, algebraic core and differential
+  form: the entrywise product rule (`hasDerivAt_mul_entry`) is enough, so no
+  normed algebra structure on `Matrix` is needed;
 * *proves* Lemma 7.3.1 and its corollary: the real symmetric form
   `B(X, Y) = Im ω(X, Ȳ)` on `ℂ²ⁿ` is nondegenerate and satisfies
-  `B(iX, iY) = B(X, Y)` and `B(X̄, Ȳ) = −B(X, Y)`.
+  `B(iX, iY) = B(X, Y)` and `B(X̄, Ȳ) = −B(X, Y)`;
+* *proves* that `Δ` does not depend on the chosen lift
+  (`Delta_eq_of_isAngleLift`), by hand: a continuous function into `2πℤ` on the
+  connected `ℝ` is constant;
+* *proves* the rotation case of the `2 × 2` computations of the proof of
+  Proposition 7.2.1, `exp(θ J₂) = rot θ` (`exp_smul_J2`), through the algebra
+  embedding `ℂ → M₂(ℝ)` and `NormedSpace.map_exp`;
+* *proves* the second half of **Remark 7.1.2** (`exp_J_mul_mem_symplecticStar`):
+  `‖S‖ < 2π` implies `exp(JS)` has no eigenvalue `1`, by Yorke's theorem applied
+  to the linear field `JS` (`Part2/LinearYorke.lean`).
 
 Assumed (`sorry`):
 
@@ -68,18 +80,9 @@ Assumed (`sorry`):
 * **Proposition 7.1.4**, the path-connectedness of `Sp(2n)±`, and **Lemma 7.1.5**
   on which it rests;
 * **Lemma 7.1.6**, the continuous lifts `ρ± : Sp(2n)± → ℝ`;
-* the independence of `Δ` of the chosen lift (`Delta_eq_of_isAngleLift`): the
-  argument needs that a continuous function into `2πℤ` on a connected domain is
-  constant, i.e. unique path lifting for `θ ↦ e^{iθ}`;
 * **Proposition 7.2.1**/the existence of the index
   (`exists_isConleyZehnderIndex`);
-* **Lemma 7.2.3** in its differential form (statable entrywise, but its proof
-  needs matrix-valued calculus) and **Lemma 7.2.4**;
-* the closed forms of `exp(tJS)` for the three `2 × 2` symmetric matrices of the
-  proof of Proposition 7.2.1: Mathlib has no closed form for the exponential of
-  a `2 × 2` matrix;
-* the second half of **Remark 7.1.2**: `‖S‖ < 2π` implies `exp(JS)` has no
-  eigenvalue `1`.
+* **Lemma 7.2.4**.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -346,15 +349,32 @@ eigenvalues have absolute value `< 2π`, then `J S` has no eigenvalue `2ikπ` an
 therefore `exp(J S)` does not have the eigenvalue `1`, i.e. the endpoint of the
 path lies in `Sp(2n)⋆`.
 
-Not proved: this needs the spectral theorem for `S`, the description of the
-spectrum of `exp` in terms of the spectrum of the matrix, and the fact that the
-eigenvalues of `J S` are purely imaginary multiples of those of `S` — none of
-which is available in a usable form. -/
-theorem exp_J_mul_mem_symplecticStar {S : Matrix (l ⊕ l) (l ⊕ l) ℝ} (_hS : Sᵀ = S)
-    (_hdet : S.det ≠ 0)
-    (_hnorm : ∀ c : ℝ, (S - c • 1).det = 0 → |c| < 2 * Real.pi) :
+Proved in `Part2/LinearYorke.lean`, not through the spectrum of `exp` but
+through Yorke's theorem (Proposition 6.1.5): a fixed vector `v ≠ 0` of `exp(JS)`
+would give a nonconstant `1`-periodic orbit `t ↦ exp(tJS) v` of the linear field
+`x ↦ JSx`, whose Lipschitz constant is the Euclidean operator norm
+`‖JS‖ = ‖S‖ = max |λ_i(S)| < 2π`; the norm bound comes from Mathlib's spectral
+theorem for symmetric matrices. -/
+theorem exp_J_mul_mem_symplecticStar {S : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hS : Sᵀ = S)
+    (hdet : S.det ≠ 0)
+    (hnorm : ∀ c : ℝ, (S - c • 1).det = 0 → |c| < 2 * Real.pi) :
     NormedSpace.exp ((1 : ℝ) • (Matrix.J l ℝ * S)) ∈ symplecticStar l := by
-  sorry
+  refine ⟨exp_smul_J_mul_mem_symplecticGroup hS 1, ?_⟩
+  rw [one_smul]
+  have hJdet : (Matrix.J l ℝ).det ≠ 0 := by
+    intro h
+    have := Matrix.J_det_mul_J_det (l := l) (R := ℝ)
+    rw [h, zero_mul] at this
+    exact zero_ne_one this
+  have hJ : (Matrix.J l ℝ)ᵀ * Matrix.J l ℝ = 1 := by
+    rw [Matrix.J_transpose, Matrix.neg_mul, Matrix.J_squared, neg_neg]
+  refine LinearYorke.det_exp_sub_one_ne_zero ?_ ?_
+  · rw [Matrix.det_mul]; exact mul_ne_zero hJdet hdet
+  · obtain ⟨M, hM, hbound⟩ :=
+      LinearYorke.exists_norm_toEuclideanCLM_apply_le hS Real.two_pi_pos hnorm
+    refine lt_of_le_of_lt (ContinuousLinearMap.opNorm_le_bound _ M.coe_nonneg fun w => ?_) hM
+    rw [map_mul, mul_apply_eq_comp, LinearYorke.norm_toEuclideanCLM_apply_of_transpose_mul hJ]
+    exact hbound w
 
 end ExpPath
 
@@ -605,13 +625,38 @@ noncomputable def Delta (α : ℝ → ℝ) : ℝ := (α 1 - α 0) / Real.pi
 
 /-- `Δ` does not depend on the chosen lift.
 
-Not proved.  Two lifts differ by a continuous function with values in `2πℤ`,
-which is constant because the interval is connected — that is unique path
-lifting for the covering `θ ↦ e^{iθ}`, which Mathlib does not provide in a form
-applicable here (`IsCoveringMap` exists, but not for this map). -/
+Two lifts differ pointwise by an element of `2πℤ`
+(`Complex.exp_eq_exp_iff_exists_int`), so `(α − β)/2π` is a continuous function
+`ℝ → ℝ` with integer values.  Since `ℤ ↪ ℝ` is a closed embedding it is a
+continuous map into the discrete space `ℤ`, hence constant because `ℝ` is
+connected (`PreconnectedSpace.constant`).  This is unique path lifting for
+`θ ↦ e^{iθ}`, done by hand. -/
 theorem Delta_eq_of_isAngleLift {u : ℝ → ℂ} {α β : ℝ → ℝ}
-    (_hα : IsAngleLift u α) (_hβ : IsAngleLift u β) : Delta α = Delta β := by
-  sorry
+    (hα : IsAngleLift u α) (hβ : IsAngleLift u β) : Delta α = Delta β := by
+  have hspec : ∀ t, ∃ n : ℤ, α t - β t = n * (2 * Real.pi) := by
+    intro t
+    have h : Complex.exp (α t * Complex.I) = Complex.exp (β t * Complex.I) := by
+      rw [hα.2, hβ.2]
+    obtain ⟨n, hn⟩ := Complex.exp_eq_exp_iff_exists_int.mp h
+    refine ⟨n, ?_⟩
+    have him := congrArg Complex.im hn
+    simp at him
+    linarith
+  choose k hk using hspec
+  have hk' : Continuous k := by
+    rw [Int.isClosedEmbedding_coe_real.isEmbedding.continuous_iff]
+    have hfun : ((↑) : ℤ → ℝ) ∘ k = fun t => (α t - β t) / (2 * Real.pi) := by
+      funext t
+      simp only [Function.comp_apply]
+      rw [hk t, mul_div_cancel_right₀ _ (by positivity)]
+    rw [hfun]
+    exact (hα.1.sub hβ.1).div_const _
+  have h01 : k 0 = k 1 := PreconnectedSpace.constant inferInstance hk'
+  have e0 := hk 0
+  have e1 := hk 1
+  rw [h01] at e0
+  unfold Delta
+  rw [show α 1 - α 0 = β 1 - β 0 by linarith]
 
 end Delta
 
@@ -811,32 +856,81 @@ theorem symm_of_transpose_mul_J_add {R D : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hR :
     _ = -(((R⁻¹)ᵀ * Rᵀ) * Matrix.J l ℝ * D * R⁻¹) := by noncomm_ring
     _ = -(Matrix.J l ℝ * D * R⁻¹) := by rw [hRR, Matrix.one_mul]
 
+omit [DecidableEq l] in
+/-- The product rule, entrywise: an entry of a product of two matrix-valued paths
+has the derivative prescribed by `(AB)' = A'B + AB'`.  Stating it entrywise avoids
+needing a normed algebra structure on `Matrix`, for which Mathlib offers only
+scoped instances. -/
+private theorem hasDerivAt_mul_entry {A B : ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ}
+    {A' B' : Matrix (l ⊕ l) (l ⊕ l) ℝ} {t : ℝ}
+    (hA : ∀ i j, HasDerivAt (fun s => A s i j) (A' i j) t)
+    (hB : ∀ i j, HasDerivAt (fun s => B s i j) (B' i j) t) (i j : l ⊕ l) :
+    HasDerivAt (fun s => (A s * B s) i j) ((A' * B t + A t * B') i j) t := by
+  simp only [Matrix.mul_apply, Matrix.add_apply]
+  rw [show (∑ k, A' i k * B t k j) + ∑ k, A t i k * B' k j
+      = ∑ k, (A' i k * B t k j + A t i k * B' k j) from (Finset.sum_add_distrib).symm]
+  exact HasDerivAt.fun_sum fun k _ => (hA i k).fun_mul (hB k j)
+
 /-- **Lemma 7.2.3** (first half, differential form).  The solution of
 `R' = J S R` with `R 0 = Id`, for a continuous path `S` of symmetric matrices,
 takes symplectic values.
 
-Not proved.  The algebraic identity behind it is
-`transpose_mul_J_add_of_symm`; turning it into "`Rᵀ J R` is constant" needs
-calculus for matrix-valued functions, which requires a normed algebra structure
-on `Matrix` — Mathlib offers only scoped instances for that, so the hypothesis
-is stated entrywise and the derivation of the product rule is not carried out. -/
+The algebraic identity behind it is `transpose_mul_J_add_of_symm`, which says
+that the derivative of `Rᵀ J R` vanishes; `hasDerivAt_mul_entry` turns that into
+a statement about entries, and a real-valued function on `ℝ` with vanishing
+derivative is constant, so `Rᵀ J R = (R 0)ᵀ J R 0 = J`. -/
 theorem mem_symplecticGroup_of_hasDerivAt (R S : ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ)
-    (_hS : ∀ t, (S t)ᵀ = S t)
-    (_hR : ∀ t i j, HasDerivAt (fun s => R s i j) ((Matrix.J l ℝ * S t * R t) i j) t)
-    (_h0 : R 0 = 1) (t : ℝ) : R t ∈ Matrix.symplecticGroup l ℝ := by
-  sorry
+    (hS : ∀ t, (S t)ᵀ = S t)
+    (hR : ∀ t i j, HasDerivAt (fun s => R s i j) ((Matrix.J l ℝ * S t * R t) i j) t)
+    (h0 : R 0 = 1) (t : ℝ) : R t ∈ Matrix.symplecticGroup l ℝ := by
+  have hRT : ∀ s i j, HasDerivAt (fun σ => (R σ)ᵀ i j)
+      (((Matrix.J l ℝ * S s * R s)ᵀ) i j) s := fun s i j => by
+    simpa [Matrix.transpose_apply] using hR s j i
+  have hkey : ∀ s i j, HasDerivAt (fun σ => ((R σ)ᵀ * Matrix.J l ℝ * R σ) i j) 0 s := by
+    intro s i j
+    have h1 : ∀ i j, HasDerivAt (fun σ => ((R σ)ᵀ * Matrix.J l ℝ) i j)
+        (((Matrix.J l ℝ * S s * R s)ᵀ * Matrix.J l ℝ) i j) s := fun i j => by
+      simpa using hasDerivAt_mul_entry (A := fun σ => (R σ)ᵀ) (B := fun _ => Matrix.J l ℝ)
+        (B' := 0) (hRT s) (fun i j => hasDerivAt_const _ _) i j
+    have h2 := hasDerivAt_mul_entry (A := fun σ => (R σ)ᵀ * Matrix.J l ℝ) (B := R)
+      (B' := Matrix.J l ℝ * S s * R s) h1 (fun i j => hR s i j) i j
+    rwa [transpose_mul_J_add_of_symm (hS s), Matrix.zero_apply] at h2
+  have hconst : ∀ i j, ((R t)ᵀ * Matrix.J l ℝ * R t) i j = ((R 0)ᵀ * Matrix.J l ℝ * R 0) i j :=
+    fun i j => is_const_of_deriv_eq_zero (fun x => (hkey x i j).differentiableAt)
+      (fun x => (hkey x i j).deriv) t 0
+  rw [SymplecticGroup.mem_iff']
+  ext i j
+  rw [hconst i j, h0]
+  simp
 
 /-- **Lemma 7.2.3** (second half, differential form).  Conversely, for a `C¹` path
 `R` in `Sp(2n)` the matrices `S t = −J R'(t) R(t)⁻¹` are symmetric.
 
-Not proved, for the same reason; the algebraic content is
-`symm_of_transpose_mul_J_add`, and what is missing is that differentiating the
-constant function `t ↦ R(t)ᵀ J R(t) = J` gives `Dᵀ J R + Rᵀ J D = 0`. -/
+The algebraic content is `symm_of_transpose_mul_J_add`; what feeds it is that
+`t ↦ Rᵀ J R` is the constant `J`, so uniqueness of derivatives applied to
+`hasDerivAt_mul_entry` gives `Dᵀ J R + Rᵀ J D = 0` entrywise. -/
 theorem symm_of_hasDerivAt (R D : ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ)
-    (_hmem : ∀ t, R t ∈ Matrix.symplecticGroup l ℝ)
-    (_hR : ∀ t i j, HasDerivAt (fun s => R s i j) (D t i j) t) (t : ℝ) :
+    (hmem : ∀ t, R t ∈ Matrix.symplecticGroup l ℝ)
+    (hR : ∀ t i j, HasDerivAt (fun s => R s i j) (D t i j) t) (t : ℝ) :
     (-(Matrix.J l ℝ * D t * (R t)⁻¹))ᵀ = -(Matrix.J l ℝ * D t * (R t)⁻¹) := by
-  sorry
+  have hdet : IsUnit (R t).det := by
+    rw [SymplecticGroup.det_eq_one (hmem t)]; exact isUnit_one
+  refine symm_of_transpose_mul_J_add hdet ?_
+  have hRT : ∀ s i j, HasDerivAt (fun σ => (R σ)ᵀ i j) ((D s)ᵀ i j) s := fun s i j => by
+    simpa [Matrix.transpose_apply] using hR s j i
+  ext i j
+  have h1 : ∀ i j, HasDerivAt (fun σ => ((R σ)ᵀ * Matrix.J l ℝ) i j)
+      (((D t)ᵀ * Matrix.J l ℝ) i j) t := fun i j => by
+    simpa using hasDerivAt_mul_entry (A := fun σ => (R σ)ᵀ) (B := fun _ => Matrix.J l ℝ)
+      (B' := 0) (hRT t) (fun i j => hasDerivAt_const _ _) i j
+  have h2 := hasDerivAt_mul_entry (A := fun σ => (R σ)ᵀ * Matrix.J l ℝ) (B := R)
+    (B' := D t) h1 (fun i j => hR t i j) i j
+  have hJ : (fun σ => ((R σ)ᵀ * Matrix.J l ℝ * R σ) i j) = fun _ => Matrix.J l ℝ i j := by
+    funext σ
+    rw [SymplecticGroup.mem_iff'.mp (hmem σ)]
+  rw [hJ] at h2
+  rw [Matrix.zero_apply]
+  exact h2.unique (hasDerivAt_const t _)
 
 end Lemma723
 
@@ -960,17 +1054,53 @@ lies in `Sp(2)−`. -/
 theorem W_minus_fin_two : (hyp 2 - 1).det < 0 :=
   hyp_mem_minus (by norm_num) (by norm_num)
 
-/-- The three `2 × 2` computations of the proof of Proposition 7.2.1: for
-`S = diag(π, π)`, `exp(tJS)` is the rotation of angle `−tπ`; for
-`S = diag(−π, −π)` it is the rotation of angle `tπ`; for `S = diag(π, −π)` it is
-a hyperbolic matrix with positive real eigenvalues `e^{±πt}`.
+set_option backward.isDefEq.respectTransparency false in
+/-- The exponential of a multiple of `J₂` is a rotation: `exp(θ J₂) = rot θ`.
 
-Not proved.  Mathlib has no closed form for the exponential of a `2 × 2` matrix
-(`Matrix.exp_diagonal` handles only diagonal ones), and computing it here would
-mean redoing the isomorphism between `{aI + bJ₂}` and `ℂ`. -/
+The `2 × 2` matrices `a·Id + b·J₂` form a copy of `ℂ`, and Mathlib has the
+embedding: `Algebra.leftMulMatrix Complex.basisOneI` is the `ℝ`-algebra map
+`ℂ → M₂(ℝ)` sending `z` to the matrix of multiplication by `z` in the basis
+`(1, i)`, which is `!![Re z, −Im z; Im z, Re z]`; it sends `i` to `J₂`.  Being a
+continuous ring homomorphism it commutes with `exp` (`NormedSpace.map_exp`), so
+`exp(θ J₂)` is the image of `e^{iθ} = cos θ + i sin θ`, which is `rot θ`.
+
+The normed-ring structure on matrices that `map_exp` asks for is only a scoped
+instance (`Matrix.Norms.Operator`), while the statement uses the product topology; the
+two agree, and `backward.isDefEq.respectTransparency false` lets Lean see it, as
+in Mathlib's own `Matrix.exp_add_of_commute`. -/
+theorem exp_smul_J2 (θ : ℝ) : NormedSpace.exp (θ • J2) = rot θ := by
+  let f : ℂ →ₐ[ℝ] Matrix (Fin 2) (Fin 2) ℝ := Algebra.leftMulMatrix Complex.basisOneI
+  have hfz : ∀ z : ℂ, f z = !![z.re, -z.im; z.im, z.re] := by
+    intro z
+    ext i j
+    fin_cases i <;> fin_cases j <;>
+      simp [f, Algebra.leftMulMatrix_eq_repr_mul, Complex.coe_basisOneI_repr,
+        Complex.coe_basisOneI]
+  have h1 : f ((θ : ℂ) * Complex.I) = θ • J2 := by
+    rw [hfz]
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp [J2]
+  have h2 : f (Complex.exp ((θ : ℂ) * Complex.I)) = rot θ := by
+    rw [hfz, rot]
+    ext i j
+    fin_cases i <;> fin_cases j <;> simp
+  have key : f (Complex.exp ((θ : ℂ) * Complex.I)) = NormedSpace.exp (θ • J2) := by
+    rw [Complex.exp_eq_exp_ℂ, ← h1]
+    open scoped Matrix.Norms.Operator in
+    exact NormedSpace.map_exp f (LinearMap.continuous_of_finiteDimensional f.toLinearMap) _
+  rw [← key, h2]
+
+/-- The first of the three `2 × 2` computations of the proof of
+Proposition 7.2.1: for `S = π·Id`, `exp(tJS)` is the rotation of angle `tπ`.
+
+The book writes the angle as `−tπ`; with Mathlib's `J = !![0, −1; 1, 0]` the
+sign is `+`, since `exp(εJ₂) = Id + εJ₂ + O(ε²)` has `−ε` in the upper right
+corner, as `rot ε` does.  (An earlier version of this file stated `rot (−tπ)`,
+which is false.)  The rotation for `S = −π·Id` is the same lemma with `−θ`; the
+hyperbolic case `S = diag(π, −π)` is not stated. -/
 theorem exp_rotation_fin_two (t : ℝ) :
-    NormedSpace.exp (t • (J2 * (Real.pi • (1 : Matrix (Fin 2) (Fin 2) ℝ)))) = rot (-(t * Real.pi)) := by
-  sorry
+    NormedSpace.exp (t • (J2 * (Real.pi • (1 : Matrix (Fin 2) (Fin 2) ℝ)))) = rot (t * Real.pi) := by
+  rw [Matrix.mul_smul, Matrix.mul_one, smul_smul, exp_smul_J2]
 
 end FinTwo
 

@@ -106,12 +106,16 @@ verifies every cited declaration still exists.
 | `Part1/Ch3.lean` | 3 The Morse complex | 0 | ∂∘∂ = 0 proved from an explicit hypothesis |
 | `Part1/Ch4.lean` | 4 Morse homology | 0 | Künneth, integral duality, disjoint unions, Brouwer and Borsuk–Ulam all proved |
 | `Part2/Calibrated.lean` | helper for 5.5.4 | 0 | calibrated complex structures form a contractible space (Cayley transform) |
-| `Part2/Ch5.lean` | 5 Symplectic geometry | 1 | Darboux only (needs differentiable dependence of ODE flows on initial data) |
-| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 12 | critical points of the action = periodic orbits; the first variation |
-| `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 13 | index axiomatised; dimension two in full |
-| `Part2/Ch8.lean` | 8 Linearisation, transversality | 3 | the Fredholm index bookkeeping |
+| `Part2/FlowC1.lean` | helper for 5.3.2 | 0 | the global `C¹` flow of a globally Lipschitz `C¹` autonomous field, with the variational equation |
+| `Part2/Darboux.lean` | helper for 5.3.2 | 0 | Darboux by Moser: Poincaré lemma for closed 2-forms, the cut-off suspended Moser field, invariance along its flow, inverse function theorem |
+| `Part2/Ch5.lean` | 5 Symplectic geometry | 0 | Darboux (5.3.2) restated from `Darboux.lean`; the chapter assumes nothing |
+| `Part2/Wirtinger.lean` | helper for 6.1.5 | 0 | Wirtinger's inequality from Parseval; Yorke's theorem |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 6 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; 6.5.11 derived from 6.5.7 |
+| `Part2/LinearYorke.lean` | helper for 7.1.2 | 0 | `exp A` has no eigenvalue 1 when `‖A‖ < 2π`, by Yorke; `‖S‖ = max|λ|` for symmetric `S` |
+| `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 8 | index axiomatised; dimension two in full; Lemma 7.2.3, Remark 7.1.2, `Δ` well defined, `exp(θJ₂) = rot θ` proved |
+| `Part2/Ch8.lean` | 8 Linearisation, transversality | 0 | the Fredholm index bookkeeping; Lemma 8.3.2 (separability of `C¹` on a compact set, finite dimension), Props 8.3.1 and 8.3.4 proved; the chapter assumes nothing |
 | `Part2/Ch9.lean` | 9 Spaces of trajectories | 0 | the Floer complex, ∂∘∂ = 0 |
-| `Part2/Ch10.lean` | 10 From Floer to Morse | 4 | the two complexes compared |
+| `Part2/Ch10.lean` | 10 From Floer to Morse | 0 | the two complexes compared; Props 10.2.2 (Fredholm from the estimate: Riesz, Hahn–Banach, open mapping) and 10.2.3 (cut-off), Lemmas 10.2.4 (without Fourier analysis) and 10.4.1 (Jensen) proved; the chapter assumes nothing |
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 1 | Cauchy–Riemann regularity, the bootstrapping recursion |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
