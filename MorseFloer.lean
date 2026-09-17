@@ -26,6 +26,7 @@ import MorseFloer.Part2.Ch11
 import MorseFloer.Part2.Weyl
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
+import MorseFloer.Part2.SardMoreira.MainTheorem
 import MorseFloer.Part2.Ch14
 import MorseFloer.Part2.Ch15
 import MorseFloer.Part2.Ch16

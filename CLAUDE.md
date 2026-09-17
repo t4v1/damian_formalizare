@@ -120,7 +120,8 @@ verifies every cited declaration still exists.
 | `Part2/Weyl.lean` | helper for 12.1.1 | 0 | Weyl's lemma for `∂̄`: radial mollifier, mean value property by polar coordinates and Cauchy, Lebesgue differentiation |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 0 | Cauchy–Riemann regularity (classical and distributional, the latter restated from `Weyl.lean`), the bootstrapping recursion; the chapter assumes nothing |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
-| `Part2/Ch14.lean` | 14 Differential geometry | 1 | Morse–Sard for `dim E > dim F` only; the other two regimes proved |
+| `Part2/SardMoreira/*.lean` | helper for 14.2.1 | 0 | Moreira's Sard theorem (Hausdorff-measure bound), transplanted from Kudryashov's `SardMoreira` and adapted to the pinned Mathlib; see the note below |
+| `Part2/Ch14.lean` | 14 Differential geometry | 0 | Sard in all three dimension regimes; the high-dimensional one derived from `SardMoreira`; the chapter assumes nothing |
 | `Part2/Ch15.lean` | 15 Algebraic topology | 0 | long exact sequence; Künneth over a field (alias of Ch4's `betti_prod`) |
 | `Part2/Ch16.lean` | 16 Analysis | 0 | the Fredholm index for operators; additivity, local constancy and compact perturbations (Riesz–Schauder, from the Fredholm alternative by a counting argument, over `ℝ`) proved; see the Fredholm note below |
 
@@ -144,6 +145,22 @@ Mathlib cannot express stays visibly assumed.
 is stated as a predicate the data may satisfy, not as a `sorry`ed theorem.**
 Chapter 8's `IsFredholmOfCZIndex` and Chapter 10's `IsFredholmOfIndex` are the
 examples. A `sorry`ed false statement would be worse than no statement.
+
+### The `SardMoreira` transplant
+
+`MorseFloer/Part2/SardMoreira/` is Yury Kudryashov's
+[SardMoreira](https://github.com/urkud/SardMoreira) project (Apache 2.0, see its
+`LICENSE.txt`), copied in September 2026 with module names rewritten to
+`MorseFloer.Part2.SardMoreira.*` and adapted to the Mathlib pinned here: the
+`ToMathlib/` PR files already upstreamed by v4.33.1 were dropped, and a handful
+of proofs were patched for renamed lemmas (`EMetric.ball` → `Metric.eball`,
+`EMetric.diam` → `Metric.ediam`, `measure_le_inter_add_diff` →
+`measure_le_inter_add_sdiff`, the `IsUnifLocDoublingMeasure` namespace) and for
+`simp` behaviour. Its main theorem,
+`hausdorffMeasure_sardMoreiraBound_image_null_of_finrank_le`, is what
+`Chapter14.sard_of_lt_finrank` restates. Treat the directory as vendored code:
+fix it only to keep it compiling, and do not extend it here — new material
+belongs upstream.
 
 ### Cross-chapter proofs
 
@@ -192,16 +209,16 @@ exactly the input Chapter 13 assumes repeatedly.
 Four missing Mathlib pieces account for nearly every assumption and for every
 result recorded in the blueprint with no Lean statement at all:
 
-1. **Morse–Sard above the diagonal.** Narrowed, as of the Sard work in Chapter
-   14. Sard now splits into three dimension regimes, of which two are *proved*:
-   the image is null outright when `dim E < dim F`, and the equidimensional case
-   is Mathlib's Jacobian lemma after transport. Only `dim E > dim F` remains
-   assumed, as `Chapter14.sard_of_lt_finrank`, stated at the sharp threshold
-   `k ≥ dim E - dim F + 1`. It is complete and `sorry`-free in Kudryashov's
-   external `SardMoreira` project; transplanting it, not reproving it, is the
-   route. Proposition 1.2.1 needs only the *equidimensional* case, and is now
-   proved (`Part1/DistSqMorse.lean`) by running the normal-bundle argument in
-   charts, so it needs no normal bundle either.
+1. **Morse–Sard above the diagonal.** Closed. Sard splits into three dimension
+   regimes: the image is null outright when `dim E < dim F`, the
+   equidimensional case is Mathlib's Jacobian lemma after transport, and the
+   genuine Morse–Sard case `dim E > dim F`, `Chapter14.sard_of_lt_finrank` at
+   the sharp threshold `k ≥ dim E - dim F + 1`, is derived from Moreira's
+   theorem in `Part2/SardMoreira/` (rank bound `dim F - 1`, Hölder exponent
+   `0`, and `μH[dim F]` is a Haar measure on `F`). Proposition 1.2.1 needs only
+   the *equidimensional* case, and is proved (`Part1/DistSqMorse.lean`) by
+   running the normal-bundle argument in charts, so it needs no normal bundle
+   either.
 2. **Submanifolds** as a type carrying its own smooth structure, with tubular
    neighbourhoods and transversality. Without it there is no space of
    trajectories, so all of §3.2 and the Smale condition are unstatable, and
@@ -269,7 +286,7 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   `Cⁿ` maps on a *normed space*, not on a manifold, so it does not reach the
   vector fields of Chapter 2 directly.
 - **Does not have**: Morse theory of any kind, Morse–Sard above the diagonal
-  (the other two regimes are now proved in Chapter 14) or Sard for manifolds,
+  (this repo carries it, transplanted from `SardMoreira`) or Sard for manifolds,
   the Hessian on a manifold, tubular neighbourhoods, the `Cᵏ` topology on
   `C^∞(V;ℝ)`, symplectic manifolds (only the linear symplectic group), Floer
   homology, and — the one that blocks Part II hardest — `W^{k,p}(V)` or
@@ -347,6 +364,32 @@ These are specific to this Mathlib version and were each hit during the build:
   one side and `⊤` on the other. With the scope open, `OrderTop.le_top _` and
   `WithTop.top_ne_zero` are the two coercions you want; bare `le_top` fails to
   unify.
+
+- **`NNReal` is no longer reducibly a subtype.** Writing `(⟨x, hx⟩ : ℝ≥0)`
+  elaborates to `Subtype.mk`, which is ill-typed at reducible transparency, and
+  then *every* `simp`, `rw` and `push_cast` on a goal containing it fails with
+  "made no progress" plus a note that the target "is not type-correct under the
+  `implicit` transparency level". Use `NNReal.mk x hx`. The same note appears
+  for `α.2.1` with `α : unitInterval` (membership in `Set.Icc` does not unfold
+  reducibly); use `unitInterval.nonneg α` and `unitInterval.le_one α`.
+- **Product instances through the normed path defeat `simp` and `convert`.**
+  On `E × ↥S` reached via `NormedAddCommGroup`, `Prod.instAddCommGroup` and
+  `Prod.normedAddCommGroup.toAddCommGroup` are not reducibly defeq, so
+  `convert` leaves goals such as `instTopologicalSpaceProd = …toTopologicalSpace`
+  (close them with `rfl`), and simp lemmas about `ContinuousLinearMap.prodMap`,
+  `equivOfRightInverse` or `ImplicitFunctionData.toOpenPartialHomeomorph` may
+  not fire. Prefer `unfold` + `rfl`, `Prod.ext rfl h`, or an explicit `exact`,
+  all of which work at default transparency.
+- **An `rfl` that has to see through an `@[irreducible]` def can take half an
+  hour** (kernel unfolding). `Chart.lean` went from 39 minutes to 4 by replacing
+  one `rfl` with the library lemma `ImplicitFunctionData.implicitFunction_apply`.
+  If a file is inexplicably slow, suspect `rfl`/`exact` across an irreducible
+  definition before anything else.
+- **`lake env lean` blocks while a `lake build` is running**, and after a
+  killed build it can stay blocked for good (0% CPU, no child `lean`). The
+  escape is `LEAN_PATH="$(lake env printenv LEAN_PATH)" lean <file>`.
+  `lake build` also runs two Mathlib-importing files at once, which thrashes an
+  8 GB machine; build such files one target at a time.
 
 ## Reading the book's PDFs
 

@@ -1,4 +1,5 @@
 import MorseFloer.Basic
+import MorseFloer.Part2.SardMoreira.MainTheorem
 
 /-!
 # Chapter 14: A little differential geometry
@@ -29,13 +30,13 @@ result, this file cites it rather than restating it.
 
 ## What is missing, and what that costs
 
-* **Morse–Sard above the diagonal** (Theorem 14.2.1) is the only part of Sard
-  still assumed.  The theorem splits on the two dimensions and two of the three
-  regimes are proved here: below the diagonal the whole image is null, and on the
-  diagonal it is Mathlib's Jacobian lemma after transport.  Above the diagonal it
-  is the genuine Morse–Sard theorem, `sard_of_lt_finrank`, stated at the sharp
-  smoothness threshold and assumed.  Note that Proposition 1.2.1 needs only the
-  equidimensional case, so what blocks it is the normal bundle, not this.
+* **Morse–Sard above the diagonal** (Theorem 14.2.1) is not in Mathlib.  The
+  theorem splits on the two dimensions: below the diagonal the whole image is
+  null, on the diagonal it is Mathlib's Jacobian lemma after transport, and
+  above the diagonal it is the genuine Morse–Sard theorem, `sard_of_lt_finrank`,
+  stated at the sharp smoothness threshold and derived from Moreira's theorem in
+  `Part2/SardMoreira/` (Kudryashov's project, transplanted).  All three regimes
+  are proved, so the chapter assumes nothing.
 
 * **Submanifolds** have no Mathlib type, so Theorem 14.1.1 (the equivalence of
   the local-equations, local-parametrisation and local-model descriptions) and
@@ -197,40 +198,74 @@ theorem sard_of_finrank_eq (μ : Measure F) [μ.IsAddHaarMeasure]
     rw [ContinuousLinearMap.coe_comp] at hsurj
     exact hcrit x hx hsurj.of_comp
 
-/-- **Sard's theorem, high-dimensional regime** — the genuine Morse–Sard theorem,
-and the only part of Sard this project assumes.
+omit [FiniteDimensional ℝ E] in
+/-- **Sard's theorem, high-dimensional regime** — the genuine Morse–Sard theorem.
 
-*Assumed.*  The hypothesis `finrank E < finrank F + k` is the sharp smoothness
-threshold `k ≥ dim E - dim F + 1`; Whitney's 1935 example of a `C¹` function
-constant on no arc of its critical set shows it cannot be lowered.  Neither this
-statement nor any equivalent is in Mathlib.  It is, however, formalized: Yury
-Kudryashov's `SardMoreira` project proves Moreira's sharper Hausdorff-measure
-version, from which this follows by taking rank bound `dim F - 1`, Hölder
-exponent `0`, and observing that the resulting Hausdorff measure of dimension
-`dim F` is a Haar measure on `F`.  That project is complete and `sorry`-free but
-external to Mathlib, and its upstreaming is in progress.  Transplanting it, rather
-than reproving it, is the way to close this. -/
+*Proved*, by transplanting Yury Kudryashov's `SardMoreira` project (the modules
+under `Part2/SardMoreira/`, adapted to this project's Mathlib).  That project
+proves Moreira's sharper statement: if `f` is `C^{k,α}` on `s` and its
+differential has rank at most `p` there, then `f '' s` is null for the Hausdorff
+measure of dimension `p + (dim E - p)/(k + α)`.  Taking `p = dim F - 1` and
+`α = 0`, the hypothesis `dim E < dim F + k` is exactly what makes that dimension
+at most `dim F`, so `f '' s` is null for `μH[dim F]`, which is a Haar measure on
+`F`; any other Haar measure is absolutely continuous with respect to it.
+
+The hypothesis `finrank E < finrank F + k` is the sharp smoothness threshold
+`k ≥ dim E - dim F + 1`; Whitney's 1935 example of a `C¹` function constant on
+no arc of its critical set shows it cannot be lowered. -/
 theorem sard_of_lt_finrank (μ : Measure F) [μ.IsAddHaarMeasure]
-    {f : E → F} {k : ℕ} (_hf : ContDiff ℝ k f) {s : Set E}
-    (_hcrit : ∀ x ∈ s, ¬ Function.Surjective (fderiv ℝ f x))
-    (_hFE : finrank ℝ F < finrank ℝ E) (_hk : finrank ℝ E < finrank ℝ F + k) :
+    {f : E → F} {k : ℕ} (hf : ContDiff ℝ k f) {s : Set E}
+    (hcrit : ∀ x ∈ s, ¬ Function.Surjective (fderiv ℝ f x))
+    (hFE : finrank ℝ F < finrank ℝ E) (hk : finrank ℝ E < finrank ℝ F + k) :
     μ (f '' s) = 0 := by
-  sorry
+  rcases s.eq_empty_or_nonempty with rfl | ⟨x₀, hx₀⟩
+  · simp
+  -- `F` is nontrivial: onto a zero-dimensional space every linear map is surjective.
+  have hF : 1 ≤ finrank ℝ F := by
+    by_contra h
+    have hsub : Subsingleton F := (Module.finrank_zero_iff (R := ℝ)).mp (by omega)
+    exact hcrit x₀ hx₀ fun y => ⟨0, Subsingleton.elim _ _⟩
+  have hk0 : k ≠ 0 := by rintro rfl; omega
+  have hp : finrank ℝ F - 1 < finrank ℝ E := by omega
+  -- Moreira's theorem with rank bound `dim F - 1` and Hölder exponent `0`.
+  have hmain := hausdorffMeasure_sardMoreiraBound_image_null_of_finrank_le
+    (E := E) (F := F) (p := finrank ℝ F - 1) (k := k) (α := 0) hp hk0 (f := f) (s := s)
+    (fun x _ => ContDiffMoreiraHolderAt.zero_exponent_iff.2 hf.contDiffAt)
+    (fun x hx => by
+      have hne : LinearMap.range (fderiv ℝ f x : E →ₗ[ℝ] F) ≠ ⊤ :=
+        fun h => hcrit x hx (LinearMap.range_eq_top.1 h)
+      have := Submodule.finrank_lt hne
+      omega)
+  -- The Moreira dimension is at most `dim F` exactly because `dim E < dim F + k`.
+  have hb : ((sardMoreiraBound (finrank ℝ E) k 0 (finrank ℝ F - 1) : ℝ≥0) : ℝ) ≤
+      finrank ℝ F := by
+    have hmul := mul_sardMoreiraBound (n := finrank ℝ E) (p := finrank ℝ F - 1) hk0 hp.le 0
+    simp only [Set.Icc.coe_zero, add_zero] at hmul
+    have hkpos : (0 : ℝ) < k := by exact_mod_cast Nat.pos_of_ne_zero hk0
+    rw [← mul_le_mul_iff_right₀ hkpos, hmul]
+    have h1 : ((finrank ℝ F - 1 : ℕ) : ℝ) = finrank ℝ F - 1 := by
+      rw [Nat.cast_sub hF, Nat.cast_one]
+    have h2 : ((finrank ℝ E : ℕ) : ℝ) + 1 ≤ finrank ℝ F + k := by exact_mod_cast hk
+    rw [h1]
+    nlinarith
+  have hH : μH[(finrank ℝ F : ℝ)] (f '' s) = 0 :=
+    nonpos_iff_eq_zero.1 ((Measure.hausdorffMeasure_mono hb _).trans hmain.le)
+  exact Measure.absolutelyContinuous_isAddHaarMeasure μ μH[(finrank ℝ F : ℝ)] hH
 
 /-- **Theorem 14.2.1 (Sard's theorem).**  The critical values of a smooth map
 form a set of measure zero.
 
-Reduced to a single assumption.  The proof splits on the two dimensions.  Below
-the diagonal the whole image is null and criticality is irrelevant; on the
-diagonal the statement is Mathlib's Jacobian lemma after transport; above the
-diagonal it is the genuine Morse–Sard theorem, which is `sard_of_lt_finrank` and
-is the one piece assumed.  So of the three regimes two are proved outright, and
-what remains is delimited exactly.
+Proved in all three dimension regimes.  Below the diagonal the whole image is
+null and criticality is irrelevant; on the diagonal the statement is Mathlib's
+Jacobian lemma after transport; above the diagonal it is the genuine Morse–Sard
+theorem, `sard_of_lt_finrank`, derived from Moreira's theorem in
+`Part2/SardMoreira/`.
 
 Note which regime the applications need.  Proposition 1.2.1, which produces Morse
 functions, applies Sard to the endpoint map of a normal bundle, whose source and
 target both have dimension `n`: that is the equidimensional case, proved here.
-Its remaining obstacle is the normal bundle itself, not this theorem. -/
+It is proved in `Part1/DistSqMorse.lean` by running the normal-bundle argument in
+charts. -/
 theorem sard (μ : Measure F) [μ.IsAddHaarMeasure] {f : E → F} (hf : ContDiff ℝ ω f) :
     μ (criticalValues f) = 0 := by
   have hcrit : ∀ x ∈ criticalSet f, ¬ Function.Surjective (fderiv ℝ f x) :=

@@ -268,26 +268,26 @@ recorded here are what force the assumed results elsewhere.
         MorseFloer.Chapter14.sard_of_finrank_eq,
         MorseFloer.Chapter14.sard_of_lt_finrank,
         MorseFloer.Chapter14.sard}
-  \notready
+  \leanok
   \uses{def:14.2.a}
   The critical values of a smooth map form a set of measure zero.
 
-  \emph{Two of three regimes proved; one assumed.}  The proof splits on the two
-  dimensions.  When $\dim E < \dim F$ the entire image is null and criticality is
-  irrelevant: a $C^1$ map does not raise Hausdorff dimension, and a set of
-  Hausdorff dimension below $\dim F$ is null.  When $\dim E = \dim F$ criticality
-  means a vanishing determinant, and the statement is Mathlib's Jacobian lemma
-  after transport along a linear isomorphism; differentiability alone suffices
-  here, without the book's $C^1$.  Both are proved outright.
+  \emph{Proved.}  The proof splits on the two dimensions.  When
+  $\dim E < \dim F$ the entire image is null and criticality is irrelevant: a
+  $C^1$ map does not raise Hausdorff dimension, and a set of Hausdorff dimension
+  below $\dim F$ is null.  When $\dim E = \dim F$ criticality means a vanishing
+  determinant, and the statement is Mathlib's Jacobian lemma after transport
+  along a linear isomorphism; differentiability alone suffices here, without the
+  book's $C^1$.
 
-  When $\dim E > \dim F$ the statement is the genuine Morse--Sard theorem, and it
-  is the single assumption that remains.  It is stated at the sharp smoothness
-  threshold $k \ge \dim E - \dim F + 1$, which Whitney's 1935 example shows cannot
-  be lowered.  It is absent from Mathlib but not unformalized: Kudryashov's
-  \texttt{SardMoreira} proves Moreira's sharper Hausdorff-measure version,
-  complete and \texttt{sorry}-free, and classical Sard follows from it by taking
-  rank bound $\dim F - 1$ and H\"older exponent $0$.  Transplanting that, rather
-  than reproving it, is the way to close this node.
+  When $\dim E > \dim F$ the statement is the genuine Morse--Sard theorem,
+  stated at the sharp smoothness threshold $k \ge \dim E - \dim F + 1$, which
+  Whitney's 1935 example shows cannot be lowered.  It is derived from Moreira's
+  sharper Hausdorff-measure version, transplanted from Kudryashov's
+  \texttt{SardMoreira} project into \texttt{Part2/SardMoreira/}: with rank bound
+  $\dim F - 1$ and H\"older exponent $0$ the critical values are null for
+  $\mathcal{H}^{\dim F}$, which is a Haar measure on $F$, so they are null for
+  every Haar measure.
 \end{theorem}
 
 \begin{definition}[Transverse subspaces, \S14.3.a]
