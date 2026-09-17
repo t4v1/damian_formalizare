@@ -784,7 +784,7 @@ index 88741fd..5cd0404 100644
 +
  end MeasureTheory
 diff --git a/docs/references.bib b/docs/references.bib
-index 9d938e5..3a16de4 100644
+index 9d938e5..4e9cdc2 100644
 --- a/docs/references.bib
 +++ b/docs/references.bib
 @@ -2072,6 +2072,18 @@
@@ -800,7 +800,7 @@ index 9d938e5..3a16de4 100644
 +  publisher     = {American Mathematical Society, Providence, RI},
 +  year          = {2010},
 +  isbn          = {978-0-8218-4974-3},
-+  mrnumber      = {2597943},
++  mrnumber      = {2597943}
 +}
 +
  @Book{            Federer1996,
@@ -819,7 +819,7 @@ index 9d938e5..3a16de4 100644
 +  publisher     = {American Mathematical Society, Providence, RI},
 +  year          = {2001},
 +  isbn          = {0-8218-2783-9},
-+  mrnumber      = {1817225},
++  mrnumber      = {1817225}
 +}
 +
  @Book{            Lorenz2008,

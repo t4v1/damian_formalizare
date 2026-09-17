@@ -3,7 +3,7 @@
 **Branch name (suggested):** `halmaghi/morrey-inequality` (branched from PR 1's branch)
 **Title:**
 
-    feat(Analysis/FunctionalSpaces): Morrey's inequality
+    feat(Analysis/FunctionalSpaces): prove Morrey's inequality
 
 **Files touched:**
 `Mathlib/Analysis/FunctionalSpaces/MorreyInequality.lean` (new),
