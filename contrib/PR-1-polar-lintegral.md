@@ -7,6 +7,7 @@
 
 **Files touched:** `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean` only.
 **Opened:** https://github.com/leanprover-community/mathlib4/pull/43904 (2026-09-17)
+**Zulip thread (2026-09-18):** https://leanprover.zulipchat.com/#narrow/channel/144837-PR-reviews/topic/.2343904.20.2343905.20polar.20coordinates.20for.20lintegral.2C.20Morrey.27s.20ineq/near/625097072
 **Workspace:** `~/projects/mathlib4-master`, master commit `a218e50` (2026-09-17), branch
 `halmaghi/lintegral-toSphere`, changes uncommitted.
 

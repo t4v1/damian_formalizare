@@ -81,6 +81,8 @@ To split into the two PRs: commit `HaarToSphere.lean` alone on that branch, then
 branches of the main repository; ask on Zulip (`#mathlib4`) for write access first,
 or push to a fork with `gh repo fork leanprover-community/mathlib4 --remote`.
 
+**Announced** in `#PR reviews`: https://leanprover.zulipchat.com/#narrow/channel/144837-PR-reviews/topic/.2343904.20.2343905.20polar.20coordinates.20for.20lintegral.2C.20Morrey.27s.20ineq/near/625097072
+
 **Verification done on master** (all clean): `lake build` of both modules,
 `lake exe runLinter` on both modules, `lake exe lint-style`, `lake exe mk_all --check`.
 No line exceeds 100 characters; the pin-compiled draft had no warnings.
