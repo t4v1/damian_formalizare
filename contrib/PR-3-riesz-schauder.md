@@ -10,6 +10,7 @@ of #43904 and #43905)
 418 lines), `Mathlib.lean` (import line, via `lake exe mk_all`), `docs/references.bib`
 (`brezis2011`).
 **Opened:** https://github.com/leanprover-community/mathlib4/pull/43906 (2026-09-18), commit `bebf4d9`
+**Zulip thread (2026-09-18):** https://leanprover.zulipchat.com/#narrow/channel/144837-PR-reviews/topic/.2343906.20.60feat.28Analysis.2FNormed.2FOperator.2FFredholm.29.3A.20compact.20per/near/625102271
 **Workspace:** `~/projects/mathlib4-master`, branch `halmaghi/fredholm-compact-perturbation`
 (from `master` `a218e50`); full diff in `contrib/pr-riesz-schauder.patch`.
 
