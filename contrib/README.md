@@ -57,77 +57,58 @@ Riesz-Schauder in a form Mathlib's Riesz theory does not provide, and the index
 of a direct sum, which needs the two isomorphisms of `LinearAlgebra/Prod.lean`
 above and so waits on that PR.
 
-## MorreyInequality.lean
+## MorreyInequality.lean — **ready to submit** (verified on Mathlib master `a218e50`, 2026-09-17)
 
 Morrey's inequality — the Sobolev embedding `W^{1,p} ↪ L^∞` for `p > n`, and the
-Hölder estimate behind it.
+Hölder estimate behind it. Submitted as **two PRs**; the descriptions, labels and
+checklists are in `PR-1-polar-lintegral.md` and `PR-2-morrey.md`.
 
-**Why this one first.** Mathlib's `Analysis/FunctionalSpaces/SobolevInequality.lean`
-proves the Gagliardo–Nirenberg–Sobolev inequality under the hypothesis
-`p < finrank ℝ E`. The supercritical case is absent; the name Morrey appears in
-Mathlib only as an attribution inside the Rademacher proof. Closing that
-asymmetry is a self-contained contribution that does not wait on the unsettled
-design of Sobolev spaces themselves, because — like the GNS file — it is stated
-for compactly supported `C¹` functions and needs no Sobolev space to exist.
+- **PR 1** adds the two polar-coordinate `lintegral` lemmas to
+  `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean`
+  (`HaarToSphere.lean.patch` here is that diff).
+- **PR 2** adds `Mathlib/Analysis/FunctionalSpaces/MorreyInequality.lean` (the file
+  here is the master-ready version: `module` header, `public import`s,
+  `@[expose] public section`, plain `def`s for the constants, no unused
+  hypotheses), the import line in `Mathlib.lean`, and the two bibliography entries
+  `evans2010` and `liebLoss2001` in `docs/references.bib` (`references.bib.patch`).
+- `pr-polar-morrey.patch` is the whole diff against master, both PRs together.
 
-It is also the exact input `MorseFloer/Part2/Ch13.lean` assumes repeatedly: the
-constant `K` in `‖g‖_∞ ≤ K‖g‖_{W^{1,p}}`, on a two-dimensional domain where
-`p > 2` means `p > n`.
+**Where the work lives.** `~/projects/mathlib4-master` is a shallow clone of Mathlib
+master at `a218e50` (toolchain `v4.35.0-rc2`, build cache fetched), on the branch
+`halmaghi/lintegral-toSphere` with the changes **uncommitted** in the working tree.
+To split into the two PRs: commit `HaarToSphere.lean` alone on that branch, then
+`git checkout -b halmaghi/morrey-inequality` and commit the rest. Mathlib runs CI on
+branches of the main repository; ask on Zulip (`#mathlib4`) for write access first,
+or push to a fork with `gh repo fork leanprover-community/mathlib4 --remote`.
 
-**State.** Complete. No `sorry`, and `#print axioms` on every declaration in the file
-returns only `propext`, `Classical.choice` and `Quot.sound` — including
-`eLpNorm_top_le_eLpNorm_fderiv`, which was previously conditional on the Hölder estimate.
-The file is a submittable Mathlib contribution rather than a draft.
+**Verification done on master** (all clean): `lake build` of both modules,
+`lake exe runLinter` on both modules, `lake exe lint-style`, `lake exe mk_all --check`.
+No line exceeds 100 characters; the pin-compiled draft had no warnings.
 
-What it contains, in order:
+**Differences from the pinned checkout** that a reader of this project should know:
+`eLpNorm_eq_lintegral_rpow_enorm_toReal` and `eLpNorm_exponent_top` take an extra
+`AEStronglyMeasurable f μ` argument on master. The file here therefore does **not**
+compile against this project's pin; that is expected, the project does not import it.
 
-- `lintegral_addHaar_eq_lintegral_toSphere_lintegral_Ioi` — polar coordinates for a Lebesgue
-  integral against an additive Haar measure, for a general non-negative measurable integrand.
-  Mathlib has `Measure.measurePreserving_homeomorphUnitSphereProd` but exposes only its
-  radial corollaries (`integral_fun_norm_addHaar`, `integrableOn_fun_norm_addHaar`); this is
-  the missing general `lintegral` form. It belongs upstream in
-  `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean` on its own merits, independently of
-  Morrey, and is the piece most worth extracting first.
-- `setLIntegral_ball_eq_lintegral_toSphere_lintegral_Ioo` — the same, localised to a ball.
-- `setLIntegral_ball_rpow_neg` — the exact value of the Riesz kernel integral
+**What it contains, in order** (the polar-coordinates lemmas now live in
+`HaarToSphere.lean`):
+
+- `lintegral_addHaar_eq_lintegral_toSphere_lintegral_Ioi` and
+  `setLIntegral_ball_eq_lintegral_toSphere_lintegral_Ioo` (PR 1): polar coordinates for a
+  Lebesgue integral against an additive Haar measure, general non-negative measurable
+  integrand, whole space and ball.
+- `setLIntegral_ball_rpow_neg`: the exact value of the Riesz kernel integral
   `∫⁻ y in ball x r, ‖y - x‖ ^ (-a)` for `a < n`, namely
-  `n / (n - a) * μ (ball 0 1) * r ^ (n - a)`; and `lintegral_ball_rpow_neg_lt_top`, its
-  finiteness, now a two-line corollary. This is where supercriticality is consumed, and the
-  only place.
-- `enorm_sub_le_lintegral_Ioc_enorm_fderiv` — the fundamental theorem of calculus along a
-  ray, stated without assuming the target space complete (the Bochner integral behind it is
-  taken in `UniformSpace.Completion F`).
-- `lintegral_ball_enorm_sub_le_lintegral_riesz` — the Riesz potential estimate: the mean
-  oscillation of a `C¹` function on a ball is at most `r ^ n / n` times the Riesz potential
-  of its derivative. Both sides are read in polar coordinates about the centre, where the
-  radial density `ρ ^ (n - 1)` cancels the Riesz kernel exactly.
-- `enorm_sub_le_morreyConst_mul_rpow_mul_eLpNorm_fderiv` — the Hölder estimate. Hölder's
-  inequality against the Riesz kernel, then the comparison of the averages over
-  `ball x d` and `ball z d`, `d = ‖x - z‖`, with the average over `ball ((x+z)/2) (d/2)`,
-  which is contained in both and has measure at least `2 ^ (-n)` times theirs.
-- `eLpNorm_top_le_eLpNorm_fderiv` — the bound on the essential supremum, by walking out of
-  the support along a ray to a point at distance `Metric.diam s` where the function vanishes.
-
-Three notes that correct earlier ones:
-
-- Mathlib **does** have a generalized polar-coordinates change of variables,
-  `Mathlib/MeasureTheory/Constructions/HaarToSphere.lean`: `Measure.toSphere`,
-  `measurePreserving_homeomorphUnitSphereProd`, and the radial corollaries
-  `integrableOn_fun_norm_addHaar` and `integral_fun_norm_addHaar`. Its general `lintegral`
-  form, recorded here, is what both analytic steps of Morrey actually need.
-- Two of the drafted constants were not homogeneous of the right degree in `μ`, which made
-  the statements they appear in false for a Haar measure scaled down by a small factor. They
-  are corrected: the Riesz potential estimate carries `rieszPotentialConst E r = r ^ n / n`,
-  which does not involve `μ` at all (both sides of that estimate are homogeneous of degree
-  one in `μ`), and `morreyConst` carries
-  `2 ^ (n + 1) / n * rieszKernelConst μ ((n-1)*q) 1 ^ (1/q) * (μ (ball 0 1)).toNNReal⁻¹` in
-  place of `2 * … * (μ (ball 0 1)).toNNReal`. The completed proof produces exactly these two
-  constants: in each case the final step of the proof is an *equality* of the two sides, not
-  an estimate. `morreyConst` is homogeneous of degree `1/q - 1 = -1/p`, cancelling the degree
-  `1/p` of `eLpNorm · p μ`, so the Hölder estimate is invariant under rescaling `μ`.
-- The compact-support hypothesis of the Hölder estimate turns out not to be used. It is kept,
-  because removing a hypothesis changes the API and the statement was fixed in advance, but a
-  reviewer may well want it dropped.
+  `n / (n - a) * μ (ball 0 1) * r ^ (n - a)`; `lintegral_ball_rpow_neg_lt_top` its
+  finiteness. This is where supercriticality is consumed, and the only place.
+- `enorm_sub_le_lintegral_Ioc_enorm_fderiv`: the fundamental theorem of calculus along a
+  ray, without assuming the target space complete (Bochner integral in
+  `UniformSpace.Completion F`).
+- `lintegral_ball_enorm_sub_le_lintegral_riesz`: the Riesz potential estimate.
+- `enorm_sub_le_morreyConst_mul_rpow_mul_eLpNorm_fderiv`: the Hölder estimate, with an
+  explicit constant homogeneous of degree `-1/p` in `μ`.
+- `eLpNorm_top_le_eLpNorm_fderiv`: the essential-supremum bound for a function supported
+  in a bounded set.
 
 The full rationale, including what Mathlib already has and why the cylinder
 `ℝ × S¹` does not fit the Sobolev designs currently in flight, is at
