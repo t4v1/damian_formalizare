@@ -435,16 +435,17 @@ index 0000000..ff7259a
 +
 +end ContinuousLinearMap.IsFredholm
 diff --git a/docs/references.bib b/docs/references.bib
-index 9d938e5..928520a 100644
+index 9d938e5..dcfefe7 100644
 --- a/docs/references.bib
 +++ b/docs/references.bib
-@@ -913,6 +913,16 @@
+@@ -913,6 +913,17 @@
    url           = {https://doi.org/10.1007/s00493-003-0042-z}
  }
  
 +@Book{            brezis2011,
 +  author        = {Brezis, Haim},
-+  title         = {Functional analysis, {S}obolev spaces and partial differential equations},
++  title         = {Functional analysis, {S}obolev spaces and partial
++                  differential equations},
 +  series        = {Universitext},
 +  publisher     = {Springer, New York},
 +  year          = {2011},
