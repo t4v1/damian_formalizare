@@ -21,41 +21,19 @@ computation on `f.prodMap g` into one on each factor.
 are upstream, `fredholmIndex (u.prodMap v) = fredholmIndex u + fredholmIndex v`
 becomes a short follow-up to the Fredholm index file below.
 
-## Analysis/Normed/Operator/Fredholm/Index.lean
+## Analysis/Normed/Operator/Fredholm/CompactPerturbation.lean — **ready to submit** (PR 3)
 
-The **index of a Fredholm operator**, which Mathlib does not have at all: it has
-`ContinuousLinearMap.IsFredholm`, Fredholm decompositions and quasi-inverses,
-but no index. The file defines `ContinuousLinearMap.fredholmIndex u` as
-`dim (ker u) - dim (coker u)` and proves the two stability theorems that make it
-useful: additivity under composition (`fredholmIndex_comp`) and local constancy
-(`fredholmIndex_locally_constant`), together with the finite-rank case of
-invariance under compact perturbations
-(`isFredholm_add_and_fredholmIndex_eq_of_hasNoetherianRange`), the value in
-finite dimensions, the value read off a `FredholmPackage`, and the surjective,
-injective and bijective special cases.
+Riesz–Schauder: for a compact operator `c` on a Banach space over `RCLike 𝕜`, `1 + c` is
+Fredholm of index `0`; hence a compact perturbation of a Fredholm operator is Fredholm with
+the same index. This is Chapter 16's `RieszSchauder` section rebased on Mathlib master's
+Fredholm API (`LinearMap.index`, `IsFredholm.index_comp`, `IsFredholm.eventually_nhds_index_eq`)
+and generalised from `ℝ` to `RCLike 𝕜`. Description, labels, checklist: `PR-3-riesz-schauder.md`;
+full diff: `pr-riesz-schauder.patch`. Verified on master `a218e50`: build, `runLinter`,
+`lint-style`, `mk_all`, axioms.
 
-It opens with three lemmas of pure linear algebra, in `namespace LinearMap`.
-The first, `LinearMap.finrank_ker_sub_finrank_coker_comp`, is the engine of
-additivity: `dim (ker ·) - dim (coker ·)` is additive under composition of bare
-linear maps. The usual proof needs the six-term exact sequence and an
-alternating-sum count; this one avoids it, deriving the identity from four
-applications of rank-nullity to four explicitly constructed maps. It could be
-split out into `Mathlib/LinearAlgebra/FiniteDimensional/Lemmas.lean` if a
-reviewer prefers, but it ships here because the index additivity is what it is
-for. (This absorbs the former `LinearAlgebra/FiniteDimensional/CompIndex.lean`
-draft, which is gone: a separate draft file cannot be imported by another one,
-and the two belong in a single PR.)
-
-**State.** Complete, no `sorry`; imports are
-`Mathlib.Analysis.Normed.Operator.Fredholm.Basic` and
-`Mathlib.Analysis.Normed.Operator.NormedSpace`. Belongs beside
-`Mathlib/Analysis/Normed/Operator/Fredholm/Basic.lean`, as `Fredholm/Index.lean`.
-
-Two results are deliberately left out, and the module docstring says so:
-invariance of the index under a *compact* perturbation, which needs
-Riesz-Schauder in a form Mathlib's Riesz theory does not provide, and the index
-of a direct sum, which needs the two isomorphisms of `LinearAlgebra/Prod.lean`
-above and so waits on that PR.
+The former draft `Fredholm/Index.lean` (index additivity, local constancy, finite-rank
+perturbation) is **superseded** by Mathlib master, which now has all three; it is kept here only
+until the PR above is merged and can then be deleted.
 
 ## MorreyInequality.lean — **ready to submit** (verified on Mathlib master `a218e50`, 2026-09-17)
 
