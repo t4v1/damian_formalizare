@@ -1,0 +1,99 @@
+# Morse theory and Floer homology in Lean 4
+
+A Lean 4 / Mathlib formalization of
+
+> Michèle Audin and Mihai Damian, *Théorie de Morse et homologie de Floer*,
+> EDP Sciences, 2010 (English translation: *Morse Theory and Floer Homology*,
+> Universitext, Springer, 2014)
+
+covering both parts of the book: **Part I, Morse theory** (chapters 1–4) and
+**Part II, Floer homology and the Arnold conjecture** (chapters 5–16).
+
+Every definition and theorem of the book gets a Lean statement. Proofs are given
+wherever today's Mathlib allows it; what remains is left as `sorry` and documented
+at the statement. A result that Mathlib cannot even *state* (because it needs, for
+instance, the `Cᵏ` topology on `C^∞(V; ℝ)` or Sobolev spaces on a manifold) gets a
+blueprint entry with no Lean declaration, rather than an invented statement.
+
+## Status
+
+All sixteen chapters are formalized. **14 `sorry`s remain**, all in Part II:
+
+| Chapter | `sorry` | What is missing |
+|---|---|---|
+| 6 The Arnold conjecture and the Floer equation | 6 | elliptic regularity for the Floer equation (Prop. 6.5.3), convergence and compactness of finite-energy solutions (6.5.4, 6.5.6, 6.5.7, 6.6.2), the Arnold conjecture on the torus |
+| 7 The symplectic group and the Maslov index | 8 | the map `ρ : Sp(2n) → S¹` and `π₁(Sp(2n)) ≅ ℤ` (7.1.3–7.1.6), existence of the Conley–Zehnder index (7.2.1), Lemma 7.2.4 |
+
+Everything else is proved, including:
+
+- **Part I:** the Morse lemma in every finite dimension; genericity of Morse
+  functions (Prop. 1.2.1); Reeb's theorem; the classification of compact
+  1-manifolds; `∂ ∘ ∂ = 0` for the Morse complex; the Künneth formula; Brouwer's
+  fixed point theorem (analytically, after Milnor–Rogers) and the Borsuk–Ulam
+  theorem (combinatorially, via Tucker's lemma).
+- **Part II:** Darboux's theorem (by Moser's method); contractibility of calibrated
+  complex structures; Wirtinger's inequality and Yorke's theorem; the Floer complex
+  and `∂ ∘ ∂ = 0`; invariance of Floer homology; the comparison of the Floer and
+  Morse complexes; the Fredholm index and its stability under compact
+  perturbations (Riesz–Schauder); Weyl's lemma for `∂̄`; Sard's theorem in all
+  dimensions (the case `dim E > dim F` via Kudryashov's formalization of
+  Moreira's theorem, see below).
+
+Geometric input that Mathlib cannot yet express (spaces of trajectories, Sobolev
+spaces on the cylinder) enters as an explicit hypothesis, never as a `sorry`ed
+theorem, so that the algebra built on top of it is proved outright.
+
+The file-by-file status, the Mathlib gaps that block the remaining `sorry`s, and
+notes on the formalization are in [`CLAUDE.md`](CLAUDE.md).
+
+## Layout
+
+```
+MorseFloer/Basic.lean        second differentials, Hessian, Morse index
+MorseFloer/Part1/ChN.lean    chapters 1–4, one file per chapter
+MorseFloer/Part2/ChN.lean    chapters 5–16, one file per chapter
+MorseFloer/Part*/*.lean      self-contained proofs used by a chapter
+                             (MorseLemma, Brouwer, BorsukUlam, Darboux, Weyl, ...)
+MorseFloer/Part2/SardMoreira vendored copy of Kudryashov's SardMoreira project
+blueprint/                   leanblueprint sources, dependency graph
+contrib/                     material prepared for Mathlib, not built here
+```
+
+## Building
+
+The toolchain is `leanprover/lean4:v4.33.1`, and Mathlib is pinned to the tag
+`v4.33.1`.
+
+```sh
+lake exe cache get      # download the prebuilt Mathlib
+lake build              # build everything
+make blueprint          # check declarations, build the PDF and web blueprint
+make blueprint-serve    # serve the web blueprint (the graph needs HTTP)
+```
+
+The book itself is not included in this repository.
+
+## Mathlib contributions
+
+Several results proved here are standard but absent from Mathlib. They are being
+prepared as Mathlib contributions in [`contrib/`](contrib/), with a plan in
+[`contrib/PLAN.md`](contrib/PLAN.md).
+
+## Use of AI
+
+Most of the Lean code in this repository was written with Claude Code (Anthropic),
+under my mathematical direction and review. Every proof is machine-checked by
+Lean; `lake build` succeeds, and the only unproved statements are the `sorry`s
+listed above.
+
+## Credits
+
+`MorseFloer/Part2/SardMoreira/` is a copy of Yury Kudryashov's
+[SardMoreira](https://github.com/urkud/SardMoreira) (Apache 2.0, see the
+`LICENSE.txt` in that directory), adapted to the Mathlib version used here. It
+provides Moreira's version of Sard's theorem, from which the case `dim E > dim F`
+of Theorem 14.2.1 is derived.
+
+## License
+
+Apache 2.0, see [`LICENSE`](LICENSE). Copyright 2026 Octavian Halmaghi.
