@@ -528,84 +528,94 @@ theorem cauchyTransform_dbar (hw : ContDiff ℝ 1 w) (hc : HasCompactSupport w) 
   rw [cauchyTransform, h, integral_dbar_div_eq hw hc z, smul_smul,
     inv_mul_cancel₀ two_pi_ne_zero, one_smul]
 
+/-- **The Cauchy transform is differentiable, and the derivative falls on the data.**  The
+kernel does not depend on the point, so differentiating under the integral sign is legitimate:
+the dominating function is the Riesz kernel on a fixed disc. -/
+theorem hasFDerivAt_cauchyTransform (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) (z : ℂ) :
+    HasFDerivAt (cauchyTransform f)
+      ((2 * π : ℝ)⁻¹ • ∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) z := by
+  have hdiff : Differentiable ℝ f := hf.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ f) := hf.continuous_fderiv one_ne_zero
+  have hfds : HasCompactSupport (fderiv ℝ f) := hc.fderiv (𝕜 := ℝ)
+  have hmain : HasFDerivAt (fun z : ℂ => ∫ ξ : ℂ, (ξ⁻¹ : ℂ) • f (z - ξ))
+      (∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) z := by
+    obtain ⟨C, hC⟩ := hfds.exists_bound_of_continuous hfd
+    have hC0 : 0 ≤ C := le_trans (norm_nonneg _) (hC 0)
+    obtain ⟨R₀, hR₀⟩ := (IsCompact.isBounded hfds).subset_closedBall (0 : ℂ)
+    set R : ℝ := ‖z‖ + max R₀ 1 + 2 with hRdef
+    have hvanish : ∀ x ξ : ℂ, ‖x - z‖ < 1 → R ≤ ‖ξ‖ → fderiv ℝ f (x - ξ) = 0 := by
+      intro x ξ hx hξ
+      refine image_eq_zero_of_notMem_tsupport fun hmem => ?_
+      have h1 := hR₀ hmem
+      rw [mem_closedBall, dist_zero_right] at h1
+      have h2 : ‖ξ‖ - ‖x‖ ≤ ‖x - ξ‖ := by
+        have := norm_sub_norm_le ξ x
+        rwa [norm_sub_rev] at this
+      have h3 : ‖x‖ ≤ ‖z‖ + 1 := by
+        have := norm_sub_norm_le x z
+        linarith [le_of_lt hx]
+      have h4 : R₀ ≤ max R₀ 1 := le_max_left _ _
+      rw [hRdef] at hξ
+      linarith
+    refine hasFDerivAt_integral_of_dominated_of_fderiv_le (s := ball z 1)
+      (F := fun (x : ℂ) (ξ : ℂ) => (ξ⁻¹ : ℂ) • f (x - ξ))
+      (F' := fun (x : ℂ) (ξ : ℂ) => (ξ⁻¹ : ℂ) • fderiv ℝ f (x - ξ))
+      (bound := fun ξ : ℂ => C * (ball (0 : ℂ) R).indicator (fun ξ => ‖ξ‖⁻¹) ξ)
+      (ball_mem_nhds z one_pos)
+      (Eventually.of_forall fun x =>
+        (integrable_inv_smul hf.continuous hc x).aestronglyMeasurable)
+      (integrable_inv_smul hf.continuous hc z)
+      (integrable_inv_smul hfd hfds z).aestronglyMeasurable
+      (Eventually.of_forall fun ξ x hx => ?_)
+      ((integrableOn_inv_norm_ball.integrable_indicator measurableSet_ball).const_mul C)
+      (Eventually.of_forall fun ξ x _ => ?_)
+    · by_cases hξ : ξ ∈ ball (0 : ℂ) R
+      · rw [indicator_of_mem hξ, norm_smul, norm_inv, mul_comm]
+        exact mul_le_mul_of_nonneg_right (hC _) (by positivity)
+      · have h0 : fderiv ℝ f (x - ξ) = 0 := by
+          refine hvanish x ξ ?_ ?_
+          · rw [mem_ball, dist_eq_norm] at hx; exact hx
+          · rw [mem_ball, dist_zero_right, not_lt] at hξ; exact hξ
+        rw [h0, smul_zero, norm_zero, indicator_of_notMem hξ, mul_zero]
+    · have h1 : HasFDerivAt (fun x : ℂ => f (x - ξ)) (fderiv ℝ f (x - ξ)) x := by
+        have h2 : HasFDerivAt (fun x : ℂ => x - ξ) (ContinuousLinearMap.id ℝ ℂ) x :=
+          (hasFDerivAt_id x).sub_const ξ
+        have h3 := (hdiff (x - ξ)).hasFDerivAt.comp x h2
+        rw [ContinuousLinearMap.comp_id] at h3
+        exact h3
+      exact h1.const_smul (ξ⁻¹ : ℂ)
+  exact hmain.const_smul ((2 * π : ℝ)⁻¹)
+
+/-- Each directional derivative of the data, against the Cauchy kernel, is integrable. -/
+theorem integrable_inv_mul_fderiv_apply (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f)
+    (z v : ℂ) : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) v := by
+  have hfd : Continuous (fderiv ℝ f) := hf.continuous_fderiv one_ne_zero
+  have hfds : HasCompactSupport (fderiv ℝ f) := hc.fderiv (𝕜 := ℝ)
+  have h := integrable_inv_smul (G := ℂ) (hfd.clm_apply continuous_const)
+    (hfds.comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl) z
+  simpa [smul_eq_mul] using h
+
+/-- **The derivative of the Cauchy transform in any direction**, as an integral against the
+Cauchy kernel of the derivative of the data. -/
+theorem fderiv_cauchyTransform_apply (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) (z v : ℂ) :
+    fderiv ℝ (cauchyTransform f) z v
+      = (2 * π : ℝ)⁻¹ • ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) v := by
+  have hfd : Continuous (fderiv ℝ f) := hf.continuous_fderiv one_ne_zero
+  have hfds : HasCompactSupport (fderiv ℝ f) := hc.fderiv (𝕜 := ℝ)
+  have hint : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ) :=
+    integrable_inv_smul hfd hfds z
+  have hv : ((∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) : ℂ →L[ℝ] ℂ) v
+      = ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) v := by
+    rw [ContinuousLinearMap.integral_apply hint]
+    simp [smul_eq_mul]
+  rw [(hasFDerivAt_cauchyTransform hf hc z).fderiv, smul_apply, hv]
+
 /-- **The Cauchy transform solves the inhomogeneous equation.**  For compactly supported `C¹`
 data, `∂(T f)/∂x + i ∂(T f)/∂y = f`. -/
 theorem dbar_cauchyTransform (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) (z : ℂ) :
     dbar (cauchyTransform f) z = f z := by
-  have hdiff : Differentiable ℝ f := hf.differentiable one_ne_zero
-  have hfd : Continuous (fderiv ℝ f) := hf.continuous_fderiv one_ne_zero
-  have hfds : HasCompactSupport (fderiv ℝ f) := hc.fderiv (𝕜 := ℝ)
-  -- the derivative falls on the data, the kernel being independent of `z`
-  have hFD : HasFDerivAt (cauchyTransform f)
-      ((2 * π : ℝ)⁻¹ • ∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) z := by
-    have hmain : HasFDerivAt (fun z : ℂ => ∫ ξ : ℂ, (ξ⁻¹ : ℂ) • f (z - ξ))
-        (∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) z := by
-      obtain ⟨C, hC⟩ := hfds.exists_bound_of_continuous hfd
-      have hC0 : 0 ≤ C := le_trans (norm_nonneg _) (hC 0)
-      obtain ⟨R₀, hR₀⟩ := (IsCompact.isBounded hfds).subset_closedBall (0 : ℂ)
-      set R : ℝ := ‖z‖ + max R₀ 1 + 2 with hRdef
-      have hvanish : ∀ x ξ : ℂ, ‖x - z‖ < 1 → R ≤ ‖ξ‖ → fderiv ℝ f (x - ξ) = 0 := by
-        intro x ξ hx hξ
-        refine image_eq_zero_of_notMem_tsupport fun hmem => ?_
-        have h1 := hR₀ hmem
-        rw [mem_closedBall, dist_zero_right] at h1
-        have h2 : ‖ξ‖ - ‖x‖ ≤ ‖x - ξ‖ := by
-          have := norm_sub_norm_le ξ x
-          rwa [norm_sub_rev] at this
-        have h3 : ‖x‖ ≤ ‖z‖ + 1 := by
-          have := norm_sub_norm_le x z
-          linarith [le_of_lt hx]
-        have h4 : R₀ ≤ max R₀ 1 := le_max_left _ _
-        rw [hRdef] at hξ
-        linarith
-      refine hasFDerivAt_integral_of_dominated_of_fderiv_le (s := ball z 1)
-        (F := fun (x : ℂ) (ξ : ℂ) => (ξ⁻¹ : ℂ) • f (x - ξ))
-        (F' := fun (x : ℂ) (ξ : ℂ) => (ξ⁻¹ : ℂ) • fderiv ℝ f (x - ξ))
-        (bound := fun ξ : ℂ => C * (ball (0 : ℂ) R).indicator (fun ξ => ‖ξ‖⁻¹) ξ)
-        (ball_mem_nhds z one_pos)
-        (Eventually.of_forall fun x =>
-          (integrable_inv_smul hf.continuous hc x).aestronglyMeasurable)
-        (integrable_inv_smul hf.continuous hc z)
-        (integrable_inv_smul hfd hfds z).aestronglyMeasurable
-        (Eventually.of_forall fun ξ x hx => ?_)
-        ((integrableOn_inv_norm_ball.integrable_indicator measurableSet_ball).const_mul C)
-        (Eventually.of_forall fun ξ x _ => ?_)
-      · by_cases hξ : ξ ∈ ball (0 : ℂ) R
-        · rw [indicator_of_mem hξ, norm_smul, norm_inv, mul_comm]
-          exact mul_le_mul_of_nonneg_right (hC _) (by positivity)
-        · have h0 : fderiv ℝ f (x - ξ) = 0 := by
-            refine hvanish x ξ ?_ ?_
-            · rw [mem_ball, dist_eq_norm] at hx; exact hx
-            · rw [mem_ball, dist_zero_right, not_lt] at hξ; exact hξ
-          rw [h0, smul_zero, norm_zero, indicator_of_notMem hξ, mul_zero]
-      · have h1 : HasFDerivAt (fun x : ℂ => f (x - ξ)) (fderiv ℝ f (x - ξ)) x := by
-          have h2 : HasFDerivAt (fun x : ℂ => x - ξ) (ContinuousLinearMap.id ℝ ℂ) x :=
-            (hasFDerivAt_id x).sub_const ξ
-          have h3 := (hdiff (x - ξ)).hasFDerivAt.comp x h2
-          rw [ContinuousLinearMap.comp_id] at h3
-          exact h3
-        exact h1.const_smul (ξ⁻¹ : ℂ)
-    exact hmain.const_smul ((2 * π : ℝ)⁻¹)
-  -- apply the derivative to `1` and to `i`, and use the Cauchy–Pompeiu formula
-  have hint : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ) :=
-    integrable_inv_smul hfd hfds z
-  have happly : ∀ v : ℂ, fderiv ℝ (cauchyTransform f) z v
-      = (2 * π : ℝ)⁻¹ • ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) v := by
-    intro v
-    have hv : ((∫ ξ : ℂ, (ξ⁻¹ : ℂ) • fderiv ℝ f (z - ξ)) : ℂ →L[ℝ] ℂ) v
-        = ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) v := by
-      rw [ContinuousLinearMap.integral_apply hint]
-      simp [smul_eq_mul]
-    rw [hFD.fderiv, smul_apply, hv]
-  have hint1 : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) 1 := by
-    have := integrable_inv_smul (G := ℂ) (hfd.clm_apply continuous_const)
-      (hfds.comp_left (g := fun L : ℂ →L[ℝ] ℂ => L 1) rfl) z
-    simpa [smul_eq_mul] using this
-  have hint2 : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I := by
-    have := integrable_inv_smul (G := ℂ) (hfd.clm_apply continuous_const)
-      (hfds.comp_left (g := fun L : ℂ →L[ℝ] ℂ => L Complex.I) rfl) z
-    simpa [smul_eq_mul] using this
-  -- the two directional derivatives recombine into the Cauchy–Pompeiu integral
+  have hint1 := integrable_inv_mul_fderiv_apply hf hc z 1
+  have hint2 := integrable_inv_mul_fderiv_apply hf hc z Complex.I
   have hAB : (∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) 1)
       + Complex.I * ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I
       = (2 * π : ℝ) • f z := by
@@ -620,8 +630,73 @@ theorem dbar_cauchyTransform (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) 
       = (2 * π : ℝ)⁻¹ • (Complex.I * ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I) := by
     rw [Complex.real_smul, Complex.real_smul]
     ring
-  rw [dbar, happly 1, happly Complex.I, hI, ← smul_add, hAB, smul_smul,
+  rw [dbar, fderiv_cauchyTransform_apply hf hc z 1,
+    fderiv_cauchyTransform_apply hf hc z Complex.I, hI, ← smul_add, hAB, smul_smul,
     inv_mul_cancel₀ two_pi_ne_zero, one_smul]
+
+/-! ### The other derivative -/
+
+/-- The operator `∂/∂x - i ∂/∂y`, twice the usual `∂/∂z`; the companion of `dbar`. -/
+noncomputable def dz (w : ℂ → ℂ) (ζ : ℂ) : ℂ :=
+  fderiv ℝ w ζ 1 - Complex.I * fderiv ℝ w ζ Complex.I
+
+theorem continuous_dz {w : ℂ → ℂ} (hw : ContDiff ℝ 1 w) : Continuous (dz w) := by
+  have h : Continuous (fderiv ℝ w) := hw.continuous_fderiv one_ne_zero
+  unfold dz
+  exact (h.clm_apply continuous_const).sub
+    (continuous_const.mul (h.clm_apply continuous_const))
+
+theorem hasCompactSupport_dz {w : ℂ → ℂ} (hc : HasCompactSupport w) :
+    HasCompactSupport (dz w) := by
+  have h : HasCompactSupport (fderiv ℝ w) := hc.fderiv (𝕜 := ℝ)
+  apply HasCompactSupport.intro h
+  intro ζ hζ
+  have h0 : fderiv ℝ w ζ = 0 := image_eq_zero_of_notMem_tsupport hζ
+  simp [dz, h0]
+
+/-- The algebraic identity behind the polar form of `dz`: for a real-linear `L` and an angle
+`θ`, `(L 1 - i L i) e^{iθ} = L (e^{iθ}) - i L (i e^{iθ})`. -/
+theorem dz_circ_eq (L : ℂ →L[ℝ] ℂ) (θ : ℝ) :
+    (L 1 - Complex.I * L Complex.I) * circ θ
+      = L (circ θ) - Complex.I * L (Complex.I * circ θ) := by
+  have hc : circ θ = (Real.cos θ : ℂ) + (Real.sin θ : ℂ) * Complex.I := by
+    rw [circ, Complex.exp_mul_I, ← Complex.ofReal_cos, ← Complex.ofReal_sin]
+  have hL : ∀ a b : ℝ, L ((a : ℂ) + (b : ℂ) * Complex.I)
+      = (a : ℂ) * L 1 + (b : ℂ) * L Complex.I := by
+    intro a b
+    have he : ((a : ℂ) + (b : ℂ) * Complex.I) = a • (1 : ℂ) + b • Complex.I := by
+      simp [Complex.real_smul]
+    rw [he, map_add, map_smul, map_smul, Complex.real_smul, Complex.real_smul]
+  have hIc : Complex.I * circ θ
+      = ((-Real.sin θ : ℝ) : ℂ) + ((Real.cos θ : ℝ) : ℂ) * Complex.I := by
+    rw [hc, Complex.ofReal_neg]
+    linear_combination (Real.sin θ : ℂ) * Complex.I_sq
+  have h1 : L (circ θ) = (Real.cos θ : ℂ) * L 1 + (Real.sin θ : ℂ) * L Complex.I := by
+    rw [hc, hL]
+  have h2 : L (Complex.I * circ θ)
+      = ((-Real.sin θ : ℝ) : ℂ) * L 1 + (Real.cos θ : ℂ) * L Complex.I := by
+    rw [hIc, hL]
+  rw [h1, h2, hc, Complex.ofReal_neg]
+  linear_combination (-(Real.sin θ : ℂ) * L Complex.I) * Complex.I_sq
+
+/-- **The other derivative of the Cauchy transform also falls on the data.** -/
+theorem dz_cauchyTransform (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) (z : ℂ) :
+    dz (cauchyTransform f) z = cauchyTransform (dz f) z := by
+  have hint1 := integrable_inv_mul_fderiv_apply hf hc z 1
+  have hint2 := integrable_inv_mul_fderiv_apply hf hc z Complex.I
+  have hcongr : ∀ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) 1
+      - Complex.I * ((ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I) = (ξ⁻¹ : ℂ) • dz f (z - ξ) := by
+    intro ξ
+    rw [dz, smul_eq_mul]
+    ring
+  have hI : Complex.I * ((2 * π : ℝ)⁻¹ • ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I)
+      = (2 * π : ℝ)⁻¹ • (Complex.I * ∫ ξ : ℂ, (ξ⁻¹ : ℂ) * fderiv ℝ f (z - ξ) Complex.I) := by
+    rw [Complex.real_smul, Complex.real_smul]
+    ring
+  rw [dz, fderiv_cauchyTransform_apply hf hc z 1,
+    fderiv_cauchyTransform_apply hf hc z Complex.I, hI, ← smul_sub, cauchyTransform,
+    ← integral_const_mul, ← integral_sub hint1 (hint2.const_mul Complex.I),
+    integral_congr_ae (Eventually.of_forall hcongr)]
 
 /-! ### Towards the Beurling transform
 
