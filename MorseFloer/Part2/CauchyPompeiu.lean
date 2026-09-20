@@ -1056,5 +1056,99 @@ theorem norm_beurling_le {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompac
   unfold beurling
   exact le_trans (norm_add_le _ _) (add_le_add hn1 hf1)
 
+/-! ### Towards the Calderón–Zygmund estimate
+
+The Beurling transform maps Hölder classes into themselves. Two ingredients go into that: the
+regularised integral near the pole is `O(ρ^α)` on a disc of radius `ρ`, and the kernel obeys a
+Hörmander condition, so that far from the pole the transforms at two nearby points are
+comparable.
+-/
+
+/-- **The regularised integral near the pole is small at small radius.**  Its size is the mass
+of the Riesz kernel on the disc, which scales like `ρ^α`. -/
+theorem norm_integral_beurling_near_le {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ} (hα : 0 < α)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) {ρ : ℝ} (hρ : 0 < ρ) :
+    ‖∫ ζ in ball z ρ, (f ζ - f z) / (z - ζ) ^ 2‖
+      ≤ C * ρ ^ α * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) := by
+  have hnear : IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z ρ) :=
+    integrableOn_beurling_near hfc hα hf z
+  have hdom : IntegrableOn (fun ζ : ℂ => C * ‖ζ - z‖ ^ (-(2 - α))) (ball z ρ) :=
+    (integrableOn_rpow_neg_ball' (by linarith) z).const_mul C
+  have htrans : (∫ ζ in ball z ρ, C * ‖ζ - z‖ ^ (-(2 - α)))
+      = C * ∫ ξ in ball (0 : ℂ) ρ, ‖ξ‖ ^ (-(2 - α)) := by
+    rw [integral_const_mul]
+    congr 1
+    have hpre : (fun ξ : ℂ => z + ξ) ⁻¹' ball z ρ = ball (0 : ℂ) ρ := by
+      ext x; simp [mem_ball, dist_eq_norm]
+    have key := (measurePreserving_add_left (volume : Measure ℂ) z).setIntegral_preimage_emb
+      (measurableEmbedding_addLeft z) (fun ζ : ℂ => ‖ζ - z‖ ^ (-(2 - α))) (ball z ρ)
+    rw [hpre] at key
+    rw [← key]
+    simp
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  have hmono := integral_mono hnear.norm hdom fun ζ => norm_beurling_integrand_le hf z ζ
+  rw [htrans, integral_rpow_neg_ball (2 - α) hρ] at hmono
+  have hexp : (2 : ℝ) - (2 - α) = α := by ring
+  rw [hexp] at hmono
+  exact le_trans hmono (le_of_eq (by ring))
+
+/-- An elementary inequality, the arithmetic behind the Hörmander condition below. -/
+theorem kernel_sub_aux {a b d m : ℝ} (ha : 0 < a) (hab : a ≤ 2 * b) (hd : 0 ≤ d)
+    (hm : m ≤ a + b) : d * m / (a ^ 2 * b ^ 2) ≤ 10 * d * (a ^ 3)⁻¹ := by
+  have hb : 0 < b := by linarith
+  rw [div_le_iff₀ (by positivity : (0 : ℝ) < a ^ 2 * b ^ 2)]
+  have h3 : 10 * d * (a ^ 3)⁻¹ * (a ^ 2 * b ^ 2) = 10 * d * b ^ 2 / a := by
+    field_simp
+  rw [h3, le_div_iff₀ ha]
+  nlinarith [mul_nonneg (mul_nonneg hd ha.le) (sub_nonneg.2 hm),
+    mul_nonneg (mul_nonneg hd ha.le) (sub_nonneg.2 hab),
+    mul_nonneg (mul_nonneg hd hb.le) (sub_nonneg.2 hab)]
+
+/-- **The Beurling kernel obeys a Hörmander condition.**  Twice as far from the pole as the two
+poles are from each other, moving the pole by `d` changes the kernel by `O(d ‖ζ - z₁‖⁻³)`: one
+power better than the kernel itself, which is what makes the far parts of two nearby Beurling
+integrals comparable. -/
+theorem norm_kernel_sub_le {z₁ z₂ ζ : ℂ} (h : 2 * ‖z₁ - z₂‖ ≤ ‖ζ - z₁‖) :
+    ‖((z₁ - ζ) ^ 2)⁻¹ - ((z₂ - ζ) ^ 2)⁻¹‖ ≤ 10 * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-3 : ℝ) := by
+  rcases eq_or_ne z₁ ζ with rfl | hu
+  · have hz : z₂ - z₁ = 0 := by
+      have h2 : ‖z₁ - z₁‖ = 0 := by simp
+      rw [h2] at h
+      have h3 : ‖z₁ - z₂‖ = 0 := le_antisymm (by linarith) (norm_nonneg _)
+      have h4 := norm_eq_zero.mp h3
+      rw [sub_eq_zero] at h4
+      rw [h4, sub_self]
+    simp [hz]
+  · have ha : 0 < ‖ζ - z₁‖ := by
+      rw [norm_pos_iff, sub_ne_zero]
+      exact fun hc => hu hc.symm
+    have hvv : ‖ζ - z₁‖ - ‖z₁ - z₂‖ ≤ ‖ζ - z₂‖ := by
+      have h1 : (ζ - z₁) - (z₂ - z₁) = ζ - z₂ := by ring
+      have h2 := norm_sub_norm_le (ζ - z₁) (z₂ - z₁)
+      rw [h1, norm_sub_rev z₂ z₁] at h2
+      exact h2
+    have hb : 0 < ‖ζ - z₂‖ := by
+      have := norm_nonneg (z₁ - z₂)
+      linarith
+    have hab : ‖ζ - z₁‖ ≤ 2 * ‖ζ - z₂‖ := by linarith
+    have hu' : z₁ - ζ ≠ 0 := sub_ne_zero.2 hu
+    have hv' : z₂ - ζ ≠ 0 := by
+      rw [← norm_ne_zero_iff, norm_sub_rev]
+      exact ne_of_gt hb
+    have hid : ((z₁ - ζ) ^ 2)⁻¹ - ((z₂ - ζ) ^ 2)⁻¹
+        = ((z₂ - z₁) * (z₂ + z₁ - 2 * ζ)) / ((z₁ - ζ) ^ 2 * (z₂ - ζ) ^ 2) := by
+      field_simp
+      ring
+    have hrpow : ‖ζ - z₁‖ ^ (-3 : ℝ) = (‖ζ - z₁‖ ^ (3 : ℕ))⁻¹ := by
+      rw [Real.rpow_neg (norm_nonneg _), ← Real.rpow_natCast ‖ζ - z₁‖ 3]
+      norm_num
+    have hm : ‖z₂ + z₁ - 2 * ζ‖ ≤ ‖ζ - z₁‖ + ‖ζ - z₂‖ := by
+      have h1 : z₂ + z₁ - 2 * ζ = -((ζ - z₁) + (ζ - z₂)) := by ring
+      rw [h1, norm_neg]
+      exact norm_add_le _ _
+    rw [hid, hrpow, norm_div, norm_mul, norm_mul, norm_pow, norm_pow, norm_sub_rev z₂ z₁,
+      norm_sub_rev z₁ ζ, norm_sub_rev z₂ ζ]
+    exact kernel_sub_aux ha hab (norm_nonneg _) hm
+
 end CauchyPompeiu
 end MorseFloer
