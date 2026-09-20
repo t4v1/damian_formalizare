@@ -1150,5 +1150,225 @@ theorem norm_kernel_sub_le {z₁ z₂ ζ : ℂ} (h : 2 * ‖z₁ - z₂‖ ≤ �
       norm_sub_rev z₁ ζ, norm_sub_rev z₂ ζ]
     exact kernel_sub_aux ha hab (norm_nonneg _) hm
 
+/-- The far integrand is dominated by `f` itself, with the gain of the cut-off radius. -/
+theorem norm_beurling_far_integrand_le {f : ℂ → ℂ} {z ζ : ℂ} {ρ : ℝ} (hρ : 0 < ρ)
+    (hζ : ζ ∈ (ball z ρ)ᶜ) : ‖f ζ / (z - ζ) ^ 2‖ ≤ (ρ ^ 2)⁻¹ * ‖f ζ‖ := by
+  have h1 : ρ ≤ ‖z - ζ‖ := by
+    rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt, ← norm_neg, neg_sub] at hζ
+    exact hζ
+  have h2 : ρ ^ 2 ≤ ‖z - ζ‖ ^ 2 := by nlinarith [hρ.le]
+  rw [norm_div, norm_pow, inv_mul_eq_div]
+  exact div_le_div_of_nonneg_left (norm_nonneg _) (pow_pos hρ 2) h2
+
+/-- **The far part of the Beurling transform is controlled by the `L¹` norm**, with a gain of
+two powers of the cut-off radius. -/
+theorem norm_integral_beurling_far_le {f : ℂ → ℂ} (hfc : Continuous f)
+    (hfs : HasCompactSupport f) (z : ℂ) {ρ : ℝ} (hρ : 0 < ρ) :
+    ‖∫ ζ in (ball z ρ)ᶜ, f ζ / (z - ζ) ^ 2‖ ≤ (ρ ^ 2)⁻¹ * ∫ ζ : ℂ, ‖f ζ‖ := by
+  have hI : Integrable (fun ζ : ℂ => ‖f ζ‖) volume :=
+    (hfc.integrable_of_hasCompactSupport hfs).norm
+  have hfar : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z ρ)ᶜ :=
+    integrableOn_beurling_far hfc hfs z hρ
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  have hb : (∫ ζ in (ball z ρ)ᶜ, ‖f ζ / (z - ζ) ^ 2‖)
+      ≤ ∫ ζ in (ball z ρ)ᶜ, (ρ ^ 2)⁻¹ * ‖f ζ‖ := by
+    refine integral_mono_ae hfar.norm ((hI.const_mul _).integrableOn) ?_
+    filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+    exact norm_beurling_far_integrand_le hρ hζ
+  refine le_trans hb ?_
+  rw [integral_const_mul]
+  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+  exact setIntegral_le_integral hI (Eventually.of_forall fun ζ => norm_nonneg _)
+
+/-- The Beurling transform is additive in its argument, where both terms are admissible. -/
+theorem beurling_sub {f g : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {Cf α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ Cf * ‖ξ - η‖ ^ α)
+    (hgc : Continuous g) (hgs : HasCompactSupport g) {Cg : ℝ}
+    (hg : ∀ ξ η : ℂ, ‖g ξ - g η‖ ≤ Cg * ‖ξ - η‖ ^ α) (z : ℂ) :
+    beurling (fun ζ => f ζ - g ζ) z = beurling f z - beurling g z := by
+  simp only [beurling]
+  have h1 : (∫ ζ in ball z 1, (f ζ - g ζ - (f z - g z)) / (z - ζ) ^ 2)
+      = (∫ ζ in ball z 1, (f ζ - f z) / (z - ζ) ^ 2)
+        - ∫ ζ in ball z 1, (g ζ - g z) / (z - ζ) ^ 2 := by
+    rw [← integral_sub (integrableOn_beurling_near hfc hα hf z)
+      (integrableOn_beurling_near hgc hα hg z)]
+    refine setIntegral_congr_fun measurableSet_ball fun ζ _ => ?_
+    ring
+  have h2 : (∫ ζ in (ball z 1)ᶜ, (f ζ - g ζ) / (z - ζ) ^ 2)
+      = (∫ ζ in (ball z 1)ᶜ, f ζ / (z - ζ) ^ 2)
+        - ∫ ζ in (ball z 1)ᶜ, g ζ / (z - ζ) ^ 2 := by
+    rw [← integral_sub (integrableOn_beurling_far hfc hfs z one_pos)
+      (integrableOn_beurling_far hgc hgs z one_pos)]
+    refine setIntegral_congr_fun measurableSet_ball.compl fun ζ _ => ?_
+    ring
+  rw [h1, h2]
+  ring
+
+/-- **The Beurling transform commutes with translations.** -/
+theorem beurling_comp_add (f : ℂ → ℂ) (z τ : ℂ) :
+    beurling (fun w => f (w + τ)) z = beurling f (z + τ) := by
+  have hpre : (fun w : ℂ => w + τ) ⁻¹' ball (z + τ) 1 = ball z 1 := by
+    ext x
+    simp only [mem_preimage, mem_ball, dist_eq_norm, add_sub_add_right_eq_sub]
+  simp only [beurling]
+  congr 1
+  · have key := (measurePreserving_add_right (volume : Measure ℂ) τ).setIntegral_preimage_emb
+      (measurableEmbedding_addRight τ)
+      (fun ζ : ℂ => (f ζ - f (z + τ)) / ((z + τ) - ζ) ^ 2) (ball (z + τ) 1)
+    rw [hpre] at key
+    rw [← key]
+    refine setIntegral_congr_fun measurableSet_ball fun w _ => ?_
+    ring
+  · have key := (measurePreserving_add_right (volume : Measure ℂ) τ).setIntegral_preimage_emb
+      (measurableEmbedding_addRight τ)
+      (fun ζ : ℂ => f ζ / ((z + τ) - ζ) ^ 2) (ball (z + τ) 1)ᶜ
+    rw [preimage_compl, hpre] at key
+    rw [← key]
+    refine setIntegral_congr_fun measurableSet_ball.compl fun w _ => ?_
+    ring
+
+/-- **A two-parameter estimate for the increment of the Beurling transform.**  Translating the
+argument turns the difference of the transform at two points into the transform of the
+difference `f - f(· + τ)`, which is small in the supremum norm while keeping the Hölder
+constant; splitting that transform at an arbitrary radius balances the Hölder size of the near
+part against the `L¹` size of the far one. -/
+theorem norm_beurling_sub_le {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z₁ z₂ : ℂ)
+    {ρ : ℝ} (hρ : 0 < ρ) :
+    ‖beurling f z₁ - beurling f z₂‖
+      ≤ 2 * C * ρ ^ α * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+        + (ρ ^ 2)⁻¹ * ∫ ζ : ℂ, ‖f ζ - f (ζ + (z₂ - z₁))‖ := by
+  have hgc : Continuous fun w : ℂ => f (w + (z₂ - z₁)) :=
+    hfc.comp (continuous_id.add continuous_const)
+  have hgs : HasCompactSupport fun w : ℂ => f (w + (z₂ - z₁)) :=
+    hfs.comp_homeomorph (Homeomorph.addRight (z₂ - z₁))
+  have hg : ∀ ξ η : ℂ, ‖f (ξ + (z₂ - z₁)) - f (η + (z₂ - z₁))‖ ≤ C * ‖ξ - η‖ ^ α := by
+    intro ξ η
+    have h := hf (ξ + (z₂ - z₁)) (η + (z₂ - z₁))
+    have he : ξ + (z₂ - z₁) - (η + (z₂ - z₁)) = ξ - η := by ring
+    rw [he] at h
+    exact h
+  have hhc : Continuous fun ζ : ℂ => f ζ - f (ζ + (z₂ - z₁)) := hfc.sub hgc
+  have hhs : HasCompactSupport fun ζ : ℂ => f ζ - f (ζ + (z₂ - z₁)) := hfs.sub hgs
+  have hh : ∀ ξ η : ℂ, ‖(f ξ - f (ξ + (z₂ - z₁))) - (f η - f (η + (z₂ - z₁)))‖
+      ≤ 2 * C * ‖ξ - η‖ ^ α := by
+    intro ξ η
+    have h1 := hf ξ η
+    have h2 := hg ξ η
+    have he : (f ξ - f (ξ + (z₂ - z₁))) - (f η - f (η + (z₂ - z₁)))
+        = (f ξ - f η) - (f (ξ + (z₂ - z₁)) - f (η + (z₂ - z₁))) := by ring
+    rw [he]
+    calc ‖(f ξ - f η) - (f (ξ + (z₂ - z₁)) - f (η + (z₂ - z₁)))‖
+        ≤ ‖f ξ - f η‖ + ‖f (ξ + (z₂ - z₁)) - f (η + (z₂ - z₁))‖ := norm_sub_le _ _
+      _ ≤ 2 * C * ‖ξ - η‖ ^ α := by linarith
+  have hcov : beurling (fun w : ℂ => f (w + (z₂ - z₁))) z₁ = beurling f z₂ := by
+    rw [beurling_comp_add]
+    congr 1
+    ring
+  have hlin : beurling (fun ζ : ℂ => f ζ - f (ζ + (z₂ - z₁))) z₁
+      = beurling f z₁ - beurling (fun w : ℂ => f (w + (z₂ - z₁))) z₁ :=
+    beurling_sub hfc hfs hα hf hgc hgs hg z₁
+  rw [← hcov, ← hlin, ← beurlingWith_eq hhc hhs (C := 2 * C) hα hh z₁ hρ]
+  unfold beurlingWith
+  refine le_trans (norm_add_le _ _) (add_le_add ?_ ?_)
+  · exact norm_integral_beurling_near_le hhc hα hh z₁ hρ
+  · exact norm_integral_beurling_far_le hhc hhs z₁ hρ
+
+/-- **The `L¹` size of the increment of a compactly supported Hölder function.**  It is as small
+as the Hölder modulus of the shift, over a support that grows only by the size of the shift. -/
+theorem integral_norm_sub_translate_le {f : ℂ → ℂ} {C α : ℝ}
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) {M : ℝ} (hM : 0 ≤ M)
+    (hsupp : ∀ ζ : ℂ, M ≤ ‖ζ‖ → f ζ = 0) (τ : ℂ) :
+    (∫ ζ : ℂ, ‖f ζ - f (ζ + τ)‖) ≤ C * ‖τ‖ ^ α * (π * (M + ‖τ‖) ^ 2) := by
+  have hzero : ∀ ζ : ℂ, ζ ∉ ball (0 : ℂ) (M + ‖τ‖) → ‖f ζ - f (ζ + τ)‖ = 0 := by
+    intro ζ hζ
+    rw [mem_ball, dist_zero_right, not_lt] at hζ
+    have h1 : f ζ = 0 := hsupp ζ (by linarith [norm_nonneg τ])
+    have h2 : f (ζ + τ) = 0 := by
+      refine hsupp _ ?_
+      have h3 : ‖ζ‖ - ‖τ‖ ≤ ‖ζ + τ‖ := by
+        have h4 := norm_sub_norm_le ζ (-τ)
+        simpa using h4
+      linarith
+    rw [h1, h2, sub_zero, norm_zero]
+  rw [← setIntegral_eq_integral_of_forall_compl_eq_zero hzero]
+  have hvol : volume (ball (0 : ℂ) (M + ‖τ‖)) < ⊤ := measure_ball_lt_top
+  have hpt : ∀ ζ ∈ ball (0 : ℂ) (M + ‖τ‖), ‖‖f ζ - f (ζ + τ)‖‖ ≤ C * ‖τ‖ ^ α := by
+    intro ζ _
+    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+    have h := hf ζ (ζ + τ)
+    have he : ζ - (ζ + τ) = -τ := by ring
+    rw [he, norm_neg] at h
+    exact h
+  have hbound := norm_setIntegral_le_of_norm_le_const hvol hpt
+  have hvr : volume.real (ball (0 : ℂ) (M + ‖τ‖)) = π * (M + ‖τ‖) ^ 2 := by
+    rw [measureReal_def, Complex.volume_ball, ENNReal.toReal_mul, ENNReal.toReal_pow,
+      ENNReal.toReal_ofReal (by linarith [norm_nonneg τ] : (0 : ℝ) ≤ M + ‖τ‖),
+      ENNReal.coe_toReal, NNReal.coe_real_pi]
+    ring
+  rw [hvr] at hbound
+  exact le_trans (Real.le_norm_self _) hbound
+
+/-- **Hölder continuity of the Beurling transform, with a loss in the exponent.**  Balancing the
+cut-off radius in the two-parameter estimate against the increment of `f` gives the exponent
+`α²/(α+2)`, which is positive but smaller than the sharp `α` of the Calderón–Zygmund theory.
+Positivity is what an elliptic bootstrap needs: each round still gains a full derivative. -/
+theorem norm_beurling_sub_le_rpow {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α)
+    {M : ℝ} (hM : 0 ≤ M) (hsupp : ∀ ζ : ℂ, M ≤ ‖ζ‖ → f ζ = 0) {z₁ z₂ : ℂ}
+    (hd : ‖z₁ - z₂‖ ≤ 1) :
+    ‖beurling f z₁ - beurling f z₂‖
+      ≤ (2 * C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + C * (π * (M + 1) ^ 2))
+        * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by
+  have hβ : α ^ 2 / (α + 2) ≠ 0 := ne_of_gt (div_pos (pow_pos hα 2) (by linarith))
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  rcases eq_or_ne z₁ z₂ with rfl | hne
+  · simp [Real.zero_rpow hβ]
+  have hd0 : 0 < ‖z₁ - z₂‖ := by
+    rw [norm_pos_iff, sub_ne_zero]
+    exact hne
+  have hρ : 0 < ‖z₁ - z₂‖ ^ (α / (α + 2)) := Real.rpow_pos_of_pos hd0 _
+  have key := norm_beurling_sub_le hfc hfs hα hf z₁ z₂ hρ
+  have e1 : (‖z₁ - z₂‖ ^ (α / (α + 2))) ^ α = ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by
+    rw [← Real.rpow_mul hd0.le]
+    congr 1
+    field_simp
+  have e2 : ((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ (2 : ℕ))⁻¹ * ‖z₁ - z₂‖ ^ α
+      = ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by
+    rw [← Real.rpow_natCast (‖z₁ - z₂‖ ^ (α / (α + 2))) 2, ← Real.rpow_mul hd0.le,
+      ← Real.rpow_neg hd0.le, ← Real.rpow_add hd0]
+    congr 1
+    push_cast
+    field_simp
+    ring
+  have hL1 : (∫ ζ : ℂ, ‖f ζ - f (ζ + (z₂ - z₁))‖)
+      ≤ C * ‖z₁ - z₂‖ ^ α * (π * (M + 1) ^ 2) := by
+    have h := integral_norm_sub_translate_le hf hM hsupp (z₂ - z₁)
+    rw [norm_sub_rev z₂ z₁] at h
+    refine le_trans h ?_
+    have hpow : (0 : ℝ) ≤ ‖z₁ - z₂‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+    have hsq : (M + ‖z₁ - z₂‖) ^ 2 ≤ (M + 1) ^ 2 := by nlinarith [norm_nonneg (z₁ - z₂)]
+    exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hsq Real.pi_pos.le)
+      (mul_nonneg hC0 hpow)
+  have hterm2 : ((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ 2)⁻¹ * (∫ ζ : ℂ, ‖f ζ - f (ζ + (z₂ - z₁))‖)
+      ≤ C * (π * (M + 1) ^ 2) * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by
+    calc ((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ 2)⁻¹ * (∫ ζ : ℂ, ‖f ζ - f (ζ + (z₂ - z₁))‖)
+        ≤ ((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ 2)⁻¹ * (C * ‖z₁ - z₂‖ ^ α * (π * (M + 1) ^ 2)) :=
+          mul_le_mul_of_nonneg_left hL1 (by positivity)
+      _ = C * (π * (M + 1) ^ 2) * (((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ 2)⁻¹ * ‖z₁ - z₂‖ ^ α) := by
+          ring
+      _ = C * (π * (M + 1) ^ 2) * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by rw [e2]
+  calc ‖beurling f z₁ - beurling f z₂‖
+      ≤ 2 * C * (‖z₁ - z₂‖ ^ (α / (α + 2))) ^ α
+          * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+        + ((‖z₁ - z₂‖ ^ (α / (α + 2))) ^ 2)⁻¹ * ∫ ζ : ℂ, ‖f ζ - f (ζ + (z₂ - z₁))‖ := key
+    _ ≤ 2 * C * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2))
+          * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+        + C * (π * (M + 1) ^ 2) * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by
+        rw [e1]
+        exact add_le_add le_rfl hterm2
+    _ = (2 * C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + C * (π * (M + 1) ^ 2))
+          * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by ring
+
 end CauchyPompeiu
 end MorseFloer
