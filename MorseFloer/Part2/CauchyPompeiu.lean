@@ -710,38 +710,47 @@ far from it the kernel is harmless.  The splitting radius is fixed to `1`. -/
 noncomputable def beurling (f : ℂ → ℂ) (z : ℂ) : ℂ :=
   (∫ ζ in ball z 1, (f ζ - f z) / (z - ζ) ^ 2) + ∫ ζ in (ball z 1)ᶜ, f ζ / (z - ζ) ^ 2
 
-/-- **The regularised integral converges absolutely.**  Subtracting `f z` turns the
-non-integrable kernel `‖ζ - z‖⁻²` into `‖ζ - z‖^{α-2}`, which is integrable because `α > 0`. -/
+/-- A Hölder constant is nonnegative. -/
+theorem holder_const_nonneg {f : ℂ → ℂ} {C α : ℝ}
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) : 0 ≤ C := by
+  have h := hf 1 0
+  have h1 : ‖(1 : ℂ) - 0‖ ^ α = 1 := by rw [sub_zero, norm_one, Real.one_rpow]
+  rw [h1, mul_one] at h
+  exact le_trans (norm_nonneg _) h
+
+/-- **The regularised integrand is dominated by a Riesz kernel below the critical exponent.**
+Subtracting the value at the centre turns the non-integrable `‖ζ - z‖⁻²` into
+`‖ζ - z‖^{α-2}`, and `α > 0` puts that below the threshold. -/
+theorem norm_beurling_integrand_le {f : ℂ → ℂ} {C α : ℝ}
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z ζ : ℂ) :
+    ‖(f ζ - f z) / (z - ζ) ^ 2‖ ≤ C * ‖ζ - z‖ ^ (-(2 - α)) := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  rcases eq_or_ne ζ z with rfl | hζ
+  · have h0 : (0 : ℝ) ≤ C * ‖(ζ : ℂ) - ζ‖ ^ (-(2 - α)) :=
+      mul_nonneg hC0 (Real.rpow_nonneg (norm_nonneg _) _)
+    simpa using h0
+  · have hnz : ‖ζ - z‖ ≠ 0 := norm_ne_zero_iff.2 (sub_ne_zero.2 hζ)
+    have hpos : 0 < ‖ζ - z‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hnz)
+    rw [norm_div, norm_pow, ← norm_neg (z - ζ), neg_sub]
+    rw [div_le_iff₀ (by positivity)]
+    calc ‖f ζ - f z‖ ≤ C * ‖ζ - z‖ ^ α := hf ζ z
+      _ = C * ‖ζ - z‖ ^ (-(2 - α)) * ‖ζ - z‖ ^ 2 := by
+          rw [mul_assoc]
+          congr 1
+          rw [← Real.rpow_natCast ‖ζ - z‖ 2, ← Real.rpow_add hpos]
+          congr 1
+          push_cast
+          ring
+
+/-- **The regularised integral converges absolutely.** -/
 theorem integrableOn_beurling_near {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ} (hα : 0 < α)
     (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) {ρ : ℝ} :
     IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z ρ) := by
-  have hC0 : 0 ≤ C := by
-    have h := hf (z + 1) z
-    have h1 : ‖(z + 1) - z‖ ^ α = 1 := by
-      rw [add_sub_cancel_left, norm_one, Real.one_rpow]
-    rw [h1, mul_one] at h
-    exact le_trans (norm_nonneg _) h
   refine Integrable.mono' (g := fun ζ : ℂ => C * ‖ζ - z‖ ^ (-(2 - α)))
-    (((integrableOn_rpow_neg_ball' (by linarith) z).const_mul C)) ?_ ?_
+    ((integrableOn_rpow_neg_ball' (by linarith) z).const_mul C) ?_ ?_
   · exact (((hfc.measurable.sub measurable_const).div
       ((measurable_const.sub measurable_id).pow_const 2))).aestronglyMeasurable
-  · refine Eventually.of_forall fun ζ => ?_
-    rcases eq_or_ne ζ z with rfl | hζ
-    · have h0 : (0 : ℝ) ≤ C * ‖(ζ : ℂ) - ζ‖ ^ (-(2 - α)) :=
-        mul_nonneg hC0 (Real.rpow_nonneg (norm_nonneg _) _)
-      simpa using h0
-    · have hnz : ‖ζ - z‖ ≠ 0 := norm_ne_zero_iff.2 (sub_ne_zero.2 hζ)
-      have hpos : 0 < ‖ζ - z‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hnz)
-      rw [norm_div, norm_pow, ← norm_neg (z - ζ), neg_sub]
-      rw [div_le_iff₀ (by positivity)]
-      calc ‖f ζ - f z‖ ≤ C * ‖ζ - z‖ ^ α := hf ζ z
-        _ = C * ‖ζ - z‖ ^ (-(2 - α)) * ‖ζ - z‖ ^ 2 := by
-            rw [mul_assoc]
-            congr 1
-            rw [← Real.rpow_natCast ‖ζ - z‖ 2, ← Real.rpow_add hpos]
-            congr 1
-            push_cast
-            ring
+  · exact Eventually.of_forall fun ζ => norm_beurling_integrand_le hf z ζ
 
 /-- Far from the pole the Beurling integrand is dominated by `f` itself. -/
 theorem integrableOn_beurling_far {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
@@ -878,6 +887,51 @@ theorem beurlingWith_eq {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompact
   rcases le_total ρ 1 with h | h
   · exact beurlingWith_eq_of_le hfc hfs hα hf z hρ h
   · exact (beurlingWith_eq_of_le hfc hfs hα hf z one_pos h).symm
+
+/-- **The Beurling transform of a compactly supported Hölder function is bounded.**  The near
+integral is dominated by the mass of the Riesz kernel on the unit disc, which does not depend
+on the centre, and the far one by the `L¹` norm of `f`; neither bound involves the point, so
+the transform is bounded on the whole plane. -/
+theorem norm_beurling_le {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
+    ‖beurling f z‖ ≤ C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + ∫ ζ : ℂ, ‖f ζ‖ := by
+  have hnear : IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z 1) :=
+    integrableOn_beurling_near hfc hα hf z
+  have hdom : IntegrableOn (fun ζ : ℂ => C * ‖ζ - z‖ ^ (-(2 - α))) (ball z 1) :=
+    (integrableOn_rpow_neg_ball' (by linarith) z).const_mul C
+  have htrans : (∫ ζ in ball z 1, C * ‖ζ - z‖ ^ (-(2 - α)))
+      = C * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) := by
+    rw [integral_const_mul]
+    congr 1
+    have hpre : (fun ξ : ℂ => z + ξ) ⁻¹' ball z 1 = ball (0 : ℂ) 1 := by
+      ext x; simp [mem_ball, dist_eq_norm]
+    have key := (measurePreserving_add_left (volume : Measure ℂ) z).setIntegral_preimage_emb
+      (measurableEmbedding_addLeft z) (fun ζ : ℂ => ‖ζ - z‖ ^ (-(2 - α))) (ball z 1)
+    rw [hpre] at key
+    rw [← key]
+    simp
+  have hn1 : ‖∫ ζ in ball z 1, (f ζ - f z) / (z - ζ) ^ 2‖
+      ≤ C * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) := by
+    refine le_trans (norm_integral_le_integral_norm _) ?_
+    rw [← htrans]
+    exact integral_mono hnear.norm hdom fun ζ => norm_beurling_integrand_le hf z ζ
+  have hI : Integrable (fun ζ : ℂ => ‖f ζ‖) volume :=
+    (hfc.integrable_of_hasCompactSupport hfs).norm
+  have hfar : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z 1)ᶜ :=
+    integrableOn_beurling_far hfc hfs z one_pos
+  have hf1 : ‖∫ ζ in (ball z 1)ᶜ, f ζ / (z - ζ) ^ 2‖ ≤ ∫ ζ : ℂ, ‖f ζ‖ := by
+    refine le_trans (norm_integral_le_integral_norm _) ?_
+    refine le_trans (integral_mono_ae hfar.norm hI.integrableOn ?_) ?_
+    · filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+      have h1 : (1 : ℝ) ≤ ‖z - ζ‖ := by
+        rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt, ← norm_neg, neg_sub] at hζ
+        exact hζ
+      rw [norm_div, norm_pow]
+      refine div_le_self (norm_nonneg _) ?_
+      nlinarith [h1]
+    · exact setIntegral_le_integral hI (Eventually.of_forall fun ζ => norm_nonneg _)
+  unfold beurling
+  exact le_trans (norm_add_le _ _) (add_le_add hn1 hf1)
 
 end CauchyPompeiu
 end MorseFloer
