@@ -1704,5 +1704,121 @@ theorem norm_integral_prod_outer_le {f : ℂ → ℂ} (hfc : Continuous f) {C α
         mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left h3 hcoef) hdα
     _ = 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α))) * C * ‖z₁ - z₂‖ ^ α := by ring
 
+/-- The far integrand, written with the truncated kernel. -/
+theorem mul_truncKernel_eq_indicator (f : ℂ → ℂ) (z : ℂ) (ρ : ℝ) :
+    (fun ζ : ℂ => f ζ * truncKernel z ρ ζ)
+      = (ball z ρ)ᶜ.indicator (fun ζ => f ζ / (z - ζ) ^ 2) := by
+  funext ζ
+  unfold truncKernel
+  by_cases h : ζ ∈ (ball z ρ)ᶜ
+  · rw [indicator_of_mem h, indicator_of_mem h, div_eq_mul_inv]
+  · rw [indicator_of_notMem h, indicator_of_notMem h, mul_zero]
+
+theorem integrable_mul_truncKernel {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (z : ℂ) {ρ : ℝ} (hρ : 0 < ρ) : Integrable fun ζ : ℂ => f ζ * truncKernel z ρ ζ := by
+  rw [mul_truncKernel_eq_indicator]
+  exact (integrableOn_beurling_far hfc hfs z hρ).integrable_indicator measurableSet_ball.compl
+
+/-- **The Calderón–Zygmund estimate for the Beurling transform.**  On compactly supported
+`C^{0,α}` data with `0 < α < 1`, the transform is again `C^{0,α}`, with the *sharp* exponent.
+
+Both transforms are split at the radius `2‖z₁ - z₂‖`.  The two near parts are `O(d^α)` because
+the regularised kernel is integrable.  The two far parts are compared against each other
+through the truncated kernels: subtracting the constant `f z₁` costs nothing, since the
+difference of the two truncated kernels integrates to zero over the plane, and what remains is
+bounded near the poles by the area of a disc of radius `3d` and far from them by the Hörmander
+condition, which gains the power that makes the tail converge. -/
+theorem norm_beurling_sub_le_holder {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hα1 : α < 1) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α)
+    (z₁ z₂ : ℂ) :
+    ‖beurling f z₁ - beurling f z₂‖
+      ≤ (4 * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + 14 * π
+          + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) * C * ‖z₁ - z₂‖ ^ α := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hM : (0 : ℝ) ≤ ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) :=
+    integral_nonneg fun ξ => Real.rpow_nonneg (norm_nonneg _) _
+  have hT : (0 : ℝ) ≤ ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)) :=
+    integral_nonneg fun ξ => Real.rpow_nonneg (norm_nonneg _) _
+  rcases eq_or_ne z₁ z₂ with rfl | hne
+  · simp [Real.zero_rpow (ne_of_gt hα)]
+  have hd0 : 0 < ‖z₁ - z₂‖ := by
+    rw [norm_pos_iff, sub_ne_zero]
+    exact hne
+  have hρ : (0 : ℝ) < 2 * ‖z₁ - z₂‖ := by linarith
+  have hdα : (0 : ℝ) ≤ ‖z₁ - z₂‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+  have hB1 : beurling f z₁
+      = (∫ ζ in ball z₁ (2 * ‖z₁ - z₂‖), (f ζ - f z₁) / (z₁ - ζ) ^ 2)
+        + ∫ ζ in (ball z₁ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₁ - ζ) ^ 2 := by
+    rw [← beurlingWith_eq hfc hfs hα hf z₁ hρ]
+    rfl
+  have hB2 : beurling f z₂
+      = (∫ ζ in ball z₂ (2 * ‖z₁ - z₂‖), (f ζ - f z₂) / (z₂ - ζ) ^ 2)
+        + ∫ ζ in (ball z₂ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₂ - ζ) ^ 2 := by
+    rw [← beurlingWith_eq hfc hfs hα hf z₂ hρ]
+    rfl
+  have hfar : (∫ ζ in (ball z₁ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₁ - ζ) ^ 2)
+      - (∫ ζ in (ball z₂ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₂ - ζ) ^ 2)
+      = ∫ ζ : ℂ, (f ζ - f z₁)
+        * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ) := by
+    rw [integral_beurling_far_eq, integral_beurling_far_eq,
+      ← integral_sub (integrable_mul_truncKernel hfc hfs z₁ hρ)
+        (integrable_mul_truncKernel hfc hfs z₂ hρ)]
+    have hpt : ∀ ζ : ℂ, f ζ * truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ
+          - f ζ * truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ
+        = (f ζ - f z₁)
+            * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)
+          + f z₁ * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ
+            - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ) := fun ζ => by ring
+    simp only [hpt]
+    rw [integral_add (integrable_prod_truncKernel_sub hfc hα hα1 hf hd0)
+        ((integrable_truncKernel_sub hρ (le_refl _)).const_mul _),
+      integral_const_mul, integral_truncKernel_sub_eq_zero, mul_zero, add_zero]
+  have hsplit : (∫ ζ : ℂ, (f ζ - f z₁)
+        * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ))
+      = (∫ ζ in ball z₁ (3 * ‖z₁ - z₂‖), (f ζ - f z₁)
+          * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ))
+        + ∫ ζ in (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ, (f ζ - f z₁)
+          * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ) :=
+    (integral_add_compl measurableSet_ball
+      (integrable_prod_truncKernel_sub hfc hα hα1 hf hd0)).symm
+  have hfarbound : ‖(∫ ζ in (ball z₁ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₁ - ζ) ^ 2)
+      - (∫ ζ in (ball z₂ (2 * ‖z₁ - z₂‖))ᶜ, f ζ / (z₂ - ζ) ^ 2)‖
+      ≤ 14 * π * C * ‖z₁ - z₂‖ ^ α
+        + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α))) * C * ‖z₁ - z₂‖ ^ α := by
+    rw [hfar, hsplit]
+    exact le_trans (norm_add_le _ _)
+      (add_le_add (norm_integral_prod_inner_le hα hα1 hf hd0)
+        (norm_integral_prod_outer_le hfc hα hα1 hf hd0))
+  have hnear₁ : ‖∫ ζ in ball z₁ (2 * ‖z₁ - z₂‖), (f ζ - f z₁) / (z₁ - ζ) ^ 2‖
+      ≤ C * (2 * ‖z₁ - z₂‖) ^ α * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) :=
+    norm_integral_beurling_near_le hfc hα hf z₁ hρ
+  have hnear₂ : ‖∫ ζ in ball z₂ (2 * ‖z₁ - z₂‖), (f ζ - f z₂) / (z₂ - ζ) ^ 2‖
+      ≤ C * (2 * ‖z₁ - z₂‖) ^ α * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) :=
+    norm_integral_beurling_near_le hfc hα hf z₂ hρ
+  have key : ‖beurling f z₁ - beurling f z₂‖
+      ≤ (C * (2 * ‖z₁ - z₂‖) ^ α * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+          + (C * (2 * ‖z₁ - z₂‖) ^ α * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+        + (14 * π * C * ‖z₁ - z₂‖ ^ α
+          + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α))) * C * ‖z₁ - z₂‖ ^ α) := by
+    rw [hB1, hB2]
+    have he : ∀ a b c e : ℂ, a + b - (c + e) = a - c + (b - e) := fun a b c e => by ring
+    rw [he]
+    exact le_trans (norm_add_le _ _)
+      (add_le_add (le_trans (norm_sub_le _ _) (add_le_add hnear₁ hnear₂)) hfarbound)
+  refine le_trans key ?_
+  have h2 : (2 : ℝ) ^ α ≤ 2 := by
+    calc (2 : ℝ) ^ α ≤ (2 : ℝ) ^ (1 : ℝ) :=
+          Real.rpow_le_rpow_of_exponent_le (by norm_num) hα1.le
+      _ = 2 := Real.rpow_one 2
+  have h2α : C * (2 * ‖z₁ - z₂‖) ^ α * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+      ≤ 2 * C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) * ‖z₁ - z₂‖ ^ α := by
+    rw [Real.mul_rpow (by norm_num) (norm_nonneg _)]
+    calc C * (2 ^ α * ‖z₁ - z₂‖ ^ α) * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+        = (C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) * ‖z₁ - z₂‖ ^ α) * 2 ^ α := by ring
+      _ ≤ (C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) * ‖z₁ - z₂‖ ^ α) * 2 :=
+          mul_le_mul_of_nonneg_left h2 (mul_nonneg (mul_nonneg hC0 hM) hdα)
+      _ = 2 * C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) * ‖z₁ - z₂‖ ^ α := by ring
+  linarith [h2α]
+
 end CauchyPompeiu
 end MorseFloer

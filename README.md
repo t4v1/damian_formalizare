@@ -35,7 +35,9 @@ Everything else is proved, including:
   complex structures; Wirtinger's inequality and Yorke's theorem; the Floer complex
   and `∂ ∘ ∂ = 0`; invariance of Floer homology; the comparison of the Floer and
   Morse complexes; the Fredholm index and its stability under compact
-  perturbations (Riesz–Schauder); Weyl's lemma for `∂̄`; Sard's theorem in all
+  perturbations (Riesz–Schauder); Weyl's lemma for `∂̄`; the Cauchy–Pompeiu formula and the
+  Cauchy transform as the solution operator of `∂̄v = f`, together with the Beurling
+  transform and the Calderón–Zygmund estimate for it at the sharp Hölder exponent; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

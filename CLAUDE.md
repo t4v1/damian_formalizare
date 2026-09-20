@@ -118,7 +118,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch10.lean` | 10 From Floer to Morse | 0 | the two complexes compared; Props 10.2.2 (Fredholm from the estimate: Riesz, Hahn–Banach, open mapping) and 10.2.3 (cut-off), Lemmas 10.2.4 (without Fourier analysis) and 10.4.1 (Jensen) proved; the chapter assumes nothing |
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Weyl.lean` | helper for 12.1.1 | 0 | Weyl's lemma for `∂̄`: radial mollifier, mean value property by polar coordinates and Cauchy, Lebesgue differentiation |
-| `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus; the Cauchy transform `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` as the solution operator of `∂̄v = f`, both halves (`T ∘ ∂̄ = id` and `∂̄ ∘ T = id`), and local integrability of the kernel `1/ξ`; then the Beurling transform: the Riesz kernel `‖ξ‖^(-a)` is integrable on a disc exactly for `a < 2`, the two halves of the principal value converge for Hölder data with compact support, the kernel `(z-ξ)⁻²` has zero mean on every annulus centred at its pole (by the quarter turn `ξ ↦ iξ`), the cut-off radius is therefore immaterial, the transform is bounded on the plane by the mass of the Riesz kernel on the unit disc plus the `L¹` norm of `f`, it commutes with translations, and it is Hölder continuous with exponent `α²/(α+2)` on compactly supported `C^{0,α}` data |
+| `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus; the Cauchy transform `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` as the solution operator of `∂̄v = f`, both halves (`T ∘ ∂̄ = id` and `∂̄ ∘ T = id`), and local integrability of the kernel `1/ξ`; then the Beurling transform: the Riesz kernel `‖ξ‖^(-a)` is integrable on a disc exactly for `a < 2`, the two halves of the principal value converge for Hölder data with compact support, the kernel `(z-ξ)⁻²` has zero mean on every annulus centred at its pole (by the quarter turn `ξ ↦ iξ`), the cut-off radius is therefore immaterial, the transform is bounded on the plane by the mass of the Riesz kernel on the unit disc plus the `L¹` norm of `f`, it commutes with translations, and — the Calderón–Zygmund estimate, `norm_beurling_sub_le_holder` — it maps compactly supported `C^{0,α}` data to `C^{0,α}` at the sharp exponent, for `0 < α < 1`, the pivot being that the difference of two truncated kernels integrates to zero over the plane, by the reflection through the midpoint of the two poles |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 0 | Cauchy–Riemann regularity (classical and distributional, the latter restated from `Weyl.lean`), the bootstrapping recursion; the chapter assumes nothing |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/SardMoreira/*.lean` | helper for 14.2.1 | 0 | Moreira's Sard theorem (Hausdorff-measure bound), transplanted from Kudryashov's `SardMoreira` and adapted to the pinned Mathlib; see the note below |
@@ -237,16 +237,20 @@ result recorded in the blueprint with no Lean statement at all:
    estimate `integrableOn_rpow_neg_ball`, sharp at the exponent `2`), and the cut-off radius
    is immaterial because the kernel has zero mean on annuli centred at the pole
    (`setIntegral_beurling_kernel_annulus`, from the quarter turn `ξ ↦ iξ`, which preserves
-   Lebesgue measure and negates the kernel). The transform is also bounded pointwise
-   (`norm_beurling_le`), and **Hölder continuous with a loss**: `norm_beurling_sub_le_rpow`
-   gives the exponent `α²/(α+2)`, by translation covariance (the increment of the transform is
-   the transform of the increment of `f`) and by balancing the cut-off radius between the
-   Hölder size of the near part and the `L¹` size of the far one. A positive exponent is all
-   an elliptic bootstrap needs, since each round still gains a full derivative. What is still
-   missing is the *sharp* Calderón–Zygmund estimate, exponent `α` for exponent `α`; its one
-   remaining ingredient is that the difference of two truncated kernels integrates to zero
-   over the plane, the Hörmander condition `norm_kernel_sub_le` and the tail mass
-   `integral_rpow_neg_compl_ball` being in place;
+   Lebesgue measure and negates the kernel). The transform is bounded pointwise
+   (`norm_beurling_le`), and the **Calderón–Zygmund estimate is proved at the sharp
+   exponent**: `norm_beurling_sub_le_holder` says that on compactly supported `C^{0,α}` data
+   with `0 < α < 1` the transform is again `C^{0,α}`, with an explicit constant built from the
+   two Riesz masses and `π`. Both transforms are split at the radius `2‖z₁ - z₂‖`; the near
+   parts are `O(d^α)`; the far parts are compared through the truncated kernels, where
+   subtracting the constant `f z₁` costs nothing because the difference of the two truncated
+   kernels integrates to zero over the plane — the reflection through the midpoint of the two
+   poles exchanges them, so no improper limit is needed — and what remains is bounded near the
+   poles by the area of a disc and far from them by the Hörmander condition. A weaker estimate
+   with exponent `α²/(α+2)`, from translation covariance and a balanced cut-off radius, is
+   also there (`norm_beurling_sub_le_rpow`). **What is left of (b) is the identification
+   `∂(Tf)/∂z = B f`**, differentiating the Cauchy transform in the other direction, which is
+   what turns the estimate into a statement about the solution operator;
    (c) bootstrapping, where `u - v` is holomorphic by `Part2/Weyl.lean`. Note that the
    `C^k` scale is not enough: the Cauchy transform of a `C^k` function is only `C^k`, so
    (b) cannot be avoided. With 6.5.3 in hand, 6.5.6 and 6.5.7 still need Ascoli, and
