@@ -704,6 +704,129 @@ theorem integrableOn_rpow_neg_ball' {a R : ℝ} (ha : a < 2) (z : ℂ) :
     (s := ball (0 : ℂ) R)).2 (integrableOn_rpow_neg_ball ha)
   rwa [hpre] at this
 
+/-- **Above the critical exponent the Riesz kernel is integrable away from the origin.**  In
+polar coordinates `‖ξ‖ ^ (-b)` becomes `r ^ (1 - b)`, which is integrable at infinity exactly
+when `b > 2`.  This is the tail estimate behind the Calderón–Zygmund argument, where the
+difference of two kernels decays one power faster than each of them. -/
+theorem integrableOn_rpow_neg_compl_ball {b R : ℝ} (hb : 2 < b) (hR : 0 < R) :
+    IntegrableOn (fun ξ : ℂ => ‖ξ‖ ^ (-b)) (ball (0 : ℂ) R)ᶜ := by
+  refine ⟨(by fun_prop : Measurable fun ξ : ℂ => ‖ξ‖ ^ (-b)).aestronglyMeasurable.restrict, ?_⟩
+  rw [hasFiniteIntegral_iff_enorm, ← lintegral_indicator measurableSet_ball.compl,
+    ← Complex.lintegral_comp_polarCoord_symm, polarCoord_target]
+  have hmono : ∀ p ∈ Ioi (0 : ℝ) ×ˢ Ioo (-π) π,
+      ENNReal.ofReal p.1 • (ball (0 : ℂ) R)ᶜ.indicator (fun ξ : ℂ => ‖‖ξ‖ ^ (-b)‖ₑ)
+          (Complex.polarCoord.symm p)
+        ≤ (Ioi (R / 2)).indicator (fun r => ENNReal.ofReal (r ^ (1 - b))) p.1
+            * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2 := by
+    rintro ⟨r, θ⟩ ⟨hr, hθ⟩
+    have hr' : (0 : ℝ) < r := hr
+    have hnorm : ‖Complex.polarCoord.symm (r, θ)‖ = r := by
+      rw [Complex.norm_polarCoord_symm]; exact abs_of_pos hr'
+    by_cases hmem : Complex.polarCoord.symm (r, θ) ∈ (ball (0 : ℂ) R)ᶜ
+    · have hRr : R ≤ r := by
+        rw [mem_compl_iff, mem_ball, dist_zero_right, hnorm, not_lt] at hmem
+        exact hmem
+      rw [indicator_of_mem hmem,
+        indicator_of_mem (show ((r, θ) : ℝ × ℝ).1 ∈ Ioi (R / 2) by
+          simp only [mem_Ioi]; linarith),
+        indicator_of_mem (show ((r, θ) : ℝ × ℝ).2 ∈ Ioo (-π) π from hθ),
+        hnorm, Real.enorm_eq_ofReal (Real.rpow_nonneg hr'.le _), smul_eq_mul, mul_one,
+        ← ENNReal.ofReal_mul hr'.le]
+      rw [sub_eq_add_neg, Real.rpow_add hr', Real.rpow_one]
+    · rw [indicator_of_notMem hmem]
+      simp
+  refine lt_of_le_of_lt (setLIntegral_mono' (measurableSet_Ioi.prod measurableSet_Ioo) hmono) ?_
+  have hrad : ∫⁻ r, (Ioi (R / 2)).indicator (fun r => ENNReal.ofReal (r ^ (1 - b))) r < ⊤ := by
+    rw [lintegral_indicator measurableSet_Ioi]
+    have hint : IntegrableOn (fun x : ℝ => x ^ (1 - b)) (Ioi (R / 2)) :=
+      integrableOn_Ioi_rpow_of_lt (by linarith) (by linarith)
+    have hfin := hint.2
+    rw [hasFiniteIntegral_iff_enorm] at hfin
+    refine lt_of_le_of_lt (le_of_eq ?_) hfin
+    refine setLIntegral_congr_fun measurableSet_Ioi fun x hx => ?_
+    have hx0 : (0 : ℝ) < x := lt_trans (by linarith) (mem_Ioi.mp hx)
+    rw [Real.enorm_eq_ofReal (Real.rpow_nonneg hx0.le _)]
+  have hang : ∫⁻ θ, (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) θ < ⊤ := by
+    rw [lintegral_indicator measurableSet_Ioo]
+    simp only [lintegral_const, Measure.restrict_apply MeasurableSet.univ, univ_inter, one_mul]
+    rw [Real.volume_Ioo]
+    exact ENNReal.ofReal_lt_top
+  calc ∫⁻ p in Ioi (0 : ℝ) ×ˢ Ioo (-π) π,
+        (Ioi (R / 2)).indicator (fun r => ENNReal.ofReal (r ^ (1 - b))) p.1
+          * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2
+      ≤ ∫⁻ p : ℝ × ℝ, (Ioi (R / 2)).indicator (fun r => ENNReal.ofReal (r ^ (1 - b))) p.1
+          * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2 := setLIntegral_le_lintegral _ _
+    _ = (∫⁻ r, (Ioi (R / 2)).indicator (fun r => ENNReal.ofReal (r ^ (1 - b))) r)
+          * ∫⁻ θ, (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) θ := by
+        rw [Measure.volume_eq_prod]
+        exact lintegral_prod_mul
+          (((by fun_prop : Measurable fun r : ℝ => ENNReal.ofReal (r ^ (1 - b))).indicator
+            measurableSet_Ioi).aemeasurable)
+          ((measurable_const.indicator measurableSet_Ioo).aemeasurable)
+    _ < ⊤ := ENNReal.mul_lt_top hrad hang
+
+/-- **The mass of the Riesz kernel on a disc scales with the radius**, by the dilation
+`x ↦ R • x` of the plane: the area picks up `R²` and the kernel `R^(-a)`. -/
+theorem integral_rpow_neg_ball (a : ℝ) {R : ℝ} (hR : 0 < R) :
+    (∫ ξ in ball (0 : ℂ) R, ‖ξ‖ ^ (-a))
+      = R ^ (2 - a) * ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-a) := by
+  have hmem : ∀ x : ℂ, R • x ∈ ball (0 : ℂ) R ↔ x ∈ ball (0 : ℂ) 1 := by
+    intro x
+    rw [mem_ball, mem_ball, dist_zero_right, dist_zero_right, norm_smul, Real.norm_eq_abs,
+      abs_of_pos hR]
+    exact mul_lt_iff_lt_one_right hR
+  have hFR : ∀ x : ℂ, (ball (0 : ℂ) R).indicator (fun ξ : ℂ => ‖ξ‖ ^ (-a)) (R • x)
+      = (ball (0 : ℂ) 1).indicator (fun x : ℂ => R ^ (-a) * ‖x‖ ^ (-a)) x := by
+    intro x
+    by_cases hx : x ∈ ball (0 : ℂ) 1
+    · rw [indicator_of_mem hx, indicator_of_mem ((hmem x).2 hx), norm_smul, Real.norm_eq_abs,
+        abs_of_pos hR, Real.mul_rpow hR.le (norm_nonneg _)]
+    · rw [indicator_of_notMem hx, indicator_of_notMem (fun h => hx ((hmem x).1 h))]
+  have key := Measure.integral_comp_smul (volume : Measure ℂ)
+    ((ball (0 : ℂ) R).indicator (fun ξ : ℂ => ‖ξ‖ ^ (-a))) R
+  simp only [hFR] at key
+  rw [integral_indicator measurableSet_ball, integral_indicator measurableSet_ball,
+    integral_const_mul, Complex.finrank_real_complex] at key
+  have hR2 : (0 : ℝ) < R ^ (2 : ℕ) := pow_pos hR 2
+  rw [abs_of_pos (inv_pos.2 hR2), smul_eq_mul, inv_mul_eq_div, eq_div_iff (ne_of_gt hR2)] at key
+  have h2 : R ^ (2 - a) = R ^ (2 : ℕ) * R ^ (-a) := by
+    rw [sub_eq_add_neg, Real.rpow_add hR, ← Real.rpow_natCast R 2]
+    norm_num
+  rw [← key, h2]
+  ring
+
+/-- The same scaling for the mass of the Riesz kernel outside a disc. -/
+theorem integral_rpow_neg_compl_ball (a : ℝ) {R : ℝ} (hR : 0 < R) :
+    (∫ ξ in (ball (0 : ℂ) R)ᶜ, ‖ξ‖ ^ (-a))
+      = R ^ (2 - a) * ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-a) := by
+  have hmem : ∀ x : ℂ, R • x ∈ ball (0 : ℂ) R ↔ x ∈ ball (0 : ℂ) 1 := by
+    intro x
+    rw [mem_ball, mem_ball, dist_zero_right, dist_zero_right, norm_smul, Real.norm_eq_abs,
+      abs_of_pos hR]
+    exact mul_lt_iff_lt_one_right hR
+  have hFR : ∀ x : ℂ, (ball (0 : ℂ) R)ᶜ.indicator (fun ξ : ℂ => ‖ξ‖ ^ (-a)) (R • x)
+      = (ball (0 : ℂ) 1)ᶜ.indicator (fun x : ℂ => R ^ (-a) * ‖x‖ ^ (-a)) x := by
+    intro x
+    by_cases hx : x ∈ (ball (0 : ℂ) 1)ᶜ
+    · rw [indicator_of_mem hx,
+        indicator_of_mem (show R • x ∈ (ball (0 : ℂ) R)ᶜ from fun h => hx ((hmem x).1 h)),
+        norm_smul, Real.norm_eq_abs, abs_of_pos hR, Real.mul_rpow hR.le (norm_nonneg _)]
+    · rw [indicator_of_notMem hx, indicator_of_notMem (by
+        rw [mem_compl_iff, not_notMem, hmem x]
+        exact not_notMem.mp hx)]
+  have key := Measure.integral_comp_smul (volume : Measure ℂ)
+    ((ball (0 : ℂ) R)ᶜ.indicator (fun ξ : ℂ => ‖ξ‖ ^ (-a))) R
+  simp only [hFR] at key
+  rw [integral_indicator measurableSet_ball.compl, integral_indicator measurableSet_ball.compl,
+    integral_const_mul, Complex.finrank_real_complex] at key
+  have hR2 : (0 : ℝ) < R ^ (2 : ℕ) := pow_pos hR 2
+  rw [abs_of_pos (inv_pos.2 hR2), smul_eq_mul, inv_mul_eq_div, eq_div_iff (ne_of_gt hR2)] at key
+  have h2 : R ^ (2 - a) = R ^ (2 : ℕ) * R ^ (-a) := by
+    rw [sub_eq_add_neg, Real.rpow_add hR, ← Real.rpow_natCast R 2]
+    norm_num
+  rw [← key, h2]
+  ring
+
 /-- The **Beurling transform** of a Hölder continuous, compactly supported function, written
 with the principal value made explicit: near the pole the value at the centre is subtracted,
 far from it the kernel is harmless.  The splitting radius is fixed to `1`. -/
