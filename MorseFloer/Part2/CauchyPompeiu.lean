@@ -1370,5 +1370,164 @@ theorem norm_beurling_sub_le_rpow {f : ℂ → ℂ} (hfc : Continuous f) (hfs : 
     _ = (2 * C * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + C * (π * (M + 1) ^ 2))
           * ‖z₁ - z₂‖ ^ (α ^ 2 / (α + 2)) := by ring
 
+/-! ### The sharp estimate: the truncated kernel and its reflection
+
+The exponent `α²/(α+2)` above is lost because the far part was estimated by the `L¹` norm of
+`f`.  The sharp argument compares the two far parts against each other instead, and the pivot
+is that the *difference* of the two truncated kernels integrates to zero over the whole plane.
+That is not an improper cancellation to be taken in a limit: the reflection through the
+midpoint of the two poles exchanges the two truncated kernels, and reverses the sign of their
+difference, exactly as the quarter turn did on an annulus.
+-/
+
+/-- The Riesz kernel at an arbitrary centre is integrable outside a disc around it. -/
+theorem integrableOn_rpow_neg_compl_ball' {b R : ℝ} (hb : 2 < b) (hR : 0 < R) (z : ℂ) :
+    IntegrableOn (fun ζ : ℂ => ‖ζ - z‖ ^ (-b)) (ball z R)ᶜ := by
+  have hpre : (fun x : ℂ => x - z) ⁻¹' (ball (0 : ℂ) R)ᶜ = (ball z R)ᶜ := by
+    ext x; simp [mem_compl_iff, mem_ball, dist_eq_norm]
+  have h := ((measurePreserving_sub_right (volume : Measure ℂ) z).integrableOn_comp_preimage
+    (measurableEmbedding_subRight z) (f := fun ξ : ℂ => ‖ξ‖ ^ (-b))
+    (s := (ball (0 : ℂ) R)ᶜ)).2 (integrableOn_rpow_neg_compl_ball hb hR)
+  rwa [hpre] at h
+
+/-- The mass of the Riesz kernel outside a disc, at an arbitrary centre. -/
+theorem integral_rpow_neg_compl_ball' (a : ℝ) {R : ℝ} (hR : 0 < R) (z : ℂ) :
+    (∫ ζ in (ball z R)ᶜ, ‖ζ - z‖ ^ (-a))
+      = R ^ (2 - a) * ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-a) := by
+  have hpre : (fun ξ : ℂ => z + ξ) ⁻¹' (ball z R)ᶜ = (ball (0 : ℂ) R)ᶜ := by
+    ext x; simp [mem_compl_iff, mem_ball, dist_eq_norm]
+  have key := (measurePreserving_add_left (volume : Measure ℂ) z).setIntegral_preimage_emb
+    (measurableEmbedding_addLeft z) (fun ζ : ℂ => ‖ζ - z‖ ^ (-a)) (ball z R)ᶜ
+  rw [hpre] at key
+  rw [← key]
+  have hsimp : (∫ ξ in (ball (0 : ℂ) R)ᶜ, ‖z + ξ - z‖ ^ (-a))
+      = ∫ ξ in (ball (0 : ℂ) R)ᶜ, ‖ξ‖ ^ (-a) := by
+    refine setIntegral_congr_fun measurableSet_ball.compl fun ξ _ => ?_
+    rw [add_sub_cancel_left]
+  rw [hsimp, integral_rpow_neg_compl_ball a hR]
+
+/-- The Beurling kernel with pole `z`, cut off inside the disc of radius `ρ`. -/
+noncomputable def truncKernel (z : ℂ) (ρ : ℝ) (ζ : ℂ) : ℂ :=
+  (ball z ρ)ᶜ.indicator (fun ζ => ((z - ζ) ^ 2)⁻¹) ζ
+
+theorem measurable_truncKernel (z : ℂ) (ρ : ℝ) : Measurable (truncKernel z ρ) :=
+  Measurable.indicator (by fun_prop) measurableSet_ball.compl
+
+/-- The truncated kernel is bounded by the inverse square of the cut-off radius. -/
+theorem norm_truncKernel_le {z : ℂ} {ρ : ℝ} (hρ : 0 < ρ) (ζ : ℂ) :
+    ‖truncKernel z ρ ζ‖ ≤ (ρ ^ 2)⁻¹ := by
+  unfold truncKernel
+  by_cases h : ζ ∈ (ball z ρ)ᶜ
+  · rw [indicator_of_mem h]
+    have h1 : ρ ≤ ‖z - ζ‖ := by
+      rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt, ← norm_neg, neg_sub] at h
+      exact h
+    rw [norm_inv, norm_pow, inv_eq_one_div, inv_eq_one_div]
+    exact div_le_div_of_nonneg_left zero_le_one (pow_pos hρ 2) (by nlinarith [hρ.le])
+  · rw [indicator_of_notMem h, norm_zero]
+    positivity
+
+/-- Away from both poles the truncation is invisible. -/
+theorem truncKernel_sub_eq_of_far {z₁ z₂ ζ : ℂ} {ρ : ℝ} (h₁ : ρ ≤ ‖ζ - z₁‖) (h₂ : ρ ≤ ‖ζ - z₂‖) :
+    truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ = ((z₁ - ζ) ^ 2)⁻¹ - ((z₂ - ζ) ^ 2)⁻¹ := by
+  unfold truncKernel
+  rw [indicator_of_mem (by rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt]; exact h₁),
+    indicator_of_mem (by rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt]; exact h₂)]
+
+/-- The reflection through the midpoint exchanges the two cut-off discs. -/
+theorem mem_compl_ball_reflect (z₁ z₂ : ℂ) (ρ : ℝ) (ζ : ℂ) :
+    z₁ + z₂ - ζ ∈ (ball z₁ ρ)ᶜ ↔ ζ ∈ (ball z₂ ρ)ᶜ := by
+  simp only [mem_compl_iff, mem_ball, dist_eq_norm, not_lt]
+  have he : z₁ + z₂ - ζ - z₁ = -(ζ - z₂) := by ring
+  rw [he, norm_neg]
+
+/-- **The reflection through the midpoint exchanges the two truncated kernels.**  The kernel is
+even, so reflecting the pole through the midpoint turns one into the other. -/
+theorem truncKernel_reflect (z₁ z₂ : ℂ) (ρ : ℝ) (ζ : ℂ) :
+    truncKernel z₁ ρ (z₁ + z₂ - ζ) = truncKernel z₂ ρ ζ := by
+  unfold truncKernel
+  by_cases h : ζ ∈ (ball z₂ ρ)ᶜ
+  · rw [indicator_of_mem h, indicator_of_mem ((mem_compl_ball_reflect z₁ z₂ ρ ζ).2 h)]
+    have he : z₁ - (z₁ + z₂ - ζ) = -(z₂ - ζ) := by ring
+    rw [he, neg_sq]
+  · rw [indicator_of_notMem h,
+      indicator_of_notMem (fun hc => h ((mem_compl_ball_reflect z₁ z₂ ρ ζ).1 hc))]
+
+/-- **The difference of two truncated Beurling kernels integrates to zero over the plane.**
+The reflection through the midpoint of the two poles preserves Lebesgue measure and exchanges
+the two kernels, so the difference is its own negative.  This is the cancellation that makes
+the two far parts comparable at the sharp Hölder exponent. -/
+theorem integral_truncKernel_sub_eq_zero (z₁ z₂ : ℂ) (ρ : ℝ) :
+    ∫ ζ : ℂ, (truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ) = 0 := by
+  have he : (fun x : ℂ => z₁ + z₂ - x) = fun x : ℂ => (z₁ + z₂) + (-x) := by funext x; ring
+  have h1 : MeasurePreserving (fun x : ℂ => -x) volume volume :=
+    (LinearIsometryEquiv.neg ℝ (E := ℂ)).measurePreserving
+  have h2 : MeasurePreserving (fun x : ℂ => (z₁ + z₂) + x) volume volume :=
+    measurePreserving_add_left volume (z₁ + z₂)
+  have hmp : MeasurePreserving (fun x : ℂ => z₁ + z₂ - x) volume volume := by
+    rw [he]; exact h2.comp h1
+  have hemb : MeasurableEmbedding (fun x : ℂ => z₁ + z₂ - x) := by
+    rw [he]
+    exact ((MeasurableEquiv.neg ℂ).trans
+      (MeasurableEquiv.addLeft (z₁ + z₂))).measurableEmbedding
+  have key := hmp.integral_comp hemb
+    (fun ζ : ℂ => truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ)
+  have hpt : ∀ x : ℂ, truncKernel z₁ ρ (z₁ + z₂ - x) - truncKernel z₂ ρ (z₁ + z₂ - x)
+      = -(truncKernel z₁ ρ x - truncKernel z₂ ρ x) := by
+    intro x
+    have h3 : truncKernel z₂ ρ (z₁ + z₂ - x) = truncKernel z₁ ρ x := by
+      have h4 := truncKernel_reflect z₂ z₁ ρ x
+      rwa [add_comm z₂ z₁] at h4
+    rw [truncKernel_reflect z₁ z₂ ρ x, h3]
+    ring
+  simp only [hpt, integral_neg] at key
+  linear_combination -key / 2
+
+/-- The far part of the Beurling transform, written with the truncated kernel. -/
+theorem integral_beurling_far_eq (f : ℂ → ℂ) (z : ℂ) (ρ : ℝ) :
+    (∫ ζ in (ball z ρ)ᶜ, f ζ / (z - ζ) ^ 2) = ∫ ζ : ℂ, f ζ * truncKernel z ρ ζ := by
+  rw [← integral_indicator measurableSet_ball.compl]
+  congr 1
+  funext ζ
+  unfold truncKernel
+  by_cases h : ζ ∈ (ball z ρ)ᶜ
+  · rw [indicator_of_mem h, indicator_of_mem h, div_eq_mul_inv]
+  · rw [indicator_of_notMem h, indicator_of_notMem h, mul_zero]
+
+/-- **The difference of two truncated kernels is integrable over the plane**: it is bounded
+near the poles and decays like `‖ζ‖⁻³` at infinity, by the Hörmander condition. -/
+theorem integrable_truncKernel_sub {z₁ z₂ : ℂ} {ρ : ℝ} (hρ : 0 < ρ)
+    (hd : 2 * ‖z₁ - z₂‖ ≤ ρ) :
+    Integrable (fun ζ : ℂ => truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ) := by
+  have hmeas : Measurable fun ζ : ℂ => truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ :=
+    (measurable_truncKernel z₁ ρ).sub (measurable_truncKernel z₂ ρ)
+  have hin : IntegrableOn (fun ζ : ℂ => truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ)
+      (ball z₁ (2 * ρ)) := by
+    refine Measure.integrableOn_of_bounded measure_ball_lt_top.ne hmeas.aestronglyMeasurable
+      (M := (ρ ^ 2)⁻¹ + (ρ ^ 2)⁻¹) ?_
+    refine Eventually.of_forall fun ζ => ?_
+    exact le_trans (norm_sub_le _ _)
+      (add_le_add (norm_truncKernel_le hρ ζ) (norm_truncKernel_le hρ ζ))
+  have hout : IntegrableOn (fun ζ : ℂ => truncKernel z₁ ρ ζ - truncKernel z₂ ρ ζ)
+      (ball z₁ (2 * ρ))ᶜ := by
+    refine Integrable.mono' (g := fun ζ : ℂ => 10 * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-3 : ℝ))
+      ((integrableOn_rpow_neg_compl_ball' (by norm_num) (by linarith) z₁).const_mul _)
+      hmeas.aestronglyMeasurable.restrict ?_
+    filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+    have h1 : 2 * ρ ≤ ‖ζ - z₁‖ := by
+      rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt] at hζ
+      exact hζ
+    have h2 : ρ ≤ ‖ζ - z₂‖ := by
+      have h3 : ‖ζ - z₁‖ - ‖z₁ - z₂‖ ≤ ‖ζ - z₂‖ := by
+        have h4 : (ζ - z₁) - (z₂ - z₁) = ζ - z₂ := by ring
+        have h5 := norm_sub_norm_le (ζ - z₁) (z₂ - z₁)
+        rw [h4, norm_sub_rev z₂ z₁] at h5
+        exact h5
+      linarith
+    rw [truncKernel_sub_eq_of_far (by linarith) h2]
+    exact norm_kernel_sub_le (by linarith)
+  rw [← integrableOn_univ, ← union_compl_self (ball z₁ (2 * ρ))]
+  exact hin.union hout
+
 end CauchyPompeiu
 end MorseFloer
