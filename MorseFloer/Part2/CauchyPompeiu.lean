@@ -713,8 +713,8 @@ noncomputable def beurling (f : ℂ → ℂ) (z : ℂ) : ℂ :=
 /-- **The regularised integral converges absolutely.**  Subtracting `f z` turns the
 non-integrable kernel `‖ζ - z‖⁻²` into `‖ζ - z‖^{α-2}`, which is integrable because `α > 0`. -/
 theorem integrableOn_beurling_near {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ} (hα : 0 < α)
-    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
-    IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z 1) := by
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) {ρ : ℝ} :
+    IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z ρ) := by
   have hC0 : 0 ≤ C := by
     have h := hf (z + 1) z
     have h1 : ‖(z + 1) - z‖ ^ α = 1 := by
@@ -745,19 +745,20 @@ theorem integrableOn_beurling_near {f : ℂ → ℂ} (hfc : Continuous f) {C α 
 
 /-- Far from the pole the Beurling integrand is dominated by `f` itself. -/
 theorem integrableOn_beurling_far {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
-    (z : ℂ) : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z 1)ᶜ := by
-  have hI : Integrable (fun ζ : ℂ => ‖f ζ‖) volume :=
-    (hfc.integrable_of_hasCompactSupport hfs).norm
-  refine Integrable.mono' (g := fun ζ : ℂ => ‖f ζ‖) hI.integrableOn ?_ ?_
+    (z : ℂ) {ρ : ℝ} (hρ : 0 < ρ) :
+    IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z ρ)ᶜ := by
+  have hI : Integrable (fun ζ : ℂ => (ρ ^ 2)⁻¹ * ‖f ζ‖) volume :=
+    ((hfc.integrable_of_hasCompactSupport hfs).norm).const_mul _
+  refine Integrable.mono' (g := fun ζ : ℂ => (ρ ^ 2)⁻¹ * ‖f ζ‖) hI.integrableOn ?_ ?_
   · exact ((hfc.measurable.div
       ((measurable_const.sub measurable_id).pow_const 2))).aestronglyMeasurable
   · filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
-    have h1 : (1 : ℝ) ≤ ‖z - ζ‖ := by
+    have h1 : ρ ≤ ‖z - ζ‖ := by
       rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt, ← norm_neg, neg_sub] at hζ
       exact hζ
-    rw [norm_div, norm_pow]
-    refine div_le_self (norm_nonneg _) ?_
-    nlinarith [h1]
+    have h2 : ρ ^ 2 ≤ ‖z - ζ‖ ^ 2 := by nlinarith [hρ.le]
+    rw [norm_div, norm_pow, inv_mul_eq_div]
+    exact div_le_div_of_nonneg_left (norm_nonneg _) (pow_pos hρ 2) h2
 
 /-! ### The cancellation that makes the principal value exist -/
 
@@ -805,6 +806,78 @@ theorem setIntegral_beurling_kernel_annulus (z : ℂ) (r₁ r₂ : ℝ) :
   have h2 : ∀ ξ : ℂ, ((z - (z + ξ)) ^ 2)⁻¹ = (ξ ^ 2)⁻¹ := fun ξ => by ring_nf
   simp only [h2]
   exact setIntegral_inv_sq_eq_zero (preimage_mulI_annulus r₁ r₂)
+
+/-- The two-piece expression defining the Beurling transform, with a general cut-off radius. -/
+noncomputable def beurlingWith (f : ℂ → ℂ) (z : ℂ) (ρ : ℝ) : ℂ :=
+  (∫ ζ in ball z ρ, (f ζ - f z) / (z - ζ) ^ 2) + ∫ ζ in (ball z ρ)ᶜ, f ζ / (z - ζ) ^ 2
+
+theorem beurling_eq_beurlingWith_one (f : ℂ → ℂ) (z : ℂ) : beurling f z = beurlingWith f z 1 :=
+  rfl
+
+/-- Enlarging the cut-off radius changes neither piece by more than it changes the other: what
+moves from the far integral to the near one is the same integral over the annulus, because the
+constant `f z` subtracted there integrates to zero against the kernel. -/
+theorem beurlingWith_eq_of_le {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ)
+    {r R : ℝ} (hr : 0 < r) (hrR : r ≤ R) :
+    beurlingWith f z r = beurlingWith f z R := by
+  have hAmeas : MeasurableSet (ball z R \ ball z r) := measurableSet_ball.diff measurableSet_ball
+  have hnear_r : IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z r) :=
+    integrableOn_beurling_near hfc hα hf z
+  have hnear_A : IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z R \ ball z r) :=
+    (integrableOn_beurling_near hfc hα hf z (ρ := R)).mono_set sdiff_subset
+  have hfar_r : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z r)ᶜ :=
+    integrableOn_beurling_far hfc hfs z hr
+  have hfar_R : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z R)ᶜ :=
+    integrableOn_beurling_far hfc hfs z (lt_of_lt_of_le hr hrR)
+  have hfar_A : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z R \ ball z r) :=
+    hfar_r.mono_set fun x hx => hx.2
+  have hsplit_near : ∫ ζ in ball z R, (f ζ - f z) / (z - ζ) ^ 2
+      = (∫ ζ in ball z r, (f ζ - f z) / (z - ζ) ^ 2)
+        + ∫ ζ in ball z R \ ball z r, (f ζ - f z) / (z - ζ) ^ 2 := by
+    rw [← setIntegral_union disjoint_sdiff_right hAmeas hnear_r hnear_A,
+      union_sdiff_cancel (ball_subset_ball hrR)]
+  have hsetc : (ball z R \ ball z r) ∪ (ball z R)ᶜ = (ball z r)ᶜ := by
+    ext x
+    simp only [mem_union, Set.mem_sdiff, mem_compl_iff, mem_ball]
+    constructor
+    · rintro (⟨-, hx⟩ | hx)
+      · exact hx
+      · exact fun hxr => hx (lt_of_lt_of_le hxr hrR)
+    · intro hx
+      by_cases hR : dist x z < R
+      · exact Or.inl ⟨hR, hx⟩
+      · exact Or.inr hR
+  have hsplit_far : ∫ ζ in (ball z r)ᶜ, f ζ / (z - ζ) ^ 2
+      = (∫ ζ in ball z R \ ball z r, f ζ / (z - ζ) ^ 2)
+        + ∫ ζ in (ball z R)ᶜ, f ζ / (z - ζ) ^ 2 := by
+    rw [← hsetc, setIntegral_union (disjoint_compl_right.mono_left sdiff_subset)
+      measurableSet_ball.compl hfar_A hfar_R]
+  have hcancel : ∫ ζ in ball z R \ ball z r, (f ζ - f z) / (z - ζ) ^ 2
+      = ∫ ζ in ball z R \ ball z r, f ζ / (z - ζ) ^ 2 := by
+    have hzero : ∫ ζ in ball z R \ ball z r,
+        (f ζ / (z - ζ) ^ 2 - (f ζ - f z) / (z - ζ) ^ 2) = 0 := by
+      have hpt : ∀ ζ : ℂ, f ζ / (z - ζ) ^ 2 - (f ζ - f z) / (z - ζ) ^ 2
+          = f z * ((z - ζ) ^ 2)⁻¹ := fun ζ => by
+        rw [div_sub_div_same, sub_sub_cancel, div_eq_mul_inv]
+      simp only [hpt]
+      rw [integral_const_mul, setIntegral_beurling_kernel_annulus z r R, mul_zero]
+    rw [integral_sub hfar_A hnear_A] at hzero
+    linear_combination -hzero
+  unfold beurlingWith
+  rw [hsplit_near, hsplit_far, hcancel]
+  ring
+
+/-- **The cut-off radius is immaterial**: for Hölder data with compact support the two-piece
+expression is the same for every positive radius, so the Beurling transform is well defined as
+a principal value. -/
+theorem beurlingWith_eq {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    {C α : ℝ} (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ)
+    {ρ : ℝ} (hρ : 0 < ρ) : beurlingWith f z ρ = beurling f z := by
+  rw [beurling_eq_beurlingWith_one]
+  rcases le_total ρ 1 with h | h
+  · exact beurlingWith_eq_of_le hfc hfs hα hf z hρ h
+  · exact (beurlingWith_eq_of_le hfc hfs hα hf z one_pos h).symm
 
 end CauchyPompeiu
 end MorseFloer
