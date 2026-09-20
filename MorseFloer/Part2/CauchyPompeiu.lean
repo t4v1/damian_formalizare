@@ -2338,5 +2338,178 @@ theorem integral_theta_polarDz (hw : ContDiff ℝ 1 w) (z : ℂ) {r : ℝ} (hr :
     linear_combination (-2 * angBeurling w z r / (r : ℂ)) * h2
   rw [harith]
 
+/-- **The singular integral of the `z`-derivative.**  In polar coordinates the radial part
+telescopes to zero, because the angular average of `f` vanishes both at the centre, where the
+kernel has zero mean, and far away, where `f` does; what survives is the angular part, which is
+twice the Beurling transform. -/
+theorem integral_dz_div_eq (hw : ContDiff ℝ 1 w) (hc : HasCompactSupport w) (z : ℂ) :
+    ∫ ξ : ℂ, dz w (z - ξ) / ξ = -2 * ∫ r in Ioi (0 : ℝ), angBeurling w z r / r := by
+  have hdiff : Differentiable ℝ w := hw.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ w) := hw.continuous_fderiv one_ne_zero
+  have hpi : (-π : ℝ) ≤ π := by linarith [Real.pi_pos]
+  have hIoo : ∀ g : ℝ → ℂ, (∫ θ in Ioo (-π : ℝ) π, g θ) = ∫ θ in (-π : ℝ)..π, g θ := fun g => by
+    rw [intervalIntegral.integral_of_le hpi, integral_Ioc_eq_integral_Ioo]
+  have hcsq : Continuous fun θ : ℝ => ((circ θ) ^ 2)⁻¹ :=
+    (continuous_circ.pow 2).inv₀ fun θ => pow_ne_zero 2 (circ_ne_zero θ)
+  obtain ⟨R, hR0, hR⟩ := exists_radius hc
+  obtain ⟨C, hC⟩ := (hc.fderiv (𝕜 := ℝ)).exists_bound_of_continuous hfd
+  have hC0 : 0 ≤ C := le_trans (norm_nonneg _) (hC 0)
+  set S : ℝ := R + ‖z‖ + 1 with hS
+  have hS0 : (0 : ℝ) < S := by rw [hS]; positivity
+  have hlip : ∀ ξ η : ℂ, ‖w ξ - w η‖ ≤ C * ‖ξ - η‖ := fun ξ η =>
+    Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hdiff x) (fun x _ => hC x)
+      convex_univ (mem_univ η) (mem_univ ξ)
+  set V : ℝ → ℂ := fun r => ∫ θ in (-π : ℝ)..π,
+    fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹ with hV
+  have hVcont : Continuous V := by
+    have huncurry : Continuous (Function.uncurry fun (x : ℝ) (θ : ℝ) =>
+        fderiv ℝ w (z - (x : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹) := by
+      refine ((hfd.comp (continuous_shift z)).clm_apply
+        (continuous_circ.comp continuous_snd)).mul ?_
+      exact ((continuous_circ.comp continuous_snd).pow 2).inv₀
+        fun p => pow_ne_zero 2 (circ_ne_zero _)
+    exact intervalIntegral.continuous_parametric_intervalIntegral_of_continuous' huncurry _ _
+  have hVzero : ∀ r ∈ Ioi S, V r = 0 := by
+    intro r hr
+    have hrS : S < r := hr
+    have hz : ∀ θ : ℝ, fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹ = 0 := by
+      intro θ
+      have h0 : fderiv ℝ w (z - (r : ℂ) * circ θ) = 0 := by
+        refine (hR _ ?_).2
+        have h1 := norm_shift_ge (z := z) r θ (by linarith)
+        rw [hS] at hrS
+        linarith
+      simp [h0]
+    simp only [hV]
+    rw [intervalIntegral.integral_congr fun θ _ => hz θ, intervalIntegral.integral_zero]
+  have hVderiv : ∀ r : ℝ, HasDerivAt (angBeurling w z) (-V r) r := by
+    intro r
+    have h := hasDerivAt_angBeurling hw hc z r
+    rwa [intervalIntegral.integral_neg] at h
+  have hangcont : Continuous (angBeurling w z) := continuous_angBeurling hw.continuous z
+  have hang0 : angBeurling w z 0 = 0 := by
+    simp only [angBeurling, Complex.ofReal_zero, zero_mul, sub_zero]
+    rw [intervalIntegral.integral_const_mul, integral_circ_sq_inv_eq_zero, mul_zero]
+  have hangS : ∀ r : ℝ, S ≤ r → angBeurling w z r = 0 := by
+    intro r hrS
+    have hz : ∀ θ : ℝ, w (z - (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹ = 0 := by
+      intro θ
+      have h0 : w (z - (r : ℂ) * circ θ) = 0 := by
+        refine (hR _ ?_).1
+        have h1 := norm_shift_ge (z := z) r θ (by linarith)
+        rw [hS] at hrS
+        linarith
+      rw [h0, zero_mul]
+    simp only [angBeurling]
+    rw [intervalIntegral.integral_congr fun θ _ => hz θ, intervalIntegral.integral_zero]
+  have hangbound : ∀ r : ℝ, 0 ≤ r → ‖angBeurling w z r‖ ≤ C * r * (2 * π) := by
+    intro r hr0
+    have hshift : Continuous fun θ : ℝ => z - (r : ℂ) * circ θ :=
+      (continuous_shift z).comp (continuous_const.prodMk continuous_id)
+    have hint1 : IntervalIntegrable (fun θ : ℝ => w (z - (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+        volume (-π) π := ((hw.continuous.comp hshift).mul hcsq).intervalIntegrable _ _
+    have hint2 : IntervalIntegrable (fun θ : ℝ => w z * ((circ θ) ^ 2)⁻¹) volume (-π) π :=
+      (continuous_const.mul hcsq).intervalIntegrable _ _
+    have hcancel : angBeurling w z r
+        = ∫ θ in (-π : ℝ)..π, (w (z - (r : ℂ) * circ θ) - w z) * ((circ θ) ^ 2)⁻¹ := by
+      have hsplit : ∀ θ : ℝ, (w (z - (r : ℂ) * circ θ) - w z) * ((circ θ) ^ 2)⁻¹
+          = w (z - (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹ - w z * ((circ θ) ^ 2)⁻¹ :=
+        fun θ => by ring
+      simp only [angBeurling]
+      rw [intervalIntegral.integral_congr fun θ _ => hsplit θ,
+        intervalIntegral.integral_sub hint1 hint2, intervalIntegral.integral_const_mul,
+        integral_circ_sq_inv_eq_zero, mul_zero, sub_zero]
+    rw [hcancel]
+    have hbd : ∀ θ ∈ Set.uIoc (-π : ℝ) π,
+        ‖(w (z - (r : ℂ) * circ θ) - w z) * ((circ θ) ^ 2)⁻¹‖ ≤ C * r := by
+      intro θ _
+      rw [norm_mul, norm_inv, norm_pow, norm_circ, one_pow, inv_one, mul_one]
+      have h := hlip (z - (r : ℂ) * circ θ) z
+      rwa [norm_shift_eq z hr0 θ] at h
+    have h := intervalIntegral.norm_integral_le_of_norm_le_const hbd
+    have habs : |π - -π| = 2 * π := by
+      rw [show π - -π = 2 * π by ring, abs_of_pos (by positivity)]
+    rwa [habs] at h
+  have hVint1 : IntegrableOn V (Ioc (0 : ℝ) S) :=
+    (hVcont.integrableOn_Icc (a := 0) (b := S)).mono_set Ioc_subset_Icc_self
+  have hVint2 : IntegrableOn V (Ioi S) :=
+    (integrableOn_zero (μ := volume) (s := Ioi S)).congr_fun
+      (fun r hr => (hVzero r hr).symm) measurableSet_Ioi
+  have hVint : IntegrableOn V (Ioi (0 : ℝ)) := by
+    rw [← Set.Ioc_union_Ioi_eq_Ioi hS0.le]
+    exact hVint1.union hVint2
+  have hangdivint : IntegrableOn (fun r : ℝ => angBeurling w z r / r) (Ioi (0 : ℝ)) := by
+    have hmeas : AEStronglyMeasurable (fun r : ℝ => angBeurling w z r / r)
+        (volume.restrict (Ioi (0 : ℝ))) := by
+      refine ContinuousOn.aestronglyMeasurable ?_ measurableSet_Ioi
+      exact hangcont.continuousOn.div Complex.continuous_ofReal.continuousOn
+        fun r hr => Complex.ofReal_ne_zero.mpr (ne_of_gt hr)
+    have hdom : Integrable ((Ioc (0 : ℝ) S).indicator (fun _ => C * (2 * π)))
+        (volume.restrict (Ioi (0 : ℝ))) := by
+      refine (integrable_indicator_iff measurableSet_Ioc).mpr ?_
+      refine integrableOn_const ?_
+      exact ne_top_of_le_ne_top (measure_Ioc_lt_top (a := (0 : ℝ)) (b := S)).ne
+        (Measure.le_iff'.1 Measure.restrict_le_self _)
+    refine Integrable.mono' hdom hmeas ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with r hr
+    have hr0 : (0 : ℝ) < r := hr
+    by_cases hrS : r ≤ S
+    · rw [indicator_of_mem (show r ∈ Ioc (0 : ℝ) S from ⟨hr0, hrS⟩), norm_div,
+        Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr0, div_le_iff₀ hr0]
+      have h := hangbound r hr0.le
+      linarith
+    · have hnot : r ∉ Ioc (0 : ℝ) S := fun hmem => hrS hmem.2
+      have hz : angBeurling w z r = 0 := hangS r (le_of_lt (not_le.mp hrS))
+      simp [hz, indicator_of_notMem hnot]
+  have hVzeroint : (∫ r in Ioi (0 : ℝ), V r) = 0 := by
+    have hdisj : Disjoint (Ioc (0 : ℝ) S) (Ioi S) := by
+      rw [Set.disjoint_left]
+      rintro x ⟨-, hx⟩ hx'
+      exact absurd hx' (not_lt.mpr hx)
+    have hsplit : (∫ r in Ioi (0 : ℝ), V r) = ∫ r in Ioc (0 : ℝ) S, V r := by
+      rw [← Set.Ioc_union_Ioi_eq_Ioi hS0.le,
+        setIntegral_union hdisj measurableSet_Ioi hVint1 hVint2,
+        setIntegral_eq_zero_of_forall_eq_zero hVzero, add_zero]
+    have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun r _ => hVderiv r)
+      (hVcont.neg.intervalIntegrable 0 S)
+    rw [intervalIntegral.integral_neg, hangS S le_rfl, hang0, sub_zero] at hFTC
+    rw [hsplit, ← intervalIntegral.integral_of_le hS0.le]
+    linear_combination -hFTC
+  have hinner : ∀ r ∈ Ioi (0 : ℝ),
+      (∫ θ in Ioo (-π : ℝ) π, polarDz w z (r, θ)) = V r - 2 * (angBeurling w z r / r) := by
+    intro r hr
+    have hr0 : (0 : ℝ) < r := hr
+    have harith : (2 / (r : ℂ)) * angBeurling w z r = 2 * (angBeurling w z r / (r : ℂ)) := by
+      ring
+    rw [integral_theta_polarDz hw z hr0, hIoo, harith]
+  rw [integral_dz_div_eq_polar z, Measure.volume_eq_prod,
+    setIntegral_prod _ (by rw [← Measure.volume_eq_prod]; exact integrableOn_polarDz hw hc z),
+    setIntegral_congr_fun measurableSet_Ioi hinner,
+    integral_sub hVint (hangdivint.const_mul 2), hVzeroint, zero_sub, integral_const_mul]
+  ring
+
+/-- **The `z`-derivative of the Cauchy transform is the Beurling transform.**  For compactly
+supported `C¹` data, `∂(T f)/∂x - i ∂(T f)/∂y = -(1/π) B f`, where `B` is the principal-value
+integral of `f` against `(z - ζ)⁻²`.  Together with `∂(T f)/∂x + i ∂(T f)/∂y = f`, this
+determines the full derivative of the solution operator, and turns the Calderón–Zygmund
+estimate for `B` into a Hölder estimate for that operator. -/
+theorem dz_cauchyTransform_eq_beurling (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) (z : ℂ) :
+    dz (cauchyTransform f) z = -(π⁻¹ : ℝ) • beurling f z := by
+  have hdiff : Differentiable ℝ f := hf.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ f) := hf.continuous_fderiv one_ne_zero
+  obtain ⟨C, hC⟩ := (hc.fderiv (𝕜 := ℝ)).exists_bound_of_continuous hfd
+  have hlip : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ := fun ξ η =>
+    Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hdiff x) (fun x _ => hC x)
+      convex_univ (mem_univ η) (mem_univ ξ)
+  have hsmul : (∫ ξ : ℂ, (ξ⁻¹ : ℂ) • dz f (z - ξ)) = ∫ ξ : ℂ, dz f (z - ξ) / ξ := by
+    refine integral_congr_ae (Eventually.of_forall fun ξ => ?_)
+    simp [smul_eq_mul, div_eq_inv_mul]
+  have hπ : (π : ℂ) ≠ 0 := by
+    exact_mod_cast Real.pi_ne_zero
+  rw [dz_cauchyTransform hf hc z, cauchyTransform, hsmul, integral_dz_div_eq hf hc z,
+    ← beurling_eq_polar hf.continuous hc hlip z, Complex.real_smul, Complex.real_smul]
+  push_cast
+  field_simp
+
 end CauchyPompeiu
 end MorseFloer
