@@ -623,5 +623,141 @@ theorem dbar_cauchyTransform (hf : ContDiff ℝ 1 f) (hc : HasCompactSupport f) 
   rw [dbar, happly 1, happly Complex.I, hI, ← smul_add, hAB, smul_smul,
     inv_mul_cancel₀ two_pi_ne_zero, one_smul]
 
+/-! ### Towards the Beurling transform
+
+The derivative of the Cauchy transform in the *other* direction, `∂(T f)/∂z`, is the Beurling
+transform, a singular integral: the kernel `(z - ζ)⁻²` is not locally integrable.  For Hölder
+data the integral is rescued by subtracting the value at the centre, `f ζ - f z`, which is the
+standard principal-value regularisation.  This section sets up that operator: the Riesz kernel
+estimate that makes the regularised integral absolutely convergent, and the two halves of the
+definition.  The Hölder *estimate* for the operator, the Calderón–Zygmund step, is not here.
+-/
+
+/-- **The Riesz kernel is locally integrable in the plane below the critical exponent.**  In
+polar coordinates `‖ξ‖ ^ (-a)` becomes `r ^ (1 - a)`, which is integrable at the origin exactly
+when `a < 2`.  For `a = 2 - α` with `α > 0` this is what makes the regularised Beurling integral
+converge. -/
+theorem integrableOn_rpow_neg_ball {a R : ℝ} (ha : a < 2) :
+    IntegrableOn (fun ξ : ℂ => ‖ξ‖ ^ (-a)) (ball (0 : ℂ) R) := by
+  rcases le_or_gt R 0 with hR | hR
+  · rw [ball_eq_empty.mpr hR]
+    exact integrableOn_empty
+  refine ⟨(by fun_prop : Measurable fun ξ : ℂ => ‖ξ‖ ^ (-a)).aestronglyMeasurable.restrict, ?_⟩
+  rw [hasFiniteIntegral_iff_enorm, ← lintegral_indicator measurableSet_ball,
+    ← Complex.lintegral_comp_polarCoord_symm, polarCoord_target]
+  have hmono : ∀ p ∈ Ioi (0 : ℝ) ×ˢ Ioo (-π) π,
+      ENNReal.ofReal p.1 •
+          (ball (0 : ℂ) R).indicator (fun ξ : ℂ => ‖‖ξ‖ ^ (-a)‖ₑ) (Complex.polarCoord.symm p)
+        ≤ (Ioo (0 : ℝ) R).indicator (fun r => ENNReal.ofReal (r ^ (1 - a))) p.1
+            * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2 := by
+    rintro ⟨r, θ⟩ ⟨hr, hθ⟩
+    have hr' : (0 : ℝ) < r := hr
+    have hnorm : ‖Complex.polarCoord.symm (r, θ)‖ = r := by
+      rw [Complex.norm_polarCoord_symm]; exact abs_of_pos hr'
+    by_cases hrR : r < R
+    · rw [indicator_of_mem (show ((r, θ) : ℝ × ℝ).1 ∈ Ioo (0 : ℝ) R from ⟨hr', hrR⟩),
+        indicator_of_mem (show ((r, θ) : ℝ × ℝ).2 ∈ Ioo (-π) π from hθ),
+        indicator_of_mem (show Complex.polarCoord.symm (r, θ) ∈ ball (0 : ℂ) R by
+          rw [mem_ball, dist_zero_right, hnorm]; exact hrR),
+        hnorm, Real.enorm_eq_ofReal (Real.rpow_nonneg hr'.le _), smul_eq_mul, mul_one,
+        ← ENNReal.ofReal_mul hr'.le]
+      rw [sub_eq_add_neg, Real.rpow_add hr', Real.rpow_one]
+    · rw [indicator_of_notMem (show Complex.polarCoord.symm (r, θ) ∉ ball (0 : ℂ) R by
+        rw [mem_ball, dist_zero_right, hnorm]; exact not_lt.mpr (not_lt.mp hrR))]
+      simp
+  refine lt_of_le_of_lt (setLIntegral_mono' (measurableSet_Ioi.prod measurableSet_Ioo) hmono) ?_
+  have hrad : ∫⁻ r, (Ioo (0 : ℝ) R).indicator (fun r => ENNReal.ofReal (r ^ (1 - a))) r < ⊤ := by
+    rw [lintegral_indicator measurableSet_Ioo]
+    have hint : IntegrableOn (fun x : ℝ => x ^ (1 - a)) (Ioo 0 R) :=
+      (intervalIntegral.integrableOn_Ioo_rpow_iff hR).2 (by linarith)
+    have hfin := hint.2
+    rw [hasFiniteIntegral_iff_enorm] at hfin
+    refine lt_of_le_of_lt (le_of_eq ?_) hfin
+    refine setLIntegral_congr_fun measurableSet_Ioo fun x hx => ?_
+    rw [Real.enorm_eq_ofReal (Real.rpow_nonneg hx.1.le _)]
+  have hang : ∫⁻ θ, (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) θ < ⊤ := by
+    rw [lintegral_indicator measurableSet_Ioo]
+    simp only [lintegral_const, Measure.restrict_apply MeasurableSet.univ, univ_inter, one_mul]
+    rw [Real.volume_Ioo]
+    exact ENNReal.ofReal_lt_top
+  calc ∫⁻ p in Ioi (0 : ℝ) ×ˢ Ioo (-π) π,
+        (Ioo (0 : ℝ) R).indicator (fun r => ENNReal.ofReal (r ^ (1 - a))) p.1
+          * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2
+      ≤ ∫⁻ p : ℝ × ℝ, (Ioo (0 : ℝ) R).indicator (fun r => ENNReal.ofReal (r ^ (1 - a))) p.1
+          * (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) p.2 := setLIntegral_le_lintegral _ _
+    _ = (∫⁻ r, (Ioo (0 : ℝ) R).indicator (fun r => ENNReal.ofReal (r ^ (1 - a))) r)
+          * ∫⁻ θ, (Ioo (-π) π).indicator (fun _ => (1 : ℝ≥0∞)) θ := by
+        rw [Measure.volume_eq_prod]
+        exact lintegral_prod_mul
+          (((by fun_prop : Measurable fun r : ℝ => ENNReal.ofReal (r ^ (1 - a))).indicator
+            measurableSet_Ioo).aemeasurable)
+          ((measurable_const.indicator measurableSet_Ioo).aemeasurable)
+    _ < ⊤ := ENNReal.mul_lt_top hrad hang
+
+/-- The Riesz kernel centred at an arbitrary point, by translation invariance. -/
+theorem integrableOn_rpow_neg_ball' {a R : ℝ} (ha : a < 2) (z : ℂ) :
+    IntegrableOn (fun ζ : ℂ => ‖ζ - z‖ ^ (-a)) (ball z R) := by
+  have hpre : (fun x : ℂ => x - z) ⁻¹' ball (0 : ℂ) R = ball z R := by
+    ext x; simp [mem_ball, dist_eq_norm]
+  have := ((measurePreserving_sub_right (volume : Measure ℂ) z).integrableOn_comp_preimage
+    (measurableEmbedding_subRight z) (f := fun ξ : ℂ => ‖ξ‖ ^ (-a))
+    (s := ball (0 : ℂ) R)).2 (integrableOn_rpow_neg_ball ha)
+  rwa [hpre] at this
+
+/-- The **Beurling transform** of a Hölder continuous, compactly supported function, written
+with the principal value made explicit: near the pole the value at the centre is subtracted,
+far from it the kernel is harmless.  The splitting radius is fixed to `1`. -/
+noncomputable def beurling (f : ℂ → ℂ) (z : ℂ) : ℂ :=
+  (∫ ζ in ball z 1, (f ζ - f z) / (z - ζ) ^ 2) + ∫ ζ in (ball z 1)ᶜ, f ζ / (z - ζ) ^ 2
+
+/-- **The regularised integral converges absolutely.**  Subtracting `f z` turns the
+non-integrable kernel `‖ζ - z‖⁻²` into `‖ζ - z‖^{α-2}`, which is integrable because `α > 0`. -/
+theorem integrableOn_beurling_near {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ} (hα : 0 < α)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
+    IntegrableOn (fun ζ : ℂ => (f ζ - f z) / (z - ζ) ^ 2) (ball z 1) := by
+  have hC0 : 0 ≤ C := by
+    have h := hf (z + 1) z
+    have h1 : ‖(z + 1) - z‖ ^ α = 1 := by
+      rw [add_sub_cancel_left, norm_one, Real.one_rpow]
+    rw [h1, mul_one] at h
+    exact le_trans (norm_nonneg _) h
+  refine Integrable.mono' (g := fun ζ : ℂ => C * ‖ζ - z‖ ^ (-(2 - α)))
+    (((integrableOn_rpow_neg_ball' (by linarith) z).const_mul C)) ?_ ?_
+  · exact (((hfc.measurable.sub measurable_const).div
+      ((measurable_const.sub measurable_id).pow_const 2))).aestronglyMeasurable
+  · refine Eventually.of_forall fun ζ => ?_
+    rcases eq_or_ne ζ z with rfl | hζ
+    · have h0 : (0 : ℝ) ≤ C * ‖(ζ : ℂ) - ζ‖ ^ (-(2 - α)) :=
+        mul_nonneg hC0 (Real.rpow_nonneg (norm_nonneg _) _)
+      simpa using h0
+    · have hnz : ‖ζ - z‖ ≠ 0 := norm_ne_zero_iff.2 (sub_ne_zero.2 hζ)
+      have hpos : 0 < ‖ζ - z‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm hnz)
+      rw [norm_div, norm_pow, ← norm_neg (z - ζ), neg_sub]
+      rw [div_le_iff₀ (by positivity)]
+      calc ‖f ζ - f z‖ ≤ C * ‖ζ - z‖ ^ α := hf ζ z
+        _ = C * ‖ζ - z‖ ^ (-(2 - α)) * ‖ζ - z‖ ^ 2 := by
+            rw [mul_assoc]
+            congr 1
+            rw [← Real.rpow_natCast ‖ζ - z‖ 2, ← Real.rpow_add hpos]
+            congr 1
+            push_cast
+            ring
+
+/-- Far from the pole the Beurling integrand is dominated by `f` itself. -/
+theorem integrableOn_beurling_far {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (z : ℂ) : IntegrableOn (fun ζ : ℂ => f ζ / (z - ζ) ^ 2) (ball z 1)ᶜ := by
+  have hI : Integrable (fun ζ : ℂ => ‖f ζ‖) volume :=
+    (hfc.integrable_of_hasCompactSupport hfs).norm
+  refine Integrable.mono' (g := fun ζ : ℂ => ‖f ζ‖) hI.integrableOn ?_ ?_
+  · exact ((hfc.measurable.div
+      ((measurable_const.sub measurable_id).pow_const 2))).aestronglyMeasurable
+  · filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+    have h1 : (1 : ℝ) ≤ ‖z - ζ‖ := by
+      rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt, ← norm_neg, neg_sub] at hζ
+      exact hζ
+    rw [norm_div, norm_pow]
+    refine div_le_self (norm_nonneg _) ?_
+    nlinarith [h1]
+
 end CauchyPompeiu
 end MorseFloer
