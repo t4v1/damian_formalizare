@@ -1529,5 +1529,180 @@ theorem integrable_truncKernel_sub {z₁ z₂ : ℂ} {ρ : ℝ} (hρ : 0 < ρ)
   rw [← integrableOn_univ, ← union_compl_self (ball z₁ (2 * ρ))]
   exact hin.union hout
 
+/-- Near the poles the regularised integrand is bounded: the factor `f ζ - f z₁` is `O(d^α)`
+there and the kernels are `O(d⁻²)`. -/
+theorem norm_prod_truncKernel_le_inner {f : ℂ → ℂ} {C α : ℝ} (hα : 0 < α)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) {z₁ z₂ : ℂ} (hd0 : 0 < ‖z₁ - z₂‖)
+    {ζ : ℂ} (hζ : ζ ∈ ball z₁ (3 * ‖z₁ - z₂‖)) :
+    ‖(f ζ - f z₁) * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)‖
+      ≤ C * (3 * ‖z₁ - z₂‖) ^ α * (2 * ((2 * ‖z₁ - z₂‖) ^ 2)⁻¹) := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hρ : (0 : ℝ) < 2 * ‖z₁ - z₂‖ := by linarith
+  have h1 : ‖ζ - z₁‖ ≤ 3 * ‖z₁ - z₂‖ := by
+    rw [mem_ball, dist_eq_norm] at hζ
+    exact hζ.le
+  have hA : ‖f ζ - f z₁‖ ≤ C * (3 * ‖z₁ - z₂‖) ^ α :=
+    le_trans (hf ζ z₁) (mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow (norm_nonneg _) h1 hα.le) hC0)
+  have hB : ‖truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ‖
+      ≤ 2 * ((2 * ‖z₁ - z₂‖) ^ 2)⁻¹ := by
+    refine le_trans (norm_sub_le _ _) ?_
+    have := norm_truncKernel_le (z := z₁) hρ ζ
+    have := norm_truncKernel_le (z := z₂) hρ ζ
+    linarith
+  rw [norm_mul]
+  exact mul_le_mul hA hB (norm_nonneg _)
+    (mul_nonneg hC0 (Real.rpow_nonneg (by linarith) _))
+
+/-- Far from the poles the regularised integrand decays like the Riesz kernel of exponent
+`3 - α`, by the Hörmander condition. -/
+theorem norm_prod_truncKernel_le_outer {f : ℂ → ℂ} {C α : ℝ}
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) {z₁ z₂ : ℂ} (hd0 : 0 < ‖z₁ - z₂‖)
+    {ζ : ℂ} (hζ : ζ ∈ (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ) :
+    ‖(f ζ - f z₁) * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)‖
+      ≤ 10 * C * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-(3 - α)) := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have h1 : 3 * ‖z₁ - z₂‖ ≤ ‖ζ - z₁‖ := by
+    rw [mem_compl_iff, mem_ball, dist_eq_norm, not_lt] at hζ
+    exact hζ
+  have hpos : 0 < ‖ζ - z₁‖ := by linarith
+  have h2 : 2 * ‖z₁ - z₂‖ ≤ ‖ζ - z₂‖ := by
+    have h3 : ‖ζ - z₁‖ - ‖z₁ - z₂‖ ≤ ‖ζ - z₂‖ := by
+      have h4 : (ζ - z₁) - (z₂ - z₁) = ζ - z₂ := by ring
+      have h5 := norm_sub_norm_le (ζ - z₁) (z₂ - z₁)
+      rw [h4, norm_sub_rev z₂ z₁] at h5
+      exact h5
+    linarith
+  rw [truncKernel_sub_eq_of_far (by linarith) h2, norm_mul]
+  calc ‖f ζ - f z₁‖ * ‖((z₁ - ζ) ^ 2)⁻¹ - ((z₂ - ζ) ^ 2)⁻¹‖
+      ≤ (C * ‖ζ - z₁‖ ^ α) * (10 * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-3 : ℝ)) :=
+        mul_le_mul (hf ζ z₁) (norm_kernel_sub_le (by linarith)) (norm_nonneg _)
+          (mul_nonneg hC0 (Real.rpow_nonneg (norm_nonneg _) _))
+    _ = 10 * C * ‖z₁ - z₂‖ * (‖ζ - z₁‖ ^ α * ‖ζ - z₁‖ ^ (-3 : ℝ)) := by ring
+    _ = 10 * C * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-(3 - α)) := by
+        rw [← Real.rpow_add hpos]
+        congr 2
+        ring
+
+/-- The regularised integrand of the far comparison is integrable over the plane. -/
+theorem integrable_prod_truncKernel_sub {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ}
+    (hα : 0 < α) (hα1 : α < 1) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α)
+    {z₁ z₂ : ℂ} (hd0 : 0 < ‖z₁ - z₂‖) :
+    Integrable fun ζ : ℂ =>
+      (f ζ - f z₁) * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ) := by
+  have hmeas : Measurable fun ζ : ℂ =>
+      (f ζ - f z₁) * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ) :=
+    (hfc.measurable.sub measurable_const).mul
+      ((measurable_truncKernel z₁ _).sub (measurable_truncKernel z₂ _))
+  have hin : IntegrableOn (fun ζ : ℂ => (f ζ - f z₁)
+      * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ))
+      (ball z₁ (3 * ‖z₁ - z₂‖)) := by
+    refine Measure.integrableOn_of_bounded measure_ball_lt_top.ne hmeas.aestronglyMeasurable
+      (M := C * (3 * ‖z₁ - z₂‖) ^ α * (2 * ((2 * ‖z₁ - z₂‖) ^ 2)⁻¹)) ?_
+    filter_upwards [ae_restrict_mem measurableSet_ball] with ζ hζ
+    exact norm_prod_truncKernel_le_inner hα hf hd0 hζ
+  have hout : IntegrableOn (fun ζ : ℂ => (f ζ - f z₁)
+      * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ))
+      (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ := by
+    refine Integrable.mono' (g := fun ζ : ℂ => 10 * C * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-(3 - α)))
+      ((integrableOn_rpow_neg_compl_ball' (by linarith) (by linarith) z₁).const_mul _)
+      hmeas.aestronglyMeasurable.restrict ?_
+    filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+    exact norm_prod_truncKernel_le_outer hf hd0 hζ
+  rw [← integrableOn_univ, ← union_compl_self (ball z₁ (3 * ‖z₁ - z₂‖))]
+  exact hin.union hout
+
+/-- The near contribution to the far comparison, at the sharp Hölder rate. -/
+theorem norm_integral_prod_inner_le {f : ℂ → ℂ} {C α : ℝ} (hα : 0 < α) (hα1 : α < 1)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) {z₁ z₂ : ℂ} (hd0 : 0 < ‖z₁ - z₂‖) :
+    ‖∫ ζ in ball z₁ (3 * ‖z₁ - z₂‖), (f ζ - f z₁)
+        * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)‖
+      ≤ 14 * π * C * ‖z₁ - z₂‖ ^ α := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hbound := norm_setIntegral_le_of_norm_le_const (μ := (volume : Measure ℂ))
+    (s := ball z₁ (3 * ‖z₁ - z₂‖)) measure_ball_lt_top
+    (fun ζ hζ => norm_prod_truncKernel_le_inner hα hf hd0 hζ)
+  have hvr : volume.real (ball z₁ (3 * ‖z₁ - z₂‖)) = π * (3 * ‖z₁ - z₂‖) ^ 2 := by
+    rw [measureReal_def, Complex.volume_ball, ENNReal.toReal_mul, ENNReal.toReal_pow,
+      ENNReal.toReal_ofReal (by linarith), ENNReal.coe_toReal, NNReal.coe_real_pi]
+    ring
+  rw [hvr] at hbound
+  refine le_trans hbound ?_
+  have hd3 : (3 : ℝ) ^ α ≤ 3 := by
+    calc (3 : ℝ) ^ α ≤ (3 : ℝ) ^ (1 : ℝ) :=
+          Real.rpow_le_rpow_of_exponent_le (by norm_num) hα1.le
+      _ = 3 := Real.rpow_one 3
+  have hmul : (3 * ‖z₁ - z₂‖) ^ α = 3 ^ α * ‖z₁ - z₂‖ ^ α :=
+    Real.mul_rpow (by norm_num) (norm_nonneg _)
+  have hdα : (0 : ℝ) ≤ ‖z₁ - z₂‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+  have hsimp : (2 * ((2 * ‖z₁ - z₂‖) ^ 2)⁻¹) * (π * (3 * ‖z₁ - z₂‖) ^ 2) = 9 * π / 2 := by
+    field_simp
+    ring
+  have hrw : C * (3 * ‖z₁ - z₂‖) ^ α * (2 * ((2 * ‖z₁ - z₂‖) ^ 2)⁻¹) * (π * (3 * ‖z₁ - z₂‖) ^ 2)
+      = C * (3 ^ α * ‖z₁ - z₂‖ ^ α) * (9 * π / 2) := by
+    rw [hmul, ← hsimp]
+    ring
+  rw [hrw]
+  have hpos : (0 : ℝ) ≤ π * C * ‖z₁ - z₂‖ ^ α :=
+    mul_nonneg (mul_nonneg Real.pi_pos.le hC0) hdα
+  calc C * (3 ^ α * ‖z₁ - z₂‖ ^ α) * (9 * π / 2)
+      ≤ C * (3 * ‖z₁ - z₂‖ ^ α) * (9 * π / 2) :=
+        mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_right hd3 hdα) hC0) (by positivity)
+    _ ≤ 14 * π * C * ‖z₁ - z₂‖ ^ α := by linarith
+
+/-- The far contribution to the far comparison, at the sharp Hölder rate. -/
+theorem norm_integral_prod_outer_le {f : ℂ → ℂ} (hfc : Continuous f) {C α : ℝ} (hα : 0 < α)
+    (hα1 : α < 1) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) {z₁ z₂ : ℂ}
+    (hd0 : 0 < ‖z₁ - z₂‖) :
+    ‖∫ ζ in (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ, (f ζ - f z₁)
+        * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)‖
+      ≤ 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α))) * C * ‖z₁ - z₂‖ ^ α := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hprod := (integrable_prod_truncKernel_sub hfc hα hα1 hf hd0).integrableOn
+    (s := (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ)
+  have hdom : IntegrableOn (fun ζ : ℂ => 10 * C * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-(3 - α)))
+      (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ :=
+    (integrableOn_rpow_neg_compl_ball' (by linarith) (by linarith) z₁).const_mul _
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  have hmono : (∫ ζ in (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ, ‖(f ζ - f z₁)
+        * (truncKernel z₁ (2 * ‖z₁ - z₂‖) ζ - truncKernel z₂ (2 * ‖z₁ - z₂‖) ζ)‖)
+      ≤ ∫ ζ in (ball z₁ (3 * ‖z₁ - z₂‖))ᶜ, 10 * C * ‖z₁ - z₂‖ * ‖ζ - z₁‖ ^ (-(3 - α)) := by
+    refine integral_mono_ae hprod.norm hdom ?_
+    filter_upwards [ae_restrict_mem measurableSet_ball.compl] with ζ hζ
+    exact norm_prod_truncKernel_le_outer hf hd0 hζ
+  refine le_trans hmono ?_
+  rw [integral_const_mul, integral_rpow_neg_compl_ball' (3 - α) (by linarith) z₁]
+  have hexp : (2 : ℝ) - (3 - α) = α - 1 := by ring
+  rw [hexp]
+  have hmul : (3 * ‖z₁ - z₂‖) ^ (α - 1) = 3 ^ (α - 1) * ‖z₁ - z₂‖ ^ (α - 1) :=
+    Real.mul_rpow (by norm_num) (norm_nonneg _)
+  have h3 : (3 : ℝ) ^ (α - 1) ≤ 1 :=
+    Real.rpow_le_one_of_one_le_of_nonpos (by norm_num) (by linarith)
+  have hdd : ‖z₁ - z₂‖ * ‖z₁ - z₂‖ ^ (α - 1) = ‖z₁ - z₂‖ ^ α := by
+    have h := Real.rpow_add hd0 1 (α - 1)
+    rw [Real.rpow_one] at h
+    have h2 : (1 : ℝ) + (α - 1) = α := by ring
+    rw [h2] at h
+    exact h.symm
+  have hT : (0 : ℝ) ≤ ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)) := by
+    refine integral_nonneg fun ξ => ?_
+    exact Real.rpow_nonneg (norm_nonneg _) _
+  have hdα : (0 : ℝ) ≤ ‖z₁ - z₂‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+  rw [hmul]
+  have hfinal : 10 * C * ‖z₁ - z₂‖ * (3 ^ (α - 1) * ‖z₁ - z₂‖ ^ (α - 1)
+      * ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))
+      = (10 * C * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) * 3 ^ (α - 1)
+        * (‖z₁ - z₂‖ * ‖z₁ - z₂‖ ^ (α - 1)) := by ring
+  rw [hfinal, hdd]
+  have hcoef : (0 : ℝ) ≤ 10 * C * ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)) := by
+    have : (0 : ℝ) ≤ 10 * C := by linarith
+    exact mul_nonneg this hT
+  calc (10 * C * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) * 3 ^ (α - 1)
+        * ‖z₁ - z₂‖ ^ α
+      ≤ (10 * C * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) * 1 * ‖z₁ - z₂‖ ^ α :=
+        mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left h3 hcoef) hdα
+    _ = 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α))) * C * ‖z₁ - z₂‖ ^ α := by ring
+
 end CauchyPompeiu
 end MorseFloer
