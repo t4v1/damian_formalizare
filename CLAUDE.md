@@ -118,7 +118,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch10.lean` | 10 From Floer to Morse | 0 | the two complexes compared; Props 10.2.2 (Fredholm from the estimate: Riesz, Hahn–Banach, open mapping) and 10.2.3 (cut-off), Lemmas 10.2.4 (without Fourier analysis) and 10.4.1 (Jensen) proved; the chapter assumes nothing |
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Weyl.lean` | helper for 12.1.1 | 0 | Weyl's lemma for `∂̄`: radial mollifier, mean value property by polar coordinates and Cauchy, Lebesgue differentiation |
-| `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus |
+| `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus; the Cauchy transform `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` as the solution operator of `∂̄v = f`, both halves (`T ∘ ∂̄ = id` and `∂̄ ∘ T = id`), and local integrability of the kernel `1/ξ` |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 0 | Cauchy–Riemann regularity (classical and distributional, the latter restated from `Weyl.lean`), the bootstrapping recursion; the chapter assumes nothing |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/SardMoreira/*.lean` | helper for 14.2.1 | 0 | Moreira's Sard theorem (Hausdorff-measure bound), transplanted from Kudryashov's `SardMoreira` and adapted to the pinned Mathlib; see the note below |
@@ -228,7 +228,8 @@ result recorded in the blueprint with no Lean statement at all:
    assumptions of Chapter 6 stand behind elliptic regularity for the Floer equation
    (Proposition 6.5.3): a `C¹` solution of `∂̄u = -∇H_t(u)` is `C^∞`. The chain is
    (a) solve `∂̄v = w` for compactly supported `w` — **done**, in
-   `Part2/CauchyPompeiu.lean`; (b) the Hölder estimate `C^{k,α} → C^{k+1,α}` for that
+   `Part2/CauchyPompeiu.lean`, where the solution operator is the Cauchy transform
+   `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` and both `T(∂̄w) = w` and `∂̄(T f) = f` are proved; (b) the Hölder estimate `C^{k,α} → C^{k+1,α}` for that
    solution operator, which is the step that gains a derivative and is **missing**;
    (c) bootstrapping, where `u - v` is holomorphic by `Part2/Weyl.lean`. Note that the
    `C^k` scale is not enough: the Cauchy transform of a `C^k` function is only `C^k`, so
