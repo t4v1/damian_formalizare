@@ -118,6 +118,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch10.lean` | 10 From Floer to Morse | 0 | the two complexes compared; Props 10.2.2 (Fredholm from the estimate: Riesz, Hahn–Banach, open mapping) and 10.2.3 (cut-off), Lemmas 10.2.4 (without Fourier analysis) and 10.4.1 (Jensen) proved; the chapter assumes nothing |
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Weyl.lean` | helper for 12.1.1 | 0 | Weyl's lemma for `∂̄`: radial mollifier, mean value property by polar coordinates and Cauchy, Lebesgue differentiation |
+| `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 0 | Cauchy–Riemann regularity (classical and distributional, the latter restated from `Weyl.lean`), the bootstrapping recursion; the chapter assumes nothing |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/SardMoreira/*.lean` | helper for 14.2.1 | 0 | Moreira's Sard theorem (Hausdorff-measure bound), transplanted from Kudryashov's `SardMoreira` and adapted to the pinned Mathlib; see the note below |
@@ -206,7 +207,7 @@ exactly the input Chapter 13 assumes repeatedly.
 
 ### The gaps that matter most
 
-Four missing Mathlib pieces account for nearly every assumption and for every
+Five missing Mathlib pieces account for nearly every assumption and for every
 result recorded in the blueprint with no Lean statement at all:
 
 1. **Morse–Sard above the diagonal.** Closed. Sard splits into three dimension
@@ -223,10 +224,21 @@ result recorded in the blueprint with no Lean statement at all:
    neighbourhoods and transversality. Without it there is no space of
    trajectories, so all of §3.2 and the Smale condition are unstatable, and
    Chapter 3 has to take the broken-trajectory count as a hypothesis.
-3. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
+3. **Schauder theory for `∂̄`, which is what blocks Chapter 6.** All six remaining
+   assumptions of Chapter 6 stand behind elliptic regularity for the Floer equation
+   (Proposition 6.5.3): a `C¹` solution of `∂̄u = -∇H_t(u)` is `C^∞`. The chain is
+   (a) solve `∂̄v = w` for compactly supported `w` — **done**, in
+   `Part2/CauchyPompeiu.lean`; (b) the Hölder estimate `C^{k,α} → C^{k+1,α}` for that
+   solution operator, which is the step that gains a derivative and is **missing**;
+   (c) bootstrapping, where `u - v` is holomorphic by `Part2/Weyl.lean`. Note that the
+   `C^k` scale is not enough: the Cauchy transform of a `C^k` function is only `C^k`, so
+   (b) cannot be avoided. With 6.5.3 in hand, 6.5.6 and 6.5.7 still need Ascoli, and
+   6.5.4 and 6.6.2 need the bubbling analysis.
+
+4. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
    symplectic manifolds (only the linear theory is reachable in Chapter 5); the
    second blocks the elliptic regularity of Chapters 12 and 13.
-4. **Excision or Mayer–Vietoris for singular homology.** Mathlib has singular
+5. **Excision or Mayer–Vietoris for singular homology.** Mathlib has singular
    homology as a functor with homotopy invariance and `H₀`, but cannot compute
    `H_{n-1}(Sⁿ⁻¹)` or the mod 2 homology of `Pⁿ(ℝ)`. It no longer blocks
    Brouwer, which has an analytic proof (Milnor–Rogers, in `Part1/Brouwer.lean`,
