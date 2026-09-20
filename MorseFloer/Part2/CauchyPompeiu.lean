@@ -759,5 +759,52 @@ theorem integrableOn_beurling_far {f : ℂ → ℂ} (hfc : Continuous f) (hfs : 
     refine div_le_self (norm_nonneg _) ?_
     nlinarith [h1]
 
+/-! ### The cancellation that makes the principal value exist -/
+
+/-- The quarter turn `ξ ↦ i ξ` of the plane, as a linear isometry.  It preserves Lebesgue
+measure and it reverses the sign of the Beurling kernel, which is the whole of the cancellation
+below. -/
+noncomputable def rotI : ℂ ≃ₗᵢ[ℝ] ℂ :=
+  rotation ⟨Complex.I, mem_sphere_zero_iff_norm.mpr Complex.norm_I⟩
+
+@[simp]
+theorem rotI_apply (ξ : ℂ) : rotI ξ = Complex.I * ξ := rfl
+
+/-- **The Beurling kernel integrates to zero on every set invariant under the quarter turn.**
+Rotating by `i` fixes the set and preserves the measure, while `(iξ)² = -ξ²` flips the sign of
+the integrand; an integral equal to its own negative vanishes.  No integrability is needed:
+where the integral fails to converge both sides are zero by convention. -/
+theorem setIntegral_inv_sq_eq_zero {s : Set ℂ} (hs : (fun ξ : ℂ => Complex.I * ξ) ⁻¹' s = s) :
+    ∫ ξ in s, (ξ ^ 2)⁻¹ = 0 := by
+  have key := (rotI.measurePreserving).setIntegral_preimage_emb
+    rotI.toHomeomorph.measurableEmbedding (fun ξ : ℂ => (ξ ^ 2)⁻¹) s
+  have hs' : (rotI : ℂ → ℂ) ⁻¹' s = s := hs
+  rw [hs'] at key
+  have h2 : ∀ ξ : ℂ, (rotI ξ ^ 2)⁻¹ = -(ξ ^ 2)⁻¹ := fun ξ => by
+    rw [rotI_apply, mul_pow, Complex.I_sq]; ring
+  simp only [h2, integral_neg] at key
+  linear_combination -key / 2
+
+/-- Annuli centred at the origin are invariant under the quarter turn. -/
+theorem preimage_mulI_annulus (r₁ r₂ : ℝ) :
+    (fun ξ : ℂ => Complex.I * ξ) ⁻¹' (ball (0 : ℂ) r₂ \ ball 0 r₁)
+      = ball (0 : ℂ) r₂ \ ball 0 r₁ := by
+  ext x; simp [mem_ball, dist_eq_norm]
+
+/-- **The Beurling kernel has zero mean on every annulus centred at its pole.**  This is the
+cancellation behind the principal value: it is why the singular integral may be cut off at any
+radius, and why subtracting the constant `f z` near the pole costs nothing. -/
+theorem setIntegral_beurling_kernel_annulus (z : ℂ) (r₁ r₂ : ℝ) :
+    ∫ ζ in ball z r₂ \ ball z r₁, ((z - ζ) ^ 2)⁻¹ = 0 := by
+  have hpre : (fun ξ : ℂ => z + ξ) ⁻¹' (ball z r₂ \ ball z r₁) = ball (0 : ℂ) r₂ \ ball 0 r₁ := by
+    ext x; simp [mem_ball, dist_eq_norm]
+  have key := (measurePreserving_add_left (volume : Measure ℂ) z).setIntegral_preimage_emb
+    (measurableEmbedding_addLeft z) (fun ζ : ℂ => ((z - ζ) ^ 2)⁻¹) (ball z r₂ \ ball z r₁)
+  rw [hpre] at key
+  rw [← key]
+  have h2 : ∀ ξ : ℂ, ((z - (z + ξ)) ^ 2)⁻¹ = (ξ ^ 2)⁻¹ := fun ξ => by ring_nf
+  simp only [h2]
+  exact setIntegral_inv_sq_eq_zero (preimage_mulI_annulus r₁ r₂)
+
 end CauchyPompeiu
 end MorseFloer
