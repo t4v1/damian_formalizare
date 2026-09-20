@@ -2117,5 +2117,226 @@ theorem beurling_eq_polar {f : ℂ → ℂ} (hfc : Continuous f) (hfs : HasCompa
   exact (setIntegral_eq_of_subset_of_forall_sdiff_eq_zero measurableSet_Ioi
     (fun r hr => hr.1) hzero').symm
 
+/-! ### The identification of the two transforms
+
+The `z`-derivative of the Cauchy transform is the Beurling transform.  In polar coordinates
+the identity is an integration by parts: the radial part of `∂/∂x - i ∂/∂y` telescopes against
+the fundamental theorem of calculus and contributes nothing, because the angular average of
+the kernel vanishes, while the angular part produces exactly the singular integral.
+-/
+
+/-- **The polar form of the operator `∂/∂x - i ∂/∂y`.** -/
+theorem dz_polar_eq (_hw : Differentiable ℝ w) (z : ℂ) {r : ℝ} (hr : r ≠ 0) (θ : ℝ) :
+    dz w (z - r * circ θ) * circ θ
+      = fderiv ℝ w (z - r * circ θ) (circ θ)
+        - (Complex.I / r) * fderiv ℝ w (z - r * circ θ) (Complex.I * (r : ℂ) * circ θ) := by
+  set L := fderiv ℝ w (z - r * circ θ) with hL
+  have hI : L (Complex.I * (r : ℂ) * circ θ) = (r : ℂ) * L (Complex.I * circ θ) := by
+    have h : Complex.I * (r : ℂ) * circ θ = (r : ℝ) • (Complex.I * circ θ) := by
+      simp [Complex.real_smul]; ring
+    rw [h, map_smul, Complex.real_smul]
+  have hr' : (r : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hr
+  rw [dz, ← hL, dz_circ_eq L θ, hI]
+  field_simp
+
+/-- The integrand of the singular integral in polar coordinates centred at `z`. -/
+noncomputable def polarDz (w : ℂ → ℂ) (z : ℂ) (p : ℝ × ℝ) : ℂ :=
+  dz w (z - p.1 * circ p.2) * (circ p.2)⁻¹
+
+theorem continuous_polarDz (hw : ContDiff ℝ 1 w) (z : ℂ) : Continuous (polarDz w z) :=
+  ((continuous_dz hw).comp (continuous_shift z)).mul
+    ((continuous_circ.comp continuous_snd).inv₀ fun p => circ_ne_zero p.2)
+
+/-- Passage to polar coordinates centred at `z`. -/
+theorem integral_dz_div_eq_polar (z : ℂ) :
+    ∫ ξ : ℂ, dz w (z - ξ) / ξ = ∫ p in Ioi (0 : ℝ) ×ˢ Ioo (-π) π, polarDz w z p := by
+  rw [← Complex.integral_comp_polarCoord_symm fun ξ => dz w (z - ξ) / ξ, polarCoord_target]
+  refine setIntegral_congr_fun (measurableSet_Ioi.prod measurableSet_Ioo) ?_
+  rintro ⟨r, θ⟩ ⟨hr, -⟩
+  have hr' : (0 : ℝ) < r := hr
+  have hrne : (r : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hr'.ne'
+  simp only [polarDz, polarCoord_symm_eq, Complex.real_smul]
+  field_simp
+
+theorem integrableOn_polarDz (hw : ContDiff ℝ 1 w) (hc : HasCompactSupport w) (z : ℂ) :
+    IntegrableOn (polarDz w z) (Ioi (0 : ℝ) ×ˢ Ioo (-π) π) := by
+  obtain ⟨R, hR0, hR⟩ := exists_radius hc
+  obtain ⟨C, hC⟩ := (hasCompactSupport_dz hc).exists_bound_of_continuous (continuous_dz hw)
+  have hC0 : 0 ≤ C := le_trans (norm_nonneg _) (hC 0)
+  set S : ℝ := R + ‖z‖ + 1 with hS
+  set box : Set (ℝ × ℝ) := Icc 0 S ×ˢ Icc (-π) π with hbox
+  have hboxc : IsCompact box := isCompact_Icc.prod isCompact_Icc
+  have hbound : ∀ p ∈ Ioi (0 : ℝ) ×ˢ Ioo (-π) π,
+      ‖polarDz w z p‖ ≤ box.indicator (fun _ => C) p := by
+    rintro ⟨r, θ⟩ ⟨hr, hθ⟩
+    have hr' : (0 : ℝ) < r := hr
+    by_cases hrS : r ≤ S
+    · rw [indicator_of_mem (show (r, θ) ∈ box from ⟨⟨hr'.le, hrS⟩, ⟨hθ.1.le, hθ.2.le⟩⟩)]
+      simp only [polarDz, norm_mul, norm_inv, norm_circ, inv_one, mul_one]
+      exact hC _
+    · have hfz : fderiv ℝ w (z - (r : ℂ) * circ θ) = 0 := by
+        refine (hR _ ?_).2
+        have h1 := norm_shift_ge (z := z) r θ hr'.le
+        have h2 : S < r := not_le.mp hrS
+        rw [hS] at h2
+        linarith
+      have hz : dz w (z - (r : ℂ) * circ θ) = 0 := by simp [dz, hfz]
+      simp only [polarDz, hz, zero_mul, norm_zero]
+      exact indicator_nonneg (fun _ _ => hC0) _
+  have hind : Integrable (box.indicator fun _ => C)
+      (volume.restrict (Ioi (0 : ℝ) ×ˢ Ioo (-π) π)) := by
+    refine (integrable_indicator_iff (measurableSet_Icc.prod measurableSet_Icc)).mpr ?_
+    refine integrableOn_const ?_
+    exact ne_top_of_le_ne_top hboxc.measure_lt_top.ne (Measure.le_iff'.1 Measure.restrict_le_self _)
+  refine Integrable.mono' hind (continuous_polarDz hw z).aestronglyMeasurable ?_
+  filter_upwards [ae_restrict_mem (measurableSet_Ioi.prod measurableSet_Ioo)] with p hp
+  exact hbound p hp
+
+theorem continuous_angBeurling (hw : Continuous w) (z : ℂ) : Continuous (angBeurling w z) := by
+  have huncurry : Continuous (Function.uncurry fun (x : ℝ) (θ : ℝ) =>
+      w (z - (x : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹) := by
+    refine (hw.comp (continuous_shift z)).mul ?_
+    exact ((continuous_circ.comp continuous_snd).pow 2).inv₀ fun p => pow_ne_zero 2 (circ_ne_zero _)
+  exact intervalIntegral.continuous_parametric_intervalIntegral_of_continuous' huncurry _ _
+
+/-- **The angular average is differentiable in the radius**, by differentiating under the
+integral sign. -/
+theorem hasDerivAt_angBeurling (hw : ContDiff ℝ 1 w) (hc : HasCompactSupport w) (z : ℂ) (r : ℝ) :
+    HasDerivAt (angBeurling w z)
+      (∫ θ in (-π : ℝ)..π,
+        -(fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹)) r := by
+  have hdiff : Differentiable ℝ w := hw.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ w) := hw.continuous_fderiv one_ne_zero
+  obtain ⟨C, hC⟩ := (hc.fderiv (𝕜 := ℝ)).exists_bound_of_continuous hfd
+  have hcsq : Continuous fun θ : ℝ => ((circ θ) ^ 2)⁻¹ :=
+    (continuous_circ.pow 2).inv₀ fun θ => pow_ne_zero 2 (circ_ne_zero θ)
+  have hshift : ∀ x : ℝ, Continuous fun θ : ℝ => z - (x : ℂ) * circ θ := fun x =>
+    (continuous_shift z).comp (continuous_const.prodMk continuous_id)
+  have hcontw : ∀ x : ℝ, Continuous fun θ : ℝ => w (z - (x : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹ :=
+    fun x => (hw.continuous.comp (hshift x)).mul hcsq
+  have hcont : ∀ x : ℝ, Continuous fun θ : ℝ =>
+      -(fderiv ℝ w (z - (x : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹) := fun x =>
+    (((hfd.comp (hshift x)).clm_apply continuous_circ).mul hcsq).neg
+  have hbnd : ∀ x θ : ℝ,
+      ‖-(fderiv ℝ w (z - (x : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹)‖ ≤ C := by
+    intro x θ
+    rw [norm_neg, norm_mul, norm_inv, norm_pow, norm_circ, one_pow, inv_one, mul_one]
+    refine le_trans (ContinuousLinearMap.le_opNorm _ _) ?_
+    rw [norm_circ, mul_one]
+    exact hC _
+  have hderiv : ∀ x θ : ℝ,
+      HasDerivAt (fun x : ℝ => w (z - (x : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+        (-(fderiv ℝ w (z - (x : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹)) x := by
+    intro x θ
+    have h := (hasDerivAt_polarFn_fst hdiff z x θ).mul_const (((circ θ) ^ 2)⁻¹)
+    simp only [polarFn] at h
+    exact h.congr_deriv (by ring)
+  exact (intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun (x : ℝ) (θ : ℝ) => w (z - (x : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+    (F' := fun (x : ℝ) (θ : ℝ) =>
+      -(fderiv ℝ w (z - (x : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹))
+    (x₀ := r) (s := Set.univ) (bound := fun _ : ℝ => C) (a := -π) (b := π)
+    univ_mem
+    (Eventually.of_forall fun x => (hcontw x).aestronglyMeasurable)
+    ((hcontw r).intervalIntegrable _ _)
+    (hcont r).aestronglyMeasurable
+    (Eventually.of_forall fun θ _ x _ => hbnd x θ)
+    intervalIntegrable_const
+    (Eventually.of_forall fun θ _ x _ => hderiv x θ)).2
+
+/-- **The angular integral of the singular integrand.**  Integrating by parts in the angle
+turns the angular derivative into the angular average, which is the Beurling transform's
+integrand; what is left is the radial derivative. -/
+theorem integral_theta_polarDz (hw : ContDiff ℝ 1 w) (z : ℂ) {r : ℝ} (hr : 0 < r) :
+    (∫ θ in Ioo (-π) π, polarDz w z (r, θ))
+      = (∫ θ in Ioo (-π) π, fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹)
+        - (2 / r) * angBeurling w z r := by
+  have hdiff : Differentiable ℝ w := hw.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ w) := hw.continuous_fderiv one_ne_zero
+  have hpi : (-π : ℝ) ≤ π := by linarith [Real.pi_pos]
+  have hIoo : ∀ g : ℝ → ℂ, (∫ θ in Ioo (-π : ℝ) π, g θ) = ∫ θ in (-π : ℝ)..π, g θ := by
+    intro g
+    rw [intervalIntegral.integral_of_le hpi, integral_Ioc_eq_integral_Ioo]
+  have hshift : Continuous fun θ : ℝ => z - (r : ℂ) * circ θ :=
+    (continuous_shift z).comp (continuous_const.prodMk continuous_id)
+  have hcsq : Continuous fun θ : ℝ => ((circ θ) ^ 2)⁻¹ :=
+    (continuous_circ.pow 2).inv₀ fun θ => pow_ne_zero 2 (circ_ne_zero θ)
+  have hc1 : Continuous fun θ : ℝ =>
+      fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹ :=
+    ((hfd.comp hshift).clm_apply continuous_circ).mul hcsq
+  have hc2 : Continuous fun θ : ℝ =>
+      fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹ :=
+    ((hfd.comp hshift).clm_apply (continuous_const.mul continuous_circ)).mul hcsq
+  have hcu : Continuous fun θ : ℝ => w (z - (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹ :=
+    (hw.continuous.comp hshift).mul hcsq
+  -- the pointwise polar form
+  have key : ∀ θ : ℝ, polarDz w z (r, θ)
+      = fderiv ℝ w (z - (r : ℂ) * circ θ) (circ θ) * ((circ θ) ^ 2)⁻¹
+        - (Complex.I / r)
+          * (fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ)
+            * ((circ θ) ^ 2)⁻¹) := by
+    intro θ
+    have h := dz_polar_eq hdiff z hr.ne' θ
+    have hcθ : circ θ ≠ 0 := circ_ne_zero θ
+    have halg : dz w (z - (r : ℂ) * circ θ) * (circ θ)⁻¹
+        = (dz w (z - (r : ℂ) * circ θ) * circ θ) * ((circ θ) ^ 2)⁻¹ := by
+      field_simp
+    simp only [polarDz]
+    rw [halg, h]
+    ring
+  -- integration by parts in the angle
+  have hIBP : (∫ θ in Ioo (-π : ℝ) π,
+      fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+      = -(2 * Complex.I) * angBeurling w z r := by
+    have hH : ∀ θ : ℝ, HasDerivAt (fun θ : ℝ => w (z - (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+        (-(fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+          + w (z - (r : ℂ) * circ θ) * (-2 * Complex.I * ((circ θ) ^ 2)⁻¹)) θ := by
+      intro θ
+      have h1 := hasDerivAt_polarFn_snd hdiff z r θ
+      simp only [polarFn] at h1
+      exact (h1.mul (hasDerivAt_circ_sq_inv θ)).congr_deriv (by ring)
+    have hcsum : Continuous fun θ : ℝ =>
+        -(fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ) * ((circ θ) ^ 2)⁻¹)
+          + w (z - (r : ℂ) * circ θ) * (-2 * Complex.I * ((circ θ) ^ 2)⁻¹) :=
+      hc2.neg.add ((hw.continuous.comp hshift).mul (continuous_const.mul hcsq))
+    have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun θ _ => hH θ)
+      (hcsum.intervalIntegrable (-π) π)
+    have hends : w (z - (r : ℂ) * circ π) * ((circ π) ^ 2)⁻¹
+        - w (z - (r : ℂ) * circ (-π)) * ((circ (-π)) ^ 2)⁻¹ = 0 := by
+      rw [circ_pi, circ_neg_pi]
+      ring
+    rw [hends] at hFTC
+    have hsplit : (∫ θ in (-π : ℝ)..π,
+        (-(fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ)
+            * ((circ θ) ^ 2)⁻¹)
+          + w (z - (r : ℂ) * circ θ) * (-2 * Complex.I * ((circ θ) ^ 2)⁻¹)))
+        = (∫ θ in (-π : ℝ)..π,
+            -(fderiv ℝ w (z - (r : ℂ) * circ θ) (Complex.I * (r : ℂ) * circ θ)
+              * ((circ θ) ^ 2)⁻¹))
+          + ∫ θ in (-π : ℝ)..π, w (z - (r : ℂ) * circ θ) * (-2 * Complex.I * ((circ θ) ^ 2)⁻¹) :=
+      intervalIntegral.integral_add (hc2.neg.intervalIntegrable _ _)
+        (((hw.continuous.comp hshift).mul (continuous_const.mul hcsq)).intervalIntegrable _ _)
+    rw [hsplit, intervalIntegral.integral_neg] at hFTC
+    have hlast : (∫ θ in (-π : ℝ)..π,
+        w (z - (r : ℂ) * circ θ) * (-2 * Complex.I * ((circ θ) ^ 2)⁻¹))
+        = -(2 * Complex.I) * angBeurling w z r := by
+      simp only [angBeurling]
+      rw [← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun θ _ => ?_
+      ring
+    rw [hlast] at hFTC
+    rw [hIoo]
+    linear_combination -hFTC
+  rw [setIntegral_congr_fun measurableSet_Ioo fun θ _ => key θ]
+  rw [integral_sub ((hc1.integrableOn_Icc (a := -π) (b := π)).mono_set Ioo_subset_Icc_self)
+      (((hc2.const_mul _).integrableOn_Icc (a := -π) (b := π)).mono_set Ioo_subset_Icc_self),
+    integral_const_mul, hIBP]
+  have harith : (Complex.I / r) * (-(2 * Complex.I) * angBeurling w z r)
+      = (2 / r) * angBeurling w z r := by
+    have h2 : Complex.I * Complex.I = -1 := by
+      rw [← sq]; exact Complex.I_sq
+    linear_combination (-2 * angBeurling w z r / (r : ℂ)) * h2
+  rw [harith]
+
 end CauchyPompeiu
 end MorseFloer
