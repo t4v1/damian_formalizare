@@ -37,8 +37,9 @@ Everything else is proved, including:
   Morse complexes; the Fredholm index and its stability under compact
   perturbations (Riesz–Schauder); Weyl's lemma for `∂̄`; the Cauchy–Pompeiu formula and the
   Cauchy transform as the solution operator of `∂̄v = f`, together with the Beurling
-  transform, the Calderón–Zygmund estimate for it at the sharp Hölder exponent, and the
-  identification of the other derivative of the Cauchy transform with it; Sard's theorem in all
+  transform, the Calderón–Zygmund estimate for it at the sharp Hölder exponent, the
+  identification of the other derivative of the Cauchy transform with it, and the Schauder
+  estimate for that solution operator on Hölder data; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

@@ -1,0 +1,447 @@
+import MorseFloer.Part2.CauchyPompeiu
+import MorseFloer.Part2.Weyl
+
+/-!
+# The Cauchy transform of Hölder data
+
+`Part2/CauchyPompeiu.lean` proves that for compactly supported `C¹` data the Cauchy transform
+`T f` solves `∂(T f)/∂x + i ∂(T f)/∂y = f`, and that its other derivative is the Beurling
+transform.  Schauder theory needs the same for merely Hölder data, and that is what this file
+supplies, by mollification.
+
+Mollification is well behaved on Hölder classes: it preserves the Hölder constant, and it
+converges *uniformly*, at the Hölder rate `ε^α` — no measure-theoretic differentiation is
+needed.  The Beurling transform is stable under such convergence, because the two-parameter
+estimate splits it into a near part controlled by the Hölder constant, which is uniform, and a
+far part controlled by the `L¹` norm, which goes to zero.  The Cauchy transform is stable for
+the same reason, its kernel being locally integrable.  A uniform limit of derivatives is the
+derivative of the limit, so the identities pass to the limit.
+
+## Main results
+
+* `norm_smooth_sub_le`: mollification of Hölder data converges uniformly at rate `ε^α`;
+* `hasFDerivAt_cauchyTransform_holder`: for compactly supported Hölder data the Cauchy
+  transform is differentiable, with the derivative given by `f` and the Beurling transform;
+* `dbar_cauchyTransform_holder`, `dz_cauchyTransform_holder`: the two identities.
+-/
+
+open MeasureTheory Filter Topology Metric Set
+open scoped Real ContDiff
+
+namespace MorseFloer
+namespace CauchyHolder
+
+open CauchyPompeiu Weyl
+
+/-! ### Mollification of Hölder data -/
+
+variable {f : ℂ → ℂ} {C α : ℝ}
+
+theorem integrable_moll_smul {ε : ℝ} (hε : 0 < ε) (hfc : Continuous f) (x : ℂ) :
+    Integrable fun t : ℂ => moll ε t • f (x - t) := by
+  have hcont : Continuous fun t : ℂ => moll ε t • f (x - t) :=
+    (moll_continuous ε).smul (hfc.comp (continuous_const.sub continuous_id))
+  exact hcont.integrable_of_hasCompactSupport (hasCompactSupport_moll hε).smul_right
+
+/-- **Mollification preserves the Hölder constant.** -/
+theorem holder_smooth {ε : ℝ} (hε : 0 < ε) (hfc : Continuous f)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (ξ η : ℂ) :
+    ‖smooth ε f ξ - smooth ε f η‖ ≤ C * ‖ξ - η‖ ^ α := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hpow : (0 : ℝ) ≤ C * ‖ξ - η‖ ^ α := mul_nonneg hC0 (Real.rpow_nonneg (norm_nonneg _) _)
+  rw [smooth_apply, smooth_apply,
+    ← integral_sub (integrable_moll_smul hε hfc ξ) (integrable_moll_smul hε hfc η)]
+  have hpt : ∀ t : ℂ, ‖moll ε t • f (ξ - t) - moll ε t • f (η - t)‖
+      ≤ moll ε t * (C * ‖ξ - η‖ ^ α) := by
+    intro t
+    rw [← smul_sub, norm_smul, Real.norm_eq_abs, abs_of_nonneg (moll_nonneg hε t)]
+    refine mul_le_mul_of_nonneg_left ?_ (moll_nonneg hε t)
+    have h := hf (ξ - t) (η - t)
+    have he : ξ - t - (η - t) = ξ - η := by ring
+    rwa [he] at h
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  refine le_trans (integral_mono
+    ((integrable_moll_smul hε hfc ξ).sub (integrable_moll_smul hε hfc η)).norm
+    ((integrable_moll hε).mul_const (C * ‖ξ - η‖ ^ α)) hpt) ?_
+  rw [integral_mul_const, integral_moll hε, one_mul]
+
+/-- **Mollification of Hölder data converges uniformly**, at the Hölder rate. -/
+theorem norm_smooth_sub_le {ε : ℝ} (hε : 0 < ε) (hfc : Continuous f) (hα : 0 < α)
+    (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (x : ℂ) :
+    ‖smooth ε f x - f x‖ ≤ C * ε ^ α := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hconst : f x = ∫ t : ℂ, moll ε t • f x := by
+    rw [integral_smul_const, integral_moll hε, one_smul]
+  rw [smooth_apply, hconst,
+    ← integral_sub (integrable_moll_smul hε hfc x) ((integrable_moll hε).smul_const (f x))]
+  have hpt : ∀ t : ℂ, ‖moll ε t • f (x - t) - moll ε t • f x‖ ≤ moll ε t * (C * ε ^ α) := by
+    intro t
+    by_cases ht : ‖t‖ < ε
+    · rw [← smul_sub, norm_smul, Real.norm_eq_abs, abs_of_nonneg (moll_nonneg hε t)]
+      refine mul_le_mul_of_nonneg_left ?_ (moll_nonneg hε t)
+      have h := hf (x - t) x
+      have he : x - t - x = -t := by ring
+      rw [he, norm_neg] at h
+      refine le_trans h (mul_le_mul_of_nonneg_left ?_ hC0)
+      exact Real.rpow_le_rpow (norm_nonneg _) ht.le hα.le
+    · rw [moll_eq_zero_of_le hε (not_lt.mp ht)]
+      simp
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  refine le_trans (integral_mono
+    ((integrable_moll_smul hε hfc x).sub ((integrable_moll hε).smul_const (f x))).norm
+    ((integrable_moll hε).mul_const (C * ε ^ α)) hpt) ?_
+  rw [integral_mul_const, integral_moll hε, one_mul]
+
+/-- Mollification enlarges the support by at most the mollification radius. -/
+theorem smooth_eq_zero_of_le {ε R : ℝ} (hε : 0 < ε) (hR : ∀ ζ : ℂ, R ≤ ‖ζ‖ → f ζ = 0) {x : ℂ}
+    (hx : R + ε ≤ ‖x‖) : smooth ε f x = 0 := by
+  have hzero : (fun t : ℂ => moll ε t • f (x - t)) = fun _ => 0 := by
+    funext t
+    by_cases ht : ‖t‖ < ε
+    · have h1 : R ≤ ‖x - t‖ := by
+        have h2 := norm_sub_norm_le x t
+        linarith
+      rw [hR _ h1, smul_zero]
+    · rw [moll_eq_zero_of_le hε (not_lt.mp ht), zero_smul]
+  rw [smooth_apply, hzero, integral_zero]
+
+theorem hasCompactSupport_smooth {ε R : ℝ} (hε : 0 < ε) (hR : ∀ ζ : ℂ, R ≤ ‖ζ‖ → f ζ = 0) :
+    HasCompactSupport (smooth ε f) := by
+  refine HasCompactSupport.intro (isCompact_closedBall (0 : ℂ) (R + ε)) fun x hx => ?_
+  rw [mem_closedBall, dist_zero_right, not_le] at hx
+  exact smooth_eq_zero_of_le hε hR hx.le
+
+/-! ### Stability of the two transforms -/
+
+/-- The two-parameter bound for the Beurling transform, at an arbitrary cut-off radius. -/
+theorem norm_beurling_le_of_radius {g : ℂ → ℂ} (hgc : Continuous g) (hgs : HasCompactSupport g)
+    (hα : 0 < α) (hg : ∀ ξ η : ℂ, ‖g ξ - g η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) {ρ : ℝ} (hρ : 0 < ρ) :
+    ‖beurling g z‖ ≤ C * ρ ^ α * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)))
+      + (ρ ^ 2)⁻¹ * ∫ ζ : ℂ, ‖g ζ‖ := by
+  rw [← beurlingWith_eq hgc hgs hα hg z hρ]
+  unfold beurlingWith
+  exact le_trans (norm_add_le _ _)
+    (add_le_add (norm_integral_beurling_near_le hgc hα hg z hρ)
+      (norm_integral_beurling_far_le hgc hgs z hρ))
+
+/-- The Cauchy transform is additive. -/
+theorem cauchyTransform_sub {g h : ℂ → ℂ} (hgc : Continuous g) (hgs : HasCompactSupport g)
+    (hhc : Continuous h) (hhs : HasCompactSupport h) (z : ℂ) :
+    cauchyTransform (fun ζ => g ζ - h ζ) z = cauchyTransform g z - cauchyTransform h z := by
+  unfold cauchyTransform
+  rw [← smul_sub,
+    ← integral_sub (integrable_inv_smul hgc hgs z) (integrable_inv_smul hhc hhs z)]
+  congr 1
+  refine integral_congr_ae (Eventually.of_forall fun ξ => ?_)
+  dsimp only
+  rw [smul_sub]
+
+/-- The Cauchy transform of a small, compactly supported function is small. -/
+theorem norm_cauchyTransform_le {g : ℂ → ℂ} (hgc : Continuous g) (hgs : HasCompactSupport g)
+    {M R : ℝ} (hM : ∀ x : ℂ, ‖g x‖ ≤ M) (hR : ∀ ζ : ℂ, R ≤ ‖ζ‖ → g ζ = 0) (z : ℂ) :
+    ‖cauchyTransform g z‖
+      ≤ (2 * π)⁻¹ * (M * ∫ ξ in ball (0 : ℂ) (R + ‖z‖ + 1), ‖ξ‖⁻¹) := by
+  have hM0 : 0 ≤ M := le_trans (norm_nonneg _) (hM 0)
+  have hint : Integrable fun ξ : ℂ => (ξ⁻¹ : ℂ) • g (z - ξ) := integrable_inv_smul hgc hgs z
+  have hzero : ∀ ξ : ℂ, ξ ∉ ball (0 : ℂ) (R + ‖z‖ + 1) → ‖(ξ⁻¹ : ℂ) • g (z - ξ)‖ = 0 := by
+    intro ξ hξ
+    rw [mem_ball, dist_zero_right, not_lt] at hξ
+    have h1 : R ≤ ‖z - ξ‖ := by
+      have h2 := norm_sub_norm_le ξ z
+      rw [norm_sub_rev] at h2
+      linarith
+    rw [hR _ h1, smul_zero, norm_zero]
+  have hbound : ∀ ξ ∈ ball (0 : ℂ) (R + ‖z‖ + 1), ‖(ξ⁻¹ : ℂ) • g (z - ξ)‖ ≤ M * ‖ξ‖⁻¹ := by
+    intro ξ _
+    rw [norm_smul, norm_inv, mul_comm]
+    exact mul_le_mul_of_nonneg_right (hM _) (by positivity)
+  rw [cauchyTransform, norm_smul, Real.norm_eq_abs,
+    abs_of_nonneg (by positivity : (0 : ℝ) ≤ (2 * π)⁻¹)]
+  refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+  refine le_trans (norm_integral_le_integral_norm _) ?_
+  rw [← setIntegral_eq_integral_of_forall_compl_eq_zero hzero, ← integral_const_mul]
+  exact setIntegral_mono_on hint.norm.integrableOn
+    (integrableOn_inv_norm_ball.const_mul M) measurableSet_ball hbound
+
+/-- The `L¹` size of a small function supported in a disc. -/
+theorem integral_norm_sub_le {g h : ℂ → ℂ} {M R : ℝ} (hM : ∀ x : ℂ, ‖g x - h x‖ ≤ M)
+    (hzero : ∀ ζ : ℂ, R ≤ ‖ζ‖ → g ζ - h ζ = 0) (hR0 : 0 ≤ R) :
+    (∫ ζ : ℂ, ‖g ζ - h ζ‖) ≤ M * (π * R ^ 2) := by
+  have hzero' : ∀ ζ : ℂ, ζ ∉ ball (0 : ℂ) R → ‖g ζ - h ζ‖ = 0 := by
+    intro ζ hζ
+    rw [mem_ball, dist_zero_right, not_lt] at hζ
+    rw [hzero ζ hζ, norm_zero]
+  rw [← setIntegral_eq_integral_of_forall_compl_eq_zero hzero']
+  have hpt : ∀ ζ ∈ ball (0 : ℂ) R, ‖‖g ζ - h ζ‖‖ ≤ M := by
+    intro ζ _
+    rw [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
+    exact hM ζ
+  have hbound := norm_setIntegral_le_of_norm_le_const (μ := (volume : Measure ℂ))
+    measure_ball_lt_top hpt
+  have hvr : volume.real (ball (0 : ℂ) R) = π * R ^ 2 := by
+    rw [measureReal_def, Complex.volume_ball, ENNReal.toReal_mul, ENNReal.toReal_pow,
+      ENNReal.toReal_ofReal hR0, ENNReal.coe_toReal, NNReal.coe_real_pi]
+    ring
+  rw [hvr] at hbound
+  exact le_trans (Real.le_norm_self _) hbound
+
+/-! ### The general form of a real derivative on the plane -/
+
+/-- The real-linear map `h ↦ (a h + b h̄)/2`.  Every real-linear map of the plane is of this
+form, with `a` read off by `∂/∂x - i ∂/∂y` and `b` by `∂/∂x + i ∂/∂y`. -/
+noncomputable def dPair (a b : ℂ) : ℂ →L[ℝ] ℂ :=
+  ((2 : ℂ)⁻¹ * a) • ContinuousLinearMap.id ℝ ℂ
+    + ((2 : ℂ)⁻¹ * b) • (Complex.conjCLE : ℂ ≃L[ℝ] ℂ).toContinuousLinearMap
+
+@[simp]
+theorem dPair_apply (a b h : ℂ) :
+    dPair a b h = (a * h + b * (starRingEnd ℂ) h) / 2 := by
+  simp [dPair]
+  ring
+
+theorem dPair_sub (a b a' b' : ℂ) : dPair a b - dPair a' b' = dPair (a - a') (b - b') := by
+  ext h
+  simp [dPair_apply]
+  ring
+
+theorem dPair_dz (a b : ℂ) : dPair a b 1 - Complex.I * dPair a b Complex.I = a := by
+  simp [dPair_apply]
+  linear_combination (b / 2 - a / 2) * Complex.I_sq
+
+theorem dPair_dbar (a b : ℂ) : dPair a b 1 + Complex.I * dPair a b Complex.I = b := by
+  simp [dPair_apply]
+  linear_combination (a / 2 - b / 2) * Complex.I_sq
+
+theorem norm_dPair_le (a b : ℂ) : ‖dPair a b‖ ≤ (‖a‖ + ‖b‖) / 2 := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) fun h => ?_
+  rw [dPair_apply, norm_div, Complex.norm_ofNat]
+  refine div_le_of_le_mul₀ (by norm_num) (by positivity) ?_
+  calc ‖a * h + b * (starRingEnd ℂ) h‖ ≤ ‖a * h‖ + ‖b * (starRingEnd ℂ) h‖ := norm_add_le _ _
+    _ = ‖a‖ * ‖h‖ + ‖b‖ * ‖h‖ := by rw [norm_mul, norm_mul, RCLike.norm_conj]
+    _ = (‖a‖ + ‖b‖) / 2 * ‖h‖ * 2 := by ring
+
+/-- **Every real-linear map of the plane splits into its two Wirtinger parts.** -/
+theorem eq_dPair (T : ℂ →L[ℝ] ℂ) :
+    T = dPair (T 1 - Complex.I * T Complex.I) (T 1 + Complex.I * T Complex.I) := by
+  ext h
+  have hT : T h = (h.re : ℝ) • T 1 + (h.im : ℝ) • T Complex.I := by
+    have he : h = (h.re : ℝ) • (1 : ℂ) + (h.im : ℝ) • Complex.I := by
+      simp [Complex.real_smul, Complex.re_add_im]
+    conv_lhs => rw [he]
+    rw [map_add, map_smul, map_smul]
+  have hconj : (starRingEnd ℂ) h = (h.re : ℂ) - (h.im : ℂ) * Complex.I := by
+    apply Complex.ext <;> simp
+  rw [dPair_apply, hT, hconj, Complex.real_smul, Complex.real_smul]
+  linear_combination ((T 1 - T Complex.I * Complex.I) / 2) * (Complex.re_add_im h)
+    + ((h.im : ℂ) * T Complex.I) * Complex.I_sq
+
+/-! ### The Cauchy transform of Hölder data -/
+
+/-- **The Cauchy transform of compactly supported Hölder data is differentiable**, with the
+derivative given by `f` in one Wirtinger direction and by the Beurling transform in the other.
+The proof mollifies: the mollified data are `C¹`, keep the Hölder constant, and converge
+uniformly, so both Wirtinger parts of the derivative converge uniformly, and a uniform limit of
+derivatives is the derivative of the limit. -/
+theorem hasFDerivAt_cauchyTransform_holder (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
+    HasFDerivAt (cauchyTransform f) (dPair (-(π⁻¹ : ℝ) • beurling f z) (f z)) z := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hf
+  have hloc : LocallyIntegrable f := hfc.locallyIntegrable
+  obtain ⟨R, hR0, hR⟩ := exists_radius hfs
+  have hεn0 : ∀ n : ℕ, (0 : ℝ) < 1 / (n + 1) := fun n => by positivity
+  have hεn1 : ∀ n : ℕ, (1 : ℝ) / (n + 1) ≤ 1 := by
+    intro n
+    rw [div_le_one (by positivity)]
+    have h : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+    linarith
+  have hεnlim : Tendsto (fun n : ℕ => (1 : ℝ) / (n + 1)) atTop (𝓝 0) :=
+    tendsto_one_div_add_atTop_nhds_zero_nat
+  have hεα : Tendsto (fun n : ℕ => ((1 : ℝ) / (n + 1)) ^ α) atTop (𝓝 0) := by
+    have hcont : ContinuousAt (fun x : ℝ => x ^ α) 0 :=
+      Real.continuousAt_rpow_const 0 α (Or.inr hα.le)
+    have h : Tendsto (fun n : ℕ => ((1 : ℝ) / (n + 1)) ^ α) atTop (𝓝 ((0 : ℝ) ^ α)) :=
+      hcont.tendsto.comp hεnlim
+    rwa [Real.zero_rpow (ne_of_gt hα)] at h
+  set fn : ℕ → ℂ → ℂ := fun n => smooth (1 / (n + 1)) f with hfndef
+  have hfnC1 : ∀ n, ContDiff ℝ 1 (fn n) := fun n => smooth_contDiff (hεn0 n) hloc
+  have hfnc : ∀ n, Continuous (fn n) := fun n => (hfnC1 n).continuous
+  have hfnz : ∀ (n : ℕ) (ζ : ℂ), R + 1 ≤ ‖ζ‖ → fn n ζ = 0 := by
+    intro n ζ hζ
+    exact smooth_eq_zero_of_le (hεn0 n) (fun ξ h => (hR ξ h).1) (by linarith [hεn1 n])
+  have hfns : ∀ n, HasCompactSupport (fn n) := by
+    intro n
+    refine HasCompactSupport.intro (isCompact_closedBall (0 : ℂ) (R + 1)) fun x hx => ?_
+    rw [mem_closedBall, dist_zero_right, not_le] at hx
+    exact hfnz n x hx.le
+  have hfnh : ∀ (n : ℕ) (ξ η : ℂ), ‖fn n ξ - fn n η‖ ≤ C * ‖ξ - η‖ ^ α := fun n =>
+    holder_smooth (hεn0 n) hfc hf
+  have hfnsup : ∀ (n : ℕ) (x : ℂ), ‖fn n x - f x‖ ≤ C * ((1 : ℝ) / (n + 1)) ^ α := fun n x =>
+    norm_smooth_sub_le (hεn0 n) hfc hα hf x
+  have hdiffc : ∀ n, Continuous fun ζ => fn n ζ - f ζ := fun n => (hfnc n).sub hfc
+  have hdiffs : ∀ n, HasCompactSupport fun ζ => fn n ζ - f ζ := fun n => (hfns n).sub hfs
+  have hdiffh : ∀ (n : ℕ) (ξ η : ℂ),
+      ‖fn n ξ - f ξ - (fn n η - f η)‖ ≤ 2 * C * ‖ξ - η‖ ^ α := by
+    intro n ξ η
+    have h1 := hfnh n ξ η
+    have h2 := hf ξ η
+    have he : fn n ξ - f ξ - (fn n η - f η) = fn n ξ - fn n η - (f ξ - f η) := by ring
+    rw [he]
+    calc ‖fn n ξ - fn n η - (f ξ - f η)‖ ≤ ‖fn n ξ - fn n η‖ + ‖f ξ - f η‖ := norm_sub_le _ _
+      _ ≤ 2 * C * ‖ξ - η‖ ^ α := by linarith
+  have hdiffzero : ∀ (n : ℕ) (ζ : ℂ), R + 1 ≤ ‖ζ‖ → fn n ζ - f ζ = 0 := by
+    intro n ζ hζ
+    rw [hfnz n ζ hζ, (hR ζ (by linarith)).1, sub_zero]
+  have hL1 : ∀ n : ℕ, (∫ ζ : ℂ, ‖fn n ζ - f ζ‖)
+      ≤ (C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2) := fun n =>
+    integral_norm_sub_le (fun x => hfnsup n x) (hdiffzero n) (by linarith)
+  set Mass : ℝ := ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) with hMassdef
+  have hMass0 : (0 : ℝ) ≤ Mass :=
+    integral_nonneg fun ξ => Real.rpow_nonneg (norm_nonneg _) _
+  have hBdiff : ∀ (n : ℕ) (x : ℂ) (ρ : ℝ), 0 < ρ →
+      ‖beurling (fn n) x - beurling f x‖
+        ≤ 2 * C * ρ ^ α * Mass
+          + (ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2)) := by
+    intro n x ρ hρ
+    have hsub : beurling (fun ζ => fn n ζ - f ζ) x = beurling (fn n) x - beurling f x :=
+      beurling_sub (hfnc n) (hfns n) hα (hfnh n) hfc hfs hf x
+    rw [← hsub]
+    refine le_trans (norm_beurling_le_of_radius (hdiffc n) (hdiffs n) hα (hdiffh n) x hρ) ?_
+    exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (hL1 n) (by positivity))
+  -- the derivatives of the mollified transforms
+  have hTn : ∀ (n : ℕ) (x : ℂ), HasFDerivAt (cauchyTransform (fn n))
+      (dPair (-(π⁻¹ : ℝ) • beurling (fn n) x) (fn n x)) x := by
+    intro n x
+    have h := hasFDerivAt_cauchyTransform (hfnC1 n) (hfns n) x
+    have hd : HasFDerivAt (cauchyTransform (fn n))
+        (fderiv ℝ (cauchyTransform (fn n)) x) x := h.differentiableAt.hasFDerivAt
+    have heq : fderiv ℝ (cauchyTransform (fn n)) x
+        = dPair (-(π⁻¹ : ℝ) • beurling (fn n) x) (fn n x) := by
+      conv_lhs => rw [eq_dPair (fderiv ℝ (cauchyTransform (fn n)) x)]
+      congr 1
+      · exact dz_cauchyTransform_eq_beurling (hfnC1 n) (hfns n) x
+      · exact dbar_cauchyTransform (hfnC1 n) (hfns n) x
+    rwa [heq] at hd
+  -- the derivatives converge uniformly
+  have hunif : TendstoUniformly
+      (fun (n : ℕ) (x : ℂ) => dPair (-(π⁻¹ : ℝ) • beurling (fn n) x) (fn n x))
+      (fun x => dPair (-(π⁻¹ : ℝ) • beurling f x) (f x)) atTop := by
+    rw [Metric.tendstoUniformly_iff]
+    intro δ hδ
+    set K : ℝ := π⁻¹ * (2 * C * Mass) with hKdef
+    have hK0 : (0 : ℝ) ≤ K := by
+      rw [hKdef]
+      exact mul_nonneg (by positivity) (mul_nonneg (by linarith) hMass0)
+    have hK1 : (0 : ℝ) < 4 * (K + 1) := by linarith
+    set t : ℝ := δ / (4 * (K + 1)) with htdef
+    have ht0 : (0 : ℝ) < t := div_pos hδ hK1
+    obtain ⟨ρ, hρ0, hρ⟩ : ∃ ρ : ℝ, 0 < ρ ∧ π⁻¹ * (2 * C * ρ ^ α * Mass) < δ / 2 := by
+      refine ⟨t ^ (α⁻¹), Real.rpow_pos_of_pos ht0 _, ?_⟩
+      have hrw : π⁻¹ * (2 * C * (t ^ α⁻¹) ^ α * Mass) = K * ((t ^ α⁻¹) ^ α) := by
+        rw [hKdef]; ring
+      rw [hrw, Real.rpow_inv_rpow ht0.le (ne_of_gt hα)]
+      have ht4 : (K + 1) * t = δ / 4 := by
+        rw [htdef]
+        field_simp
+      have h1 : K * t ≤ δ / 4 := by
+        rw [← ht4]
+        exact mul_le_mul_of_nonneg_right (by linarith) ht0.le
+      linarith
+    have hfin : Tendsto (fun n : ℕ =>
+        π⁻¹ * ((ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2)))
+          + C * ((1 : ℝ) / (n + 1)) ^ α) atTop (𝓝 0) := by
+      have h1 : Tendsto (fun n : ℕ => C * ((1 : ℝ) / (n + 1)) ^ α) atTop (𝓝 0) := by
+        simpa using hεα.const_mul C
+      have h2 : Tendsto (fun n : ℕ =>
+          π⁻¹ * ((ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2)))) atTop
+          (𝓝 0) := by
+        simpa using ((h1.mul_const (π * (R + 1) ^ 2)).const_mul ((ρ ^ 2)⁻¹)).const_mul π⁻¹
+      simpa using h2.add h1
+    filter_upwards [hfin.eventually (gt_mem_nhds (show (0 : ℝ) < δ / 2 by linarith))] with n hn x
+    have hdist : dist (dPair (-(π⁻¹ : ℝ) • beurling f x) (f x))
+        (dPair (-(π⁻¹ : ℝ) • beurling (fn n) x) (fn n x))
+        ≤ (‖-(π⁻¹ : ℝ) • beurling f x - -(π⁻¹ : ℝ) • beurling (fn n) x‖
+            + ‖f x - fn n x‖) / 2 := by
+      rw [dist_eq_norm, dPair_sub]
+      exact norm_dPair_le _ _
+    have hb1 : ‖-(π⁻¹ : ℝ) • beurling f x - -(π⁻¹ : ℝ) • beurling (fn n) x‖
+        = π⁻¹ * ‖beurling (fn n) x - beurling f x‖ := by
+      rw [← smul_sub, norm_smul, Real.norm_eq_abs, abs_neg,
+        abs_of_nonneg (by positivity : (0 : ℝ) ≤ π⁻¹), norm_sub_rev]
+    have hb2 : ‖f x - fn n x‖ = ‖fn n x - f x‖ := norm_sub_rev _ _
+    have hb3 := hBdiff n x ρ hρ0
+    have hb4 := hfnsup n x
+    have hπ0 : (0 : ℝ) ≤ π⁻¹ := by positivity
+    refine lt_of_le_of_lt hdist ?_
+    rw [hb1, hb2]
+    have hb5 : π⁻¹ * ‖beurling (fn n) x - beurling f x‖
+        ≤ π⁻¹ * (2 * C * ρ ^ α * Mass
+          + (ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2))) :=
+      mul_le_mul_of_nonneg_left hb3 hπ0
+    have hexp : π⁻¹ * (2 * C * ρ ^ α * Mass
+        + (ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2)))
+        = π⁻¹ * (2 * C * ρ ^ α * Mass)
+          + π⁻¹ * ((ρ ^ 2)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α) * (π * (R + 1) ^ 2))) := by
+      ring
+    rw [hexp] at hb5
+    linarith
+  -- the transforms converge pointwise
+  have hpt : ∀ x : ℂ,
+      Tendsto (fun n => cauchyTransform (fn n) x) atTop (𝓝 (cauchyTransform f x)) := by
+    intro x
+    refine tendsto_iff_norm_sub_tendsto_zero.mpr ?_
+    have hb : ∀ n : ℕ, ‖cauchyTransform (fn n) x - cauchyTransform f x‖
+        ≤ (2 * π)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α)
+          * ∫ ξ in ball (0 : ℂ) (R + 1 + ‖x‖ + 1), ‖ξ‖⁻¹) := by
+      intro n
+      rw [← cauchyTransform_sub (hfnc n) (hfns n) hfc hfs x]
+      exact norm_cauchyTransform_le (hdiffc n) (hdiffs n) (fun y => hfnsup n y) (hdiffzero n) x
+    have hlim : Tendsto (fun n : ℕ => (2 * π)⁻¹ * ((C * ((1 : ℝ) / (n + 1)) ^ α)
+        * ∫ ξ in ball (0 : ℂ) (R + 1 + ‖x‖ + 1), ‖ξ‖⁻¹)) atTop (𝓝 0) := by
+      have h1 : Tendsto (fun n : ℕ => C * ((1 : ℝ) / (n + 1)) ^ α) atTop (𝓝 0) := by
+        simpa using hεα.const_mul C
+      simpa using
+        ((h1.mul_const (∫ ξ in ball (0 : ℂ) (R + 1 + ‖x‖ + 1), ‖ξ‖⁻¹)).const_mul ((2 * π)⁻¹))
+    exact squeeze_zero (fun n => norm_nonneg _) hb hlim
+  exact hasFDerivAt_of_tendstoUniformly hunif hTn hpt z
+
+/-- **The Cauchy transform solves the inhomogeneous equation for Hölder data.** -/
+theorem dbar_cauchyTransform_holder (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
+    dbar (cauchyTransform f) z = f z := by
+  rw [dbar, (hasFDerivAt_cauchyTransform_holder hfc hfs hα hf z).fderiv]
+  exact dPair_dbar _ _
+
+/-- **The other derivative of the Cauchy transform of Hölder data is the Beurling
+transform.** -/
+theorem dz_cauchyTransform_holder (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (hα : 0 < α) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z : ℂ) :
+    dz (cauchyTransform f) z = -(π⁻¹ : ℝ) • beurling f z := by
+  rw [dz, (hasFDerivAt_cauchyTransform_holder hfc hfs hα hf z).fderiv]
+  exact dPair_dz _ _
+
+/-- **The Schauder estimate for the solution operator.**  For compactly supported `C^{0,α}` data
+with `0 < α < 1`, the derivative of the Cauchy transform is itself `C^{0,α}`: one Wirtinger part
+is `f`, the other is the Beurling transform, and the Calderón–Zygmund estimate controls it.  So
+the solution operator of the inhomogeneous Cauchy–Riemann equation gains a full derivative
+without losing the Hölder exponent. -/
+theorem holder_fderiv_cauchyTransform (hfc : Continuous f) (hfs : HasCompactSupport f)
+    (hα : 0 < α) (hα1 : α < 1) (hf : ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α) (z₁ z₂ : ℂ) :
+    ‖fderiv ℝ (cauchyTransform f) z₁ - fderiv ℝ (cauchyTransform f) z₂‖
+      ≤ (π⁻¹ * (4 * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + 14 * π
+            + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) + 1) * C / 2
+          * ‖z₁ - z₂‖ ^ α := by
+  have hπ0 : (0 : ℝ) ≤ π⁻¹ := by positivity
+  rw [(hasFDerivAt_cauchyTransform_holder hfc hfs hα hf z₁).fderiv,
+    (hasFDerivAt_cauchyTransform_holder hfc hfs hα hf z₂).fderiv, dPair_sub]
+  refine le_trans (norm_dPair_le _ _) ?_
+  have hb1 : ‖-(π⁻¹ : ℝ) • beurling f z₁ - -(π⁻¹ : ℝ) • beurling f z₂‖
+      = π⁻¹ * ‖beurling f z₁ - beurling f z₂‖ := by
+    rw [← smul_sub, norm_smul, Real.norm_eq_abs, abs_neg, abs_of_nonneg hπ0]
+  have hb2 := mul_le_mul_of_nonneg_left
+    (norm_beurling_sub_le_holder hfc hfs hα hα1 hf z₁ z₂) hπ0
+  have hb3 := hf z₁ z₂
+  rw [hb1]
+  linarith
+
+end CauchyHolder
+end MorseFloer
