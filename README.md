@@ -40,7 +40,7 @@ Everything else is proved, including:
   transform, the Calderón–Zygmund estimate for it at the sharp Hölder exponent, the
   identification of the other derivative of the Cauchy transform with it, and the Schauder
   estimate for that solution operator on Hölder data, at every order of the scale, and the
-  elliptic bootstrap for `∂̄` that follows from it; Sard's theorem in all
+  elliptic bootstrap for `∂̄` that follows from it, linear and nonlinear; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 
