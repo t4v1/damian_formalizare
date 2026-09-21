@@ -443,5 +443,292 @@ theorem holder_fderiv_cauchyTransform (hfc : Continuous f) (hfs : HasCompactSupp
   rw [hb1]
   linarith
 
+/-! ### The Hölder scale
+
+The Schauder estimate above is the case `k = 0` of `C^{k,α} → C^{k+1,α}`.  To run the induction
+on `k` without the bookkeeping of iterated multilinear derivatives, the scale is defined
+recursively through directional derivatives: one step up means "differentiable, with every
+directional derivative one step lower".  That is the same scale, and it is exactly what the
+induction consumes, since the first derivative of `T f` is a fixed linear combination of `f`
+and of `T (∂f/∂z)`, and `∂f/∂z` sits one step lower.
+-/
+
+/-- `IsHolderC k α C f`: the function `f` is `k` times differentiable and each of its `k`-th
+directional derivatives, in directions of norm at most one, is `α`-Hölder with constant `C`. -/
+def IsHolderC : ℕ → ℝ → ℝ → (ℂ → ℂ) → Prop
+  | 0, α, C, f => ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α
+  | (k + 1), α, C, f =>
+      Differentiable ℝ f ∧ ∀ v : ℂ, ‖v‖ ≤ 1 → IsHolderC k α C fun z => fderiv ℝ f z v
+
+theorem isHolderC_zero_iff {α C : ℝ} {f : ℂ → ℂ} :
+    IsHolderC 0 α C f ↔ ∀ ξ η : ℂ, ‖f ξ - f η‖ ≤ C * ‖ξ - η‖ ^ α := Iff.rfl
+
+theorem isHolderC_succ_iff {k : ℕ} {α C : ℝ} {f : ℂ → ℂ} :
+    IsHolderC (k + 1) α C f
+      ↔ Differentiable ℝ f ∧ ∀ v : ℂ, ‖v‖ ≤ 1 → IsHolderC k α C fun z => fderiv ℝ f z v :=
+  Iff.rfl
+
+/-- A Hölder function is continuous. -/
+theorem continuous_of_holder {g : ℂ → ℂ} (hα : 0 < α)
+    (hg : ∀ ξ η : ℂ, ‖g ξ - g η‖ ≤ C * ‖ξ - η‖ ^ α) : Continuous g := by
+  have hC0 : 0 ≤ C := holder_const_nonneg hg
+  have hC1 : (0 : ℝ) < C + 1 := by linarith
+  refine Metric.continuous_iff.2 fun b ε hε => ?_
+  refine ⟨(ε / (C + 1)) ^ (α⁻¹), Real.rpow_pos_of_pos (div_pos hε hC1) _, fun a hab => ?_⟩
+  rw [dist_eq_norm] at hab ⊢
+  refine lt_of_le_of_lt (hg a b) ?_
+  have h1 : ‖a - b‖ ^ α ≤ ((ε / (C + 1)) ^ (α⁻¹)) ^ α :=
+    Real.rpow_le_rpow (norm_nonneg _) hab.le hα.le
+  rw [Real.rpow_inv_rpow (div_pos hε hC1).le (ne_of_gt hα)] at h1
+  calc C * ‖a - b‖ ^ α ≤ C * (ε / (C + 1)) := mul_le_mul_of_nonneg_left h1 hC0
+    _ < ε := by
+        rw [mul_div_assoc', div_lt_iff₀ hC1]
+        nlinarith
+
+theorem IsHolderC.continuous {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (hα : 0 < α)
+    (h : IsHolderC k α C' g) : Continuous g := by
+  cases k with
+  | zero => exact continuous_of_holder hα h
+  | succ k => exact h.1.continuous
+
+theorem IsHolderC.mono {k : ℕ} {C₁ C₂ : ℝ} {g : ℂ → ℂ} (h : IsHolderC k α C₁ g)
+    (hC : C₁ ≤ C₂) : IsHolderC k α C₂ g := by
+  induction k generalizing g with
+  | zero =>
+      intro ξ η
+      refine le_trans (h ξ η) ?_
+      exact mul_le_mul_of_nonneg_right hC (Real.rpow_nonneg (norm_nonneg _) _)
+  | succ k ih => exact ⟨h.1, fun v hv => ih (h.2 v hv)⟩
+
+theorem IsHolderC.const_mul {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (a : ℂ) (h : IsHolderC k α C' g) :
+    IsHolderC k α (‖a‖ * C') fun z => a * g z := by
+  induction k generalizing g with
+  | zero =>
+      intro ξ η
+      have h1 : a * g ξ - a * g η = a * (g ξ - g η) := by ring
+      rw [h1, norm_mul, mul_assoc]
+      exact mul_le_mul_of_nonneg_left (h ξ η) (norm_nonneg a)
+  | succ k ih =>
+      refine ⟨fun z => (h.1 z).const_mul a, fun v hv => ?_⟩
+      have hfun : (fun z => fderiv ℝ (fun z => a * g z) z v) = fun z => a * fderiv ℝ g z v := by
+        funext z
+        rw [((h.1 z).hasFDerivAt.const_mul a).fderiv]
+        simp
+      rw [hfun]
+      exact ih (h.2 v hv)
+
+theorem IsHolderC.add {k : ℕ} {C₁ C₂ : ℝ} {g h : ℂ → ℂ} (hg : IsHolderC k α C₁ g)
+    (hh : IsHolderC k α C₂ h) : IsHolderC k α (C₁ + C₂) fun z => g z + h z := by
+  induction k generalizing g h with
+  | zero =>
+      intro ξ η
+      have h1 : g ξ + h ξ - (g η + h η) = g ξ - g η + (h ξ - h η) := by ring
+      rw [h1]
+      refine le_trans (norm_add_le _ _) ?_
+      have := hg ξ η
+      have := hh ξ η
+      nlinarith [Real.rpow_nonneg (norm_nonneg (ξ - η)) α]
+  | succ k ih =>
+      refine ⟨fun z => (hg.1 z).add (hh.1 z), fun v hv => ?_⟩
+      have hfun : (fun z => fderiv ℝ (fun z => g z + h z) z v)
+          = fun z => fderiv ℝ g z v + fderiv ℝ h z v := by
+        funext z
+        have h2 : fderiv ℝ (fun z => g z + h z) z = fderiv ℝ g z + fderiv ℝ h z :=
+          ((hg.1 z).hasFDerivAt.add (hh.1 z).hasFDerivAt).fderiv
+        rw [h2]
+        simp
+      rw [hfun]
+      exact ih (hg.2 v hv) (hh.2 v hv)
+
+/-- The pairing of the two Wirtinger parts is Lipschitz, hence continuous. -/
+theorem continuous_dPair : Continuous fun p : ℂ × ℂ => dPair p.1 p.2 := by
+  refine LipschitzWith.continuous (K := 1) (LipschitzWith.of_dist_le_mul fun p q => ?_)
+  rw [dist_eq_norm, dPair_sub, NNReal.coe_one, one_mul, Prod.dist_eq, dist_eq_norm, dist_eq_norm]
+  refine le_trans (norm_dPair_le _ _) ?_
+  have h1 : ‖p.1 - q.1‖ ≤ max ‖p.1 - q.1‖ ‖p.2 - q.2‖ := le_max_left _ _
+  have h2 : ‖p.2 - q.2‖ ≤ max ‖p.1 - q.1‖ ‖p.2 - q.2‖ := le_max_right _ _
+  linarith
+
+set_option maxHeartbeats 1000000 in
+/-- One step up the scale means continuously differentiable. -/
+theorem IsHolderC.contDiff_one {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (hα : 0 < α)
+    (h : IsHolderC (k + 1) α C' g) : ContDiff ℝ 1 g := by
+  have h1 : Continuous fun z => fderiv ℝ g z 1 :=
+    (h.2 1 (by simp)).continuous hα
+  have hI : Continuous fun z => fderiv ℝ g z Complex.I :=
+    (h.2 Complex.I (by simp)).continuous hα
+  have hpair : Continuous fun z : ℂ => ((fderiv ℝ g z 1 - Complex.I * fderiv ℝ g z Complex.I),
+      (fderiv ℝ g z 1 + Complex.I * fderiv ℝ g z Complex.I)) :=
+    (h1.sub (continuous_const.mul hI)).prodMk (h1.add (continuous_const.mul hI))
+  have hcont : Continuous fun z : ℂ =>
+      dPair (fderiv ℝ g z 1 - Complex.I * fderiv ℝ g z Complex.I)
+        (fderiv ℝ g z 1 + Complex.I * fderiv ℝ g z Complex.I) := continuous_dPair.comp hpair
+  have heq : fderiv ℝ g
+      = fun z => dPair (fderiv ℝ g z 1 - Complex.I * fderiv ℝ g z Complex.I)
+        (fderiv ℝ g z 1 + Complex.I * fderiv ℝ g z Complex.I) := by
+    funext z
+    exact eq_dPair (fderiv ℝ g z)
+  exact contDiff_one_iff_fderiv.2 ⟨h.1, by rw [heq]; exact hcont⟩
+
+/-- A continuously differentiable function with compact support is Hölder of every exponent
+at most one. -/
+theorem exists_holder_of_contDiff_one {g : ℂ → ℂ} (hg : ContDiff ℝ 1 g)
+    (hgs : HasCompactSupport g) (hα : 0 < α) (hα1 : α ≤ 1) :
+    ∃ C' : ℝ, ∀ ξ η : ℂ, ‖g ξ - g η‖ ≤ C' * ‖ξ - η‖ ^ α := by
+  have hdiff : Differentiable ℝ g := hg.differentiable one_ne_zero
+  have hfd : Continuous (fderiv ℝ g) := hg.continuous_fderiv one_ne_zero
+  obtain ⟨L, hL⟩ := (hgs.fderiv (𝕜 := ℝ)).exists_bound_of_continuous hfd
+  obtain ⟨M, hM⟩ := hgs.exists_bound_of_continuous hg.continuous
+  have hL0 : 0 ≤ L := le_trans (norm_nonneg _) (hL 0)
+  have hM0 : 0 ≤ M := le_trans (norm_nonneg _) (hM 0)
+  have hlip : ∀ ξ η : ℂ, ‖g ξ - g η‖ ≤ L * ‖ξ - η‖ := fun ξ η =>
+    Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hdiff x) (fun x _ => hL x)
+      convex_univ (mem_univ η) (mem_univ ξ)
+  refine ⟨L + 2 * M, fun ξ η => ?_⟩
+  have hpow : (0 : ℝ) ≤ ‖ξ - η‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+  by_cases hd : ‖ξ - η‖ ≤ 1
+  · have h1 : ‖ξ - η‖ ≤ ‖ξ - η‖ ^ α := by
+      rcases eq_or_lt_of_le (norm_nonneg (ξ - η)) with h0 | h0
+      · rw [← h0, Real.zero_rpow (ne_of_gt hα)]
+      · calc ‖ξ - η‖ = ‖ξ - η‖ ^ (1 : ℝ) := (Real.rpow_one _).symm
+          _ ≤ ‖ξ - η‖ ^ α := Real.rpow_le_rpow_of_exponent_ge h0 hd hα1
+    calc ‖g ξ - g η‖ ≤ L * ‖ξ - η‖ := hlip ξ η
+      _ ≤ L * ‖ξ - η‖ ^ α := mul_le_mul_of_nonneg_left h1 hL0
+      _ ≤ (L + 2 * M) * ‖ξ - η‖ ^ α := by nlinarith
+  · have h1 : (1 : ℝ) ≤ ‖ξ - η‖ ^ α := by
+      have h2 : (1 : ℝ) ≤ ‖ξ - η‖ := le_of_lt (not_le.mp hd)
+      calc (1 : ℝ) = (1 : ℝ) ^ α := (Real.one_rpow α).symm
+        _ ≤ ‖ξ - η‖ ^ α := Real.rpow_le_rpow zero_le_one h2 hα.le
+    calc ‖g ξ - g η‖ ≤ ‖g ξ‖ + ‖g η‖ := norm_sub_le _ _
+      _ ≤ 2 * M := by have := hM ξ; have := hM η; linarith
+      _ ≤ (L + 2 * M) * ‖ξ - η‖ ^ α := by nlinarith
+
+/-- The `∂/∂z` of a function sits one step lower on the scale. -/
+theorem isHolderC_dz {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (h : IsHolderC (k + 1) α C' g) :
+    IsHolderC k α (2 * C') (dz g) := by
+  have h1 : IsHolderC k α C' fun z => fderiv ℝ g z 1 := h.2 1 (by simp)
+  have hI := IsHolderC.const_mul (-Complex.I) (h.2 Complex.I (by simp))
+  have hsum := h1.add hI
+  have heq : (fun z => fderiv ℝ g z 1 + -Complex.I * fderiv ℝ g z Complex.I) = dz g := by
+    funext z
+    rw [dz]
+    ring
+  rw [heq] at hsum
+  refine hsum.mono ?_
+  rw [norm_neg, Complex.norm_I]
+  linarith
+
+theorem IsHolderC.const_nonneg {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (h : IsHolderC k α C' g) :
+    0 ≤ C' := by
+  induction k generalizing g with
+  | zero => exact holder_const_nonneg h
+  | succ k ih => exact ih (h.2 1 (by simp))
+
+/-- **The Schauder scale for the solution operator.**  For every `k`, the Cauchy transform takes
+compactly supported `C^{k,α}` data to `C^{k+1,α}` functions, with `0 < α < 1`.
+
+The induction is on `k`, and the step is short because of the two identities already proved:
+the first derivative of `T f` in a direction `v` is the fixed linear combination
+`(v/2) T(∂f/∂z) + (v̄/2) f`, in which `∂f/∂z` sits one step lower on the scale, so the induction
+hypothesis applies to it, and `f` itself sits at the right level already. -/
+theorem isHolderC_cauchyTransform (hα : 0 < α) (hα1 : α < 1) :
+    ∀ (k : ℕ) (g : ℂ → ℂ) (C' : ℝ), HasCompactSupport g → IsHolderC k α C' g →
+      ∃ C'' : ℝ, 0 ≤ C'' ∧ IsHolderC (k + 1) α C'' (cauchyTransform g) := by
+  intro k
+  induction k with
+  | zero =>
+      intro g C' hgs hg
+      have hgc : Continuous g := continuous_of_holder hα hg
+      have hC'0 : 0 ≤ C' := holder_const_nonneg hg
+      have hMass0 : (0 : ℝ) ≤ ∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α)) :=
+        integral_nonneg fun ξ => Real.rpow_nonneg (norm_nonneg _) _
+      have hTail0 : (0 : ℝ) ≤ ∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)) :=
+        integral_nonneg fun ξ => Real.rpow_nonneg (norm_nonneg _) _
+      refine ⟨(π⁻¹ * (4 * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + 14 * π
+          + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) + 1) * C' / 2, ?_, ?_, ?_⟩
+      · have hπ : (0 : ℝ) < π := Real.pi_pos
+        have h1 : (0 : ℝ) ≤ π⁻¹ * (4 * (∫ ξ in ball (0 : ℂ) 1, ‖ξ‖ ^ (-(2 - α))) + 14 * π
+            + 10 * (∫ ξ in (ball (0 : ℂ) 1)ᶜ, ‖ξ‖ ^ (-(3 - α)))) := by
+          refine mul_nonneg (by positivity) ?_
+          nlinarith
+        nlinarith
+      · exact fun z => (hasFDerivAt_cauchyTransform_holder hgc hgs hα hg z).differentiableAt
+      · intro v hv ξ η
+        have h1 : fderiv ℝ (cauchyTransform g) ξ v - fderiv ℝ (cauchyTransform g) η v
+            = (fderiv ℝ (cauchyTransform g) ξ - fderiv ℝ (cauchyTransform g) η) v := rfl
+        rw [h1]
+        have h2 := (fderiv ℝ (cauchyTransform g) ξ
+          - fderiv ℝ (cauchyTransform g) η).le_opNorm v
+        have h3 := holder_fderiv_cauchyTransform hgc hgs hα hα1 hg ξ η
+        have h4 : (0 : ℝ) ≤ ‖fderiv ℝ (cauchyTransform g) ξ - fderiv ℝ (cauchyTransform g) η‖ :=
+          norm_nonneg _
+        nlinarith [norm_nonneg v]
+  | succ k ih =>
+      intro g C' hgs hg
+      have hC'0 : 0 ≤ C' := hg.const_nonneg
+      have hgC1 : ContDiff ℝ 1 g := hg.contDiff_one hα
+      have hgc : Continuous g := hgC1.continuous
+      obtain ⟨Cg, hCg⟩ := exists_holder_of_contDiff_one hgC1 hgs hα hα1.le
+      obtain ⟨C₂, hC₂0, hC₂⟩ := ih (dz g) (2 * C') (hasCompactSupport_dz hgs) (isHolderC_dz hg)
+      have hfderiv : ∀ z v : ℂ, fderiv ℝ (cauchyTransform g) z v
+          = v / 2 * cauchyTransform (dz g) z + (starRingEnd ℂ) v / 2 * g z := by
+        intro z v
+        rw [(hasFDerivAt_cauchyTransform_holder hgc hgs hα hCg z).fderiv, dPair_apply]
+        have hb : -(π⁻¹ : ℝ) • beurling g z = cauchyTransform (dz g) z := by
+          rw [← dz_cauchyTransform_eq_beurling hgC1 hgs z, dz_cauchyTransform hgC1 hgs z]
+        rw [hb]
+        ring
+      refine ⟨(C₂ + C') / 2, by linarith, ?_, fun v hv => ?_⟩
+      · exact fun z => (hasFDerivAt_cauchyTransform_holder hgc hgs hα hCg z).differentiableAt
+      · have hfun : (fun z => fderiv ℝ (cauchyTransform g) z v)
+            = fun z => v / 2 * cauchyTransform (dz g) z + (starRingEnd ℂ) v / 2 * g z := by
+          funext z
+          exact hfderiv z v
+        rw [hfun]
+        have h1 := IsHolderC.const_mul (v / 2) hC₂
+        have h2 := IsHolderC.const_mul ((starRingEnd ℂ) v / 2) hg
+        refine (h1.add h2).mono ?_
+        have hv2 : ‖v / 2‖ ≤ 1 / 2 := by
+          rw [norm_div, Complex.norm_ofNat]
+          linarith
+        have hcv2 : ‖(starRingEnd ℂ) v / 2‖ ≤ 1 / 2 := by
+          rw [norm_div, RCLike.norm_conj, Complex.norm_ofNat]
+          linarith
+        nlinarith [norm_nonneg (v / 2), norm_nonneg ((starRingEnd ℂ) v / 2)]
+
+/-- A function on the Hölder scale is continuously differentiable to the matching order: the
+scale defined here is the usual one. -/
+theorem IsHolderC.contDiff {k : ℕ} {C' : ℝ} {g : ℂ → ℂ} (hα : 0 < α)
+    (h : IsHolderC k α C' g) : ContDiff ℝ k g := by
+  induction k generalizing g with
+  | zero => exact contDiff_zero.2 (h.continuous hα)
+  | succ k ih =>
+      have hcast : ((k + 1 : ℕ) : WithTop ℕ∞) = (k : WithTop ℕ∞) + 1 := by push_cast; ring
+      rw [hcast]
+      refine contDiff_succ_iff_fderiv_apply.2
+        ⟨h.1, fun hc => absurd hc (by norm_num), fun y => ?_⟩
+      have h1 : ContDiff ℝ k fun z => fderiv ℝ g z 1 := ih (h.2 1 (by simp))
+      have hI : ContDiff ℝ k fun z => fderiv ℝ g z Complex.I := ih (h.2 Complex.I (by simp))
+      have hy : (fun z => fderiv ℝ g z y)
+          = fun z => (y.re : ℝ) • fderiv ℝ g z 1 + (y.im : ℝ) • fderiv ℝ g z Complex.I := by
+        funext z
+        have he : y = (y.re : ℝ) • (1 : ℂ) + (y.im : ℝ) • Complex.I := by
+          simp [Complex.real_smul, Complex.re_add_im]
+        conv_lhs => rw [he]
+        rw [map_add, map_smul, map_smul]
+      rw [hy]
+      exact (h1.const_smul (y.re : ℝ)).add (hI.const_smul (y.im : ℝ))
+
+/-- **The Cauchy transform gains a derivative on every level of the Hölder scale.**  This is the
+Schauder estimate `C^{k,α} → C^{k+1,α}` for the solution operator of the inhomogeneous
+Cauchy–Riemann equation, in the form used by the elliptic bootstrap: compactly supported data
+of class `C^{k,α}` give a transform of class `C^{k+1}`, with the sharp Hölder exponent on the
+top derivative. -/
+theorem contDiff_cauchyTransform_of_isHolderC (hα : 0 < α) (hα1 : α < 1) (k : ℕ) {g : ℂ → ℂ}
+    {C' : ℝ} (hgs : HasCompactSupport g) (hg : IsHolderC k α C' g) :
+    ContDiff ℝ (k + 1) (cauchyTransform g) := by
+  obtain ⟨C'', -, hC''⟩ := isHolderC_cauchyTransform hα hα1 k g C' hgs hg
+  exact hC''.contDiff hα
+
 end CauchyHolder
 end MorseFloer
