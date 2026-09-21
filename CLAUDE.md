@@ -111,7 +111,8 @@ verifies every cited declaration still exists.
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 0 | Darboux (5.3.2) restated from `Darboux.lean`; the chapter assumes nothing |
 | `Part2/Wirtinger.lean` | helper for 6.1.5 | 0 | Wirtinger's inequality from Parseval; Yorke's theorem |
 | `Part2/FloerRegularity.lean` | dictionary for 6.5.3 | 0 | the Floer equation read on `ℂ`: `ℝ^{2n} ≅ ℂⁿ` with `J₀` becoming multiplication by `i`, the two real partials assembled into a Fréchet derivative (`hasStrictFDerivAt_uncurry_coprod`), and the equation turned into the system `∂̄u_i = G_i(z, u)` to which `contDiff_infty_of_dbar_system` applies |
-| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 5 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; 6.5.11 derived from 6.5.7; **elliptic regularity 6.5.3 proved** through `FloerRegularity` |
+| `Part2/ApproxOrbit.lean` | helper for 6.5.7 | 0 | loops solving `ẋ = X_t(x)` up to an error small in `L¹` converge to a periodic orbit once their starting points do: Grönwall applied to the difference *minus the integrated errors*, then dominated convergence in the integral equation — no Ascoli, no bootstrap; also the sequences `s_k → ±∞` on which an integrable function is small, and convergence of an antitone function from convergence along one sequence |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 4 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; **elliptic regularity 6.5.3 proved** through `FloerRegularity`; **6.5.7 proved** through `ApproxOrbit`, and with it 6.5.11 (the uniform energy bound) unconditionally |
 | `Part2/LinearYorke.lean` | helper for 7.1.2 | 0 | `exp A` has no eigenvalue 1 when `‖A‖ < 2π`, by Yorke; `‖S‖ = max|λ|` for symmetric `S` |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 8 | index axiomatised; dimension two in full; Lemma 7.2.3, Remark 7.1.2, `Δ` well defined, `exp(θJ₂) = rot θ` proved |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 0 | the Fredholm index bookkeeping; Lemma 8.3.2 (separability of `C¹` on a compact set, finite dimension), Props 8.3.1 and 8.3.4 proved; the chapter assumes nothing |
@@ -289,9 +290,17 @@ result recorded in the blueprint with no Lean statement at all:
    to `ContDiff ℝ 1` of the map on `ℂ`, by Mathlib's `hasStrictFDerivAt_uncurry_coprod`. Its
    theorem `contDiff_infty_of_floer` is what `Chapter6.contDiff_of_isFloerSolution` now
    restates; the only extra input is the joint smoothness of `(t, x) ↦ ∇H_t(x)`, which
-   `ContDiff.fderiv` supplies. **Proposition 6.5.3 is therefore proved**, and Chapter 6 is down
-   to five assumptions: 6.5.6 and 6.5.7 still need Ascoli, 6.5.4 and 6.6.2 the bubbling
-   analysis, and the torus case of the conjecture needs the two of them.
+   `ContDiff.fderiv` supplies. **Proposition 6.5.3 is therefore proved.** Proposition 6.5.7
+   (the action converges at both ends to critical values) is proved too, and needed neither
+   Ascoli nor regularity: along a sequence `s_k → ±∞` on which the energy of the loop tends to
+   `0`, the loops `u(s_k, ·)`, translated into the unit cube, solve Hamilton's equation up to
+   the error `J₀ ∂u/∂s`, small in `L¹`; `Part2/ApproxOrbit.lean` shows by Grönwall that such
+   loops form a Cauchy sequence at every time once their starting points converge, and that
+   the limit is a periodic orbit; the action passes to the limit by dominated convergence and
+   then converges on the whole half-line because it is monotone. Chapter 6 is down to four
+   assumptions: 6.5.6 needs the compactness theorem, 6.5.4 and 6.6.2 need the bubbling
+   analysis (and uniform, not merely qualitative, elliptic estimates), and the torus case of
+   the conjecture needs all of Part II's geometric input.
 
 4. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
    symplectic manifolds (only the linear theory is reachable in Chapter 5); the

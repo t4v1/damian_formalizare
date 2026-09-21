@@ -27,6 +27,7 @@ import MorseFloer.Part2.Weyl
 import MorseFloer.Part2.CauchyPompeiu
 import MorseFloer.Part2.CauchyHolder
 import MorseFloer.Part2.FloerRegularity
+import MorseFloer.Part2.ApproxOrbit
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.SardMoreira.MainTheorem

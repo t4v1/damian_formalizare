@@ -1216,17 +1216,166 @@ gaps.
   lets $x(0)$ be subtracted inside the action.
 \end{definition}
 
+\begin{theorem}[The Cauchy--Pompeiu formula and the Cauchy transform]
+  \label{thm:cauchy-pompeiu}
+  \lean{MorseFloer.CauchyPompeiu.dbar, MorseFloer.CauchyPompeiu.dz,
+        MorseFloer.CauchyPompeiu.integral_dbar_div_eq,
+        MorseFloer.CauchyPompeiu.cauchyTransform,
+        MorseFloer.CauchyPompeiu.cauchyTransform_dbar,
+        MorseFloer.CauchyPompeiu.dbar_cauchyTransform}
+  \leanok
+  For $w$ of class $C^1$ with compact support,
+  \[\int_{\mathbb{C}} \frac{(\bar\partial w)(z-\xi)}{\xi}\,d\xi = 2\pi\, w(z),\]
+  proved in polar coordinates from the fundamental theorem of calculus: the
+  radial integration reconstructs $w$ because the angular average of
+  $\xi \mapsto (\bar\partial w)(z - \xi)$ integrates to the value at the centre.
+  Consequently the \emph{Cauchy transform}
+  $T f (z) = (2\pi)^{-1}\int f(z-\xi)/\xi \,d\xi$ is a two-sided solution
+  operator for $\bar\partial v = f$: both $T(\bar\partial w) = w$ and
+  $\bar\partial(T f) = f$ hold, the second by differentiating under the integral
+  sign, which the local integrability of $1/\xi$ permits.
+\end{theorem}
+
+\begin{theorem}[The Beurling transform and the Calder\'on--Zygmund estimate]
+  \label{thm:beurling}
+  \lean{MorseFloer.CauchyPompeiu.integrableOn_rpow_neg_ball,
+        MorseFloer.CauchyPompeiu.beurling,
+        MorseFloer.CauchyPompeiu.setIntegral_beurling_kernel_annulus,
+        MorseFloer.CauchyPompeiu.beurlingWith_eq,
+        MorseFloer.CauchyPompeiu.norm_beurling_le,
+        MorseFloer.CauchyPompeiu.norm_beurling_sub_le_holder,
+        MorseFloer.CauchyPompeiu.dz_cauchyTransform_eq_beurling}
+  \leanok
+  \uses{thm:cauchy-pompeiu}
+  The \emph{other} derivative of the Cauchy transform is the singular integral
+  $B f(z) = \mathrm{p.v.}\int f(z-\xi)\,\xi^{-2}\,d\xi$, and
+  $\partial (Tf)/\partial z = -\pi^{-1} B f$.  The principal value converges on
+  compactly supported $C^{0,\alpha}$ data --- the Riesz kernel
+  $\lVert\xi\rVert^{-a}$ is integrable on a disc exactly for $a < 2$ --- and the
+  truncation radius is immaterial because the kernel has zero mean on every
+  annulus centred at its pole, by the quarter turn $\xi \mapsto i\xi$, which
+  preserves Lebesgue measure and negates the kernel.  The Calder\'on--Zygmund
+  estimate holds at the \emph{sharp} exponent: $B$ maps compactly supported
+  $C^{0,\alpha}$ data to $C^{0,\alpha}$ for $0 < \alpha < 1$.  Both transforms
+  are split at the radius $2\lVert z_1 - z_2\rVert$; the near parts are
+  $O(d^\alpha)$; in the far parts, subtracting the constant $f(z_1)$ costs
+  nothing because the difference of the two truncated kernels integrates to zero
+  over the plane --- the reflection through the midpoint of the two poles
+  exchanges them, so no improper limit is needed --- and what remains is bounded
+  near the poles by the area of a disc and far from them by the H\"ormander
+  condition.  The identification of $\partial (Tf)/\partial z$ is proved in polar
+  coordinates, the radial part telescoping to zero and the angular part
+  integrating by parts into $B$.
+\end{theorem}
+
+\begin{proposition}[The Schauder estimate on the H\"older scale]
+  \label{prop:schauder}
+  \lean{MorseFloer.CauchyHolder.dbar_cauchyTransform_holder,
+        MorseFloer.CauchyHolder.dz_cauchyTransform_holder,
+        MorseFloer.CauchyHolder.holder_fderiv_cauchyTransform,
+        MorseFloer.CauchyHolder.IsHolderC,
+        MorseFloer.CauchyHolder.isHolderC_cauchyTransform,
+        MorseFloer.CauchyHolder.contDiff_cauchyTransform_of_isHolderC}
+  \leanok
+  \uses{thm:beurling}
+  The solution operator gains a full derivative without losing the H\"older
+  exponent: $T$ maps $C^{k,\alpha}$ to $C^{k+1,\alpha}$, for every $k$ and every
+  $0 < \alpha < 1$.  Both identities of \ref{thm:beurling} are first carried from
+  $C^1$ data to merely H\"older data by mollification --- mollification preserves
+  the H\"older constant and converges uniformly at the rate $\varepsilon^\alpha$,
+  and a uniform limit of derivatives is the derivative of the limit.  The scale
+  itself is defined recursively through directional derivatives, and the
+  induction on $k$ is short because the derivative of $Tf$ in a direction $v$ is
+  the fixed combination $\tfrac{v}{2} T(\partial f/\partial z) + \tfrac{\bar
+  v}{2} f$, in which $\partial f/\partial z$ sits one level lower.  The $C^k$
+  scale alone would not do: the Cauchy transform of a $C^k$ function is only
+  $C^k$.
+\end{proposition}
+
+\begin{theorem}[The elliptic bootstrap for $\bar\partial$]
+  \label{thm:dbar-bootstrap}
+  \lean{MorseFloer.CauchyHolder.exists_cutoff_isHolderC,
+        MorseFloer.CauchyHolder.contDiff_infty_of_dbar_contDiff,
+        MorseFloer.CauchyHolder.exists_isHolderC_comp,
+        MorseFloer.CauchyHolder.contDiff_infty_of_dbar_comp,
+        MorseFloer.CauchyHolder.exists_isHolderC_comp₂,
+        MorseFloer.CauchyHolder.contDiff_infty_of_dbar_comp₂,
+        MorseFloer.CauchyHolder.exists_isHolderC_compPi,
+        MorseFloer.CauchyHolder.contDiff_infty_of_dbar_system}
+  \leanok
+  \uses{prop:schauder}
+  A $C^1$ function whose $\bar\partial$ is smooth is smooth; more generally a
+  $C^1$ solution of the semilinear system $\bar\partial u_i = G_i(z, u_1, \dots,
+  u_n)$ with $G$ smooth is smooth.  Weyl's lemma (\ref{lem:12.1.1w}) is not
+  needed: a compactly supported $C^1$ function \emph{equals} the Cauchy transform
+  of its own $\bar\partial$, so after a cut-off the regularity of the function is
+  exactly that of that transform.  The cut-off costs a commutator term which
+  involves the function only where the previous cut-off was already $1$, so the
+  induction runs on shrinking discs.  The nonlinearity is absorbed by a chain
+  rule on the H\"older scale, in one, two and $n$ inner functions; the point
+  dependence of $G$ is handled by feeding the point in as one more inner
+  function, cut off like the solution; and the vector target needs no
+  vector-valued Cauchy transform, since the components of the system are coupled
+  only through the right-hand side and climb the scale together.
+\end{theorem}
+
+\begin{proposition}[Proposition 6.5.3, elliptic regularity for the Floer equation]
+  \label{prop:6.5.3}
+  \lean{MorseFloer.FloerRegularity.contDiff_one_of_partials,
+        MorseFloer.FloerRegularity.toCpxL, MorseFloer.FloerRegularity.ofCpxL,
+        MorseFloer.FloerRegularity.toCpxL_stdJ,
+        MorseFloer.FloerRegularity.contDiff_infty_of_floer,
+        MorseFloer.Chapter6.contDiff_of_isFloerSolution}
+  \leanok
+  \uses{def:6.4, thm:dbar-bootstrap}
+  Every $C^1$ solution of the Floer equation is $C^\infty$.  The book proves this
+  with Sobolev spaces on the cylinder; here it is the dictionary between the two
+  formulations followed by \ref{thm:dbar-bootstrap}.  Under the identification of
+  $\mathbb{R}^{2n}$ with $\mathbb{C}^n$, in which $J_0$ becomes multiplication by
+  $i$, the equation
+  $\partial_s u + J_0\,\partial_t u + \nabla H_t(u) = 0$ for
+  $u \colon \mathbb{R}\times\mathbb{R} \to \mathbb{R}^{2n}$ becomes the semilinear
+  system $\bar\partial u_i = G_i(z, u)$ for $u \colon \mathbb{C} \to
+  \mathbb{C}^n$.  The passage from \texttt{IsLoopVariation}, which carries two
+  continuous partial derivatives, to differentiability of the map on
+  $\mathbb{C}$ is Mathlib's
+  \texttt{hasStrictFDerivAt\_uncurry\_coprod}, and the smoothness of the
+  nonlinearity $(t,x)\mapsto \nabla H_t(x)$ comes from that of $H$ by
+  \texttt{ContDiff.fderiv}.  Nothing in the chain uses a Sobolev space; it all
+  runs on the H\"older scale.  The second assertion of the book's statement ---
+  that on the space of solutions the topologies $C^0_{loc}$, $C^1_{loc}$ and
+  $C^\infty_{loc}$ coincide --- is omitted, for want of those topologies.
+\end{proposition}
+
 \begin{proposition}[Proposition 6.5.7 and Corollary 6.5.11]
   \label{prop:6.5.7}
-  \lean{MorseFloer.Chapter6.exists_tendsto_action,
+  \lean{MorseFloer.ApproxOrbit.exists_seq_atTop,
+        MorseFloer.ApproxOrbit.tendsto_atTop_of_antitone_of_seq,
+        MorseFloer.ApproxOrbit.norm_sub_le_of_approx,
+        MorseFloer.ApproxOrbit.exists_orbit_of_approx,
+        MorseFloer.Chapter6.exists_lipschitz_hamField,
+        MorseFloer.Chapter6.action_sub_const,
+        MorseFloer.Chapter6.exists_orbit_tendsto_action,
+        MorseFloer.Chapter6.exists_tendsto_action,
         MorseFloer.Chapter6.exists_bound_action_energy}
-  \notready
+  \leanok
   \uses{def:6.4}
   The action of a finite-energy solution converges at both ends to critical
-  values (6.5.7, \emph{assumed}: it needs Ascoli and elliptic bootstrapping),
-  and consequently the energy of every finite-energy solution is bounded by a
-  constant (6.5.11, \emph{proved from 6.5.7} with the bound on the critical
-  values of \ref{def:6.4} and $E(u) = \mathcal{A}_H(x) - \mathcal{A}_H(y)$).
+  values (6.5.7), and consequently the energy of every finite-energy solution is
+  bounded by a constant (6.5.11, from the bound on the critical values of
+  \ref{def:6.4} and $E(u) = \mathcal{A}_H(x) - \mathcal{A}_H(y)$).  Both are
+  \emph{proved}, and 6.5.7 without the book's two tools, Ascoli's theorem and
+  the elliptic bootstrap of Lemma 6.5.9.  The energy being finite, there are
+  sequences $s_k \to \pm\infty$ along which
+  $\lVert \partial_t u - X_t(u)\rVert_{L^2(S^1)} \to 0$.  The loops
+  $u(s_k,\cdot)$, translated by lattice vectors into the unit cube, then solve
+  Hamilton's equation up to an error small in $L^1$; Gr\"onwall's inequality,
+  applied to the difference of two such loops \emph{minus the integrated
+  errors}, makes them a Cauchy sequence at every time once the starting points
+  converge, and the limit solves the integral equation by dominated convergence,
+  so it is a periodic orbit.  The action passes to the limit along the
+  subsequence --- the contribution of the error is controlled by its $L^1$ norm
+  --- and, being monotone, it then converges along the whole half-line.
 \end{proposition}
 
 \begin{theorem}[Theorem 6.5.4, compactness; Conjecture 6.1.2]
@@ -1236,8 +1385,9 @@ gaps.
   \notready
   \uses{prop:6.5.7}
   Solutions of bounded energy are compact up to breaking, and the Arnold
-  conjecture on the torus.  \emph{Assumed}: the compactness proof needs elliptic
-  bootstrapping, hence the Sobolev theory of \ref{thm:16.4}.
+  conjecture on the torus.  \emph{Assumed}: with elliptic regularity in hand
+  (\ref{prop:6.5.3}) what the compactness proof still needs is Ascoli's theorem
+  and the uniform gradient bound of \S6.6, i.e.\ the bubbling analysis.
 \end{theorem}
 
 \chapter{The Maslov and Conley--Zehnder indices (Chapter 7)}

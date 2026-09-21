@@ -1,6 +1,7 @@
 import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Wirtinger
 import MorseFloer.Part2.FloerRegularity
+import MorseFloer.Part2.ApproxOrbit
 
 /-!
 # Chapter 6: The Arnold conjecture and the Floer equation
@@ -97,6 +98,16 @@ Proved here:
 * **Lemma 6.5.10**, the finiteness of the nondegenerate fixed points of `ψ_1`
   in every compact set (`finite_fixedPoints`), by the first-order expansion of
   `ψ_1 − Id` at a fixed point — no transversality theory is needed;
+* **Proposition 6.5.7** (`exists_tendsto_action`): the action of a
+  finite-energy solution converges at both ends to critical values.  The book
+  uses Ascoli's theorem and an elliptic bootstrap; here neither is needed.
+  Along a sequence `s_k → ±∞` on which the energy of the loop tends to `0`, the
+  loops `u(s_k, ·)`, translated into the unit cube, solve Hamilton's equation
+  up to the error `J₀ ∂u/∂s`, small in `L¹`, and `Part2/ApproxOrbit.lean` shows
+  by Grönwall's inequality that such loops converge at every time to a periodic
+  orbit once their starting points do.  The action passes to the limit by
+  dominated convergence, and converges on the whole half-line because it is
+  monotone;
 * **Corollary 6.5.11** (`exists_bound_action_energy`), *from* Proposition
   6.5.7: the energy of every finite-energy solution is bounded by a constant.
   The book's proof is followed — the action converges at both ends to critical
@@ -106,8 +117,8 @@ Proved here:
   bounded (`exists_bound_of_lattice_periodic`, a continuous function on
   `T^{2n} × S¹` is bounded), so a periodic orbit moves at most `sup ‖X_t‖` away
   from `x(0)` in one period, and since `∫₀¹ ẋ = 0` the action of `x` is that
-  of `x − x(0)`, whose integrand is bounded.  The corollary therefore rests on
-  Proposition 6.5.7 alone;
+  of `x − x(0)`, whose integrand is bounded.  With Proposition 6.5.7 proved,
+  the corollary is unconditional;
 * the **first variation of the action** (`hasDerivAt_action`), the analytic
   half of Proposition 6.3.4: `d/dσ A_H(u_σ) = (α_H)_{u_s}(∂u/∂s)`.  It is
   obtained by differentiating under the integral sign with Mathlib's
@@ -131,8 +142,7 @@ Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
-* **Proposition 6.5.7**,
-  **Theorem 6.5.6** and **Proposition 6.5.15** (finite-energy solutions converge
+* **Theorem 6.5.6** and **Proposition 6.5.15** (finite-energy solutions converge
   to periodic orbits), **Theorem 6.5.4** (compactness) and **Proposition 6.6.2**
   (the uniform gradient bound).
 
@@ -1524,6 +1534,33 @@ section Compactness
 
 variable {l : Type*} [DecidableEq l] [Fintype l]
 
+/-- `∇H_t(x)` is jointly smooth in `(t, x)`. -/
+theorem contDiff_hamGrad (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) :
+    ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => hamGrad H p.1 p.2 := by
+  have hswap : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) => H q.2 q.1.1 := by
+    have hlin : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) =>
+        ((q.2, q.1.1) : ((l ⊕ l) → ℝ) × ℝ) :=
+      ((ContinuousLinearMap.snd ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)).prod
+        ((ContinuousLinearMap.fst ℝ ℝ ((l ⊕ l) → ℝ)).comp
+          (ContinuousLinearMap.fst ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)))).contDiff
+    exact hH.comp hlin
+  have hfd : ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => fderiv ℝ (fun y => H y p.1) p.2 :=
+    ContDiff.fderiv hswap (ContinuousLinearMap.snd ℝ ℝ ((l ⊕ l) → ℝ)).contDiff (by simp)
+  exact contDiff_pi.2 fun i => hfd.clm_apply contDiff_const
+
+/-- `X_t(x)` is jointly smooth in `(t, x)`. -/
+theorem contDiff_hamField (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2) :
+    ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => hamField H p.1 p.2 := by
+  have h : (fun p : ℝ × ((l ⊕ l) → ℝ) => hamField H p.1 p.2)
+      = fun p => LinearMap.toContinuousLinearMap (stdJ l) (hamGrad H p.1 p.2) := by
+    funext p
+    rw [hamField_eq_stdJ_grad]
+    rfl
+  rw [h]
+  exact (LinearMap.toContinuousLinearMap (stdJ l)).contDiff.comp (contDiff_hamGrad H hH)
+
 /-- **Proposition 6.5.3** (elliptic regularity, i.e. Lemma 12.1.1).  Every `C¹`
 solution of the Floer equation is `C^∞`, and on `M` the topologies `C⁰_loc`,
 `C¹_loc` and `C^∞_loc` coincide.
@@ -1540,20 +1577,9 @@ on the Hölder scale.  The only input needed here is the joint smoothness of
 theorem contDiff_of_isFloerSolution (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
     (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
     {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) :
-    ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2 := by
-  have hswap : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) => H q.2 q.1.1 := by
-    have hlin : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) =>
-        ((q.2, q.1.1) : ((l ⊕ l) → ℝ) × ℝ) :=
-      ((ContinuousLinearMap.snd ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)).prod
-        ((ContinuousLinearMap.fst ℝ ℝ ((l ⊕ l) → ℝ)).comp
-          (ContinuousLinearMap.fst ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)))).contDiff
-    exact hH.comp hlin
-  have hfd : ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => fderiv ℝ (fun y => H y p.1) p.2 :=
-    ContDiff.fderiv hswap (ContinuousLinearMap.snd ℝ ℝ ((l ⊕ l) → ℝ)).contDiff (by simp)
-  have hN : ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => hamGrad H p.1 p.2 :=
-    contDiff_pi.2 fun i => hfd.clm_apply contDiff_const
-  exact FloerRegularity.contDiff_infty_of_floer hu.hasDerivAt_s hu.hasDerivAt_t
-    hu.continuous_s hu.continuous_t hN hu.floer
+    ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2 :=
+  FloerRegularity.contDiff_infty_of_floer hu.hasDerivAt_s hu.hasDerivAt_t
+    hu.continuous_s hu.continuous_t (contDiff_hamGrad H hH) hu.floer
 
 omit [DecidableEq l] in
 /-- **Lemma 6.5.10.**  Under the nondegeneracy hypothesis the `1`-periodic
@@ -1628,34 +1654,6 @@ theorem finite_fixedPoints (ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → 
     rw [Set.mem_singleton_iff] at hq
     subst hq
     exact ⟨Metric.mem_ball_self hε, hp⟩
-
-/-- **Proposition 6.5.7.**  For a finite-energy solution the action converges at
-both ends to critical values of `A_H`.
-
-The proof extracts a sequence `s_k → ±∞` along which `‖∂u/∂t − X_t(u)‖_{L²}`
-tends to `0`, applies Ascoli to get a `C⁰` limit, bootstraps it to a smooth
-periodic orbit (Lemma 6.5.9), and checks that the action passes to the limit.
-Ascoli is in Mathlib, the rest is not.
-
-The finite-energy hypothesis and the torus hypotheses on `H` were missing from an
-earlier statement, which was false without them.  For `H = 0` a non-constant
-holomorphic cylinder `u(s, t) = e^{2π(s ± it)}` in `ℂ = ℝ²`, the sign fixed by
-`J₀`, solves the Floer equation, and its action `± π e^{±4πs}` has no finite
-limit.  For `H = e^{−|y|²}` on `ℝ²`, which is not lattice-invariant, the
-negative gradient line leaving the origin has energy `1` and escapes to
-infinity, so the action tends to `0`, which is not a critical value.
-Smoothness of `H` is the book's standing assumption. -/
-theorem exists_tendsto_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    (_hHt : ∀ y t, H y (t + 1) = H y t)
-    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
-      H (y + fun i => (k i : ℝ)) t = H y t)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u)
-    (_hE : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) :
-    ∃ x y : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x ∧ IsPeriodicOrbit (hamField H) y ∧
-      Filter.Tendsto (fun s => action H (u s)) Filter.atBot (nhds (action H x)) ∧
-      Filter.Tendsto (fun s => action H (u s)) Filter.atTop (nhds (action H y)) := by
-  sorry
 
 omit [DecidableEq l] in
 /-- A continuous function on `ℝ^{2n} × ℝ` which is invariant under the lattice
@@ -1787,13 +1785,422 @@ theorem exists_bound_action_of_isPeriodicOrbit (H : ((l ⊕ l) → ℝ) → ℝ 
   have := intervalIntegral.norm_integral_le_of_norm_le_const hbound
   rwa [sub_zero, abs_one, mul_one, Real.norm_eq_abs] at this
 
+section ActionLimit
+
+open Filter Topology
+
+/-- `ω` is a bounded bilinear form. -/
+theorem exists_bound_stdForm :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ a b : (l ⊕ l) → ℝ, |stdForm l a b| ≤ C * ‖a‖ * ‖b‖ := by
+  refine ⟨‖LinearMap.toContinuousBilinearMap (stdForm l)‖,
+    ContinuousLinearMap.opNorm_nonneg _, fun a b => ?_⟩
+  have h := (LinearMap.toContinuousBilinearMap (stdForm l)).le_opNorm₂ a b
+  rwa [LinearMap.toContinuousBilinearMap_apply, Real.norm_eq_abs] at h
+
+/-- On the torus the Hamiltonian vector field is Lipschitz in the point, uniformly in
+time: its differential in the point is continuous on the compact torus `T^{2n} × S¹`. -/
+theorem exists_lipschitz_hamField (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) :
+    ∃ K : ℝ, ∀ t a b, ‖hamField H t a - hamField H t b‖ ≤ K * ‖a - b‖ := by
+  have hX := contDiff_hamField H hH
+  have hunc : ContDiff ℝ ∞ (Function.uncurry
+      fun (p : ((l ⊕ l) → ℝ) × ℝ) (y : (l ⊕ l) → ℝ) => hamField H p.2 y) := by
+    have hlin : ContDiff ℝ ∞ fun q : (((l ⊕ l) → ℝ) × ℝ) × ((l ⊕ l) → ℝ) =>
+        ((q.1.2, q.2) : ℝ × ((l ⊕ l) → ℝ)) :=
+      (((ContinuousLinearMap.snd ℝ ((l ⊕ l) → ℝ) ℝ).comp
+          (ContinuousLinearMap.fst ℝ (((l ⊕ l) → ℝ) × ℝ) ((l ⊕ l) → ℝ))).prod
+        (ContinuousLinearMap.snd ℝ (((l ⊕ l) → ℝ) × ℝ) ((l ⊕ l) → ℝ))).contDiff
+    exact hX.comp hlin
+  have hfd : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ =>
+      fderiv ℝ (fun y => hamField H p.2 y) p.1 :=
+    ContDiff.fderiv hunc (ContinuousLinearMap.fst ℝ ((l ⊕ l) → ℝ) ℝ).contDiff (by simp)
+  obtain ⟨K, hK⟩ := exists_bound_of_lattice_periodic
+    (f := fun x t => fderiv ℝ (fun y => hamField H t y) x) hfd.continuous
+    (fun y t => by
+      have h : (fun z => hamField H (t + 1) z) = fun z => hamField H t z :=
+        funext (hamField_periodic hHt t)
+      show fderiv ℝ (fun z => hamField H (t + 1) z) y = fderiv ℝ (fun z => hamField H t z) y
+      rw [h])
+    (fun k y t => by
+      have e : fderiv ℝ (fun z => hamField H t (z + fun i => (k i : ℝ))) y
+          = fderiv ℝ (fun z => hamField H t z) (y + fun i => (k i : ℝ)) :=
+        fderiv_comp_add_right (f := fun z => hamField H t z) _
+      have h : (fun z => hamField H t (z + fun i => (k i : ℝ))) = fun z => hamField H t z :=
+        funext (hamField_lattice hHlat k t)
+      rw [h] at e
+      exact e.symm)
+  refine ⟨K, fun t a b => ?_⟩
+  have hdiff : Differentiable ℝ fun y => hamField H t y :=
+    (hX.comp (contDiff_const.prodMk contDiff_id)).differentiable (by simp)
+  exact Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hdiff x) (fun x _ => hK x t)
+    convex_univ (Set.mem_univ b) (Set.mem_univ a)
+
+/-- The action of a `C¹` loop does not change when the loop is translated by a period of
+`H`: the term `∫₀¹ ω(c, ẋ)` vanishes because `ẋ` integrates to `x(1) - x(0) = 0`. -/
+theorem action_sub_const (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {c : (l ⊕ l) → ℝ} (hc : ∀ y t, H (y + c) t = H y t)
+    {x x' : ℝ → ((l ⊕ l) → ℝ)} (hx : ∀ t, HasDerivAt x (x' t) t) (hx'c : Continuous x')
+    (hper : Function.Periodic x 1) :
+    action H (fun t => x t - c) = action H x := by
+  have hxc : Continuous x := continuous_iff_continuousAt.2 fun t => (hx t).continuousAt
+  have hHc : Continuous fun t => H (x t) t := hH.continuous.comp (hxc.prodMk continuous_id)
+  have hzero : (∫ t in (0:ℝ)..1, stdForm l c (x' t)) = 0 := by
+    have hder : ∀ t, HasDerivAt (fun τ => stdForm l c (x τ)) (stdForm l c (x' t)) t := fun t => by
+      have := hasDerivAt_stdForm (l := l) (hasDerivAt_const t c) (hx t)
+      exact this.congr_deriv (by simp)
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun t _ => hder t)
+      ((continuous_stdForm continuous_const hx'c).intervalIntegrable 0 1)]
+    have h1 : x 1 = x 0 := by simpa using hper 0
+    rw [h1, sub_self]
+  have hInt1 : IntervalIntegrable (fun t => H (x t) t - 1 / 2 * stdForm l (x t) (x' t))
+      MeasureTheory.volume 0 1 :=
+    (hHc.sub (continuous_const.mul (continuous_stdForm hxc hx'c))).intervalIntegrable 0 1
+  have hInt2 : IntervalIntegrable (fun t => 1 / 2 * stdForm l c (x' t))
+      MeasureTheory.volume 0 1 :=
+    (continuous_const.mul (continuous_stdForm continuous_const hx'c)).intervalIntegrable 0 1
+  have e1 : action H (fun t => x t - c) = ∫ t in (0:ℝ)..1,
+      ((H (x t) t - 1 / 2 * stdForm l (x t) (x' t)) + 1 / 2 * stdForm l c (x' t)) := by
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    show H (x t - c) t - 1 / 2 * stdForm l (x t - c) (deriv (fun t => x t - c) t)
+      = (H (x t) t - 1 / 2 * stdForm l (x t) (x' t)) + 1 / 2 * stdForm l c (x' t)
+    have h1 : H (x t - c) t = H (x t) t := by
+      have := hc (x t - c) t
+      rw [sub_add_cancel] at this
+      exact this.symm
+    rw [((hx t).sub_const c).deriv, h1, map_sub, LinearMap.sub_apply]
+    ring
+  have e2 : action H x = ∫ t in (0:ℝ)..1, (H (x t) t - 1 / 2 * stdForm l (x t) (x' t)) := by
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    show H (x t) t - 1 / 2 * stdForm l (x t) (deriv x t)
+      = H (x t) t - 1 / 2 * stdForm l (x t) (x' t)
+    rw [(hx t).deriv]
+  rw [e1, e2, intervalIntegral.integral_add hInt1 hInt2, intervalIntegral.integral_const_mul,
+    hzero, mul_zero, add_zero]
+
+/-- **The core of Proposition 6.5.7.**  Along any sequence `s_k` on which the energy of the
+loops `u(s_k, ·)` tends to `0`, a subsequence of the actions converges to the action of a
+`1`-periodic orbit.
+
+After translation by lattice vectors the starting points lie in the unit cube, so a
+subsequence of them converges.  The loops solve Hamilton's equation up to the error
+`J₀ ∂u/∂s`, which tends to `0` in `L¹` over a period, so by
+`ApproxOrbit.exists_orbit_of_approx` they converge at every time to a periodic orbit `x`.
+The action passes to the limit by dominated convergence, the contribution `∫ ω(y, J₀ ∂u/∂s)`
+of the error being controlled by its `L¹` norm. -/
+theorem exists_orbit_tendsto_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) {s : ℕ → ℝ}
+    (hs : Tendsto (fun k => ∫ t in (0:ℝ)..1, energyDensity u (s k) t) atTop (𝓝 0)) :
+    ∃ (x : ℝ → ((l ⊕ l) → ℝ)) (φ : ℕ → ℕ), IsPeriodicOrbit (hamField H) x ∧ StrictMono φ ∧
+      Tendsto (fun k => action H (u (s (φ k)))) atTop (𝓝 (action H x)) := by
+  have hH1 : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2 :=
+    hH.of_le (by exact_mod_cast (le_top : (1 : ℕ∞) ≤ ⊤))
+  have hXc : Continuous fun q : ℝ × ((l ⊕ l) → ℝ) => hamField H q.1 q.2 :=
+    (contDiff_hamField H hH).continuous
+  obtain ⟨M₀, hM₀⟩ := exists_bound_of_lattice_periodic (f := H) hH1.continuous hHt hHlat
+  obtain ⟨M₁, hM₁⟩ := exists_bound_of_lattice_periodic (f := fun x t => hamField H t x)
+    (hXc.comp (continuous_snd.prodMk continuous_fst)) (fun y t => hamField_periodic hHt t y)
+    (fun k y t => hamField_lattice hHlat k t y)
+  obtain ⟨K, hK⟩ := exists_lipschitz_hamField H hH hHt hHlat
+  obtain ⟨Cω, hCω0, hCω⟩ := exists_bound_stdForm (l := l)
+  have hM₁0 : 0 ≤ M₁ := (norm_nonneg _).trans (hM₁ 0 0)
+  -- translate each loop by a lattice vector, so that it starts in the unit cube
+  have hlat : ∀ k : ℕ, ∃ c : (l ⊕ l) → ℝ, (∀ y t, H (y + c) t = H y t) ∧
+      (∀ t y, hamField H t (y + c) = hamField H t y) ∧ ‖u (s k) 0 - c‖ ≤ 1 := by
+    intro k
+    refine ⟨fun i => ((⌊u (s k) 0 i⌋ : ℤ) : ℝ), fun y t => hHlat (fun i => ⌊u (s k) 0 i⌋) y t,
+      fun t y => hamField_lattice hHlat (fun i => ⌊u (s k) 0 i⌋) t y, ?_⟩
+    rw [pi_norm_le_iff_of_nonneg zero_le_one]
+    intro i
+    show ‖u (s k) 0 i - ⌊u (s k) 0 i⌋‖ ≤ 1
+    rw [Int.self_sub_floor, Real.norm_eq_abs, abs_of_nonneg (Int.fract_nonneg _)]
+    exact (Int.fract_lt_one _).le
+  choose c hcH hcX hc1 using hlat
+  obtain ⟨p, -, φ, hφ, hpφ⟩ := (isCompact_closedBall (0 : (l ⊕ l) → ℝ) 1).tendsto_subseq
+    (x := fun k => u (s k) 0 - c k) (fun k => mem_closedBall_zero_iff.2 (hc1 k))
+  obtain ⟨y, hydef⟩ : ∃ y : ℕ → ℝ → ((l ⊕ l) → ℝ), y = fun k t => u (s (φ k)) t - c (φ k) :=
+    ⟨_, rfl⟩
+  have hyk : ∀ k t, y k t = u (s (φ k)) t - c (φ k) := fun k t => by rw [hydef]
+  have hyf : ∀ k, y k = fun t => u (s (φ k)) t - c (φ k) := fun k => funext (hyk k)
+  have hy : ∀ k t, HasDerivAt (y k) (dT u (s (φ k)) t) t := fun k t => by
+    rw [hyf k]
+    exact (hu.hasDerivAt_t (s (φ k)) t).sub_const _
+  have hyc : ∀ k, Continuous (y k) := fun k =>
+    continuous_iff_continuousAt.2 fun t => (hy k t).continuousAt
+  have hy'c : ∀ k, Continuous (dT u (s (φ k))) := fun k =>
+    hu.continuous_t.comp (continuous_const.prodMk continuous_id)
+  have hper : ∀ k, Function.Periodic (y k) 1 := fun k t => by
+    rw [hyk, hyk, hu.periodic (s (φ k)) t]
+  -- the error is `J₀ ∂u/∂s`
+  have herr : ∀ k t, dT u (s (φ k)) t - hamField H t (y k t) = stdJ l (dS u (s (φ k)) t) := by
+    intro k t
+    have h := hcX (φ k) t (u (s (φ k)) t - c (φ k))
+    rw [sub_add_cancel] at h
+    rw [hyk, ← h]
+    exact floer_eq H hu _ _
+  have hnorm : ∀ k t, (dT u (s (φ k)) t - hamField H t (y k t))
+      ⬝ᵥ (dT u (s (φ k)) t - hamField H t (y k t)) = energyDensity u (s (φ k)) t := by
+    intro k t
+    rw [herr, stdJ_dotProduct]
+    rfl
+  have hec : ∀ k, Continuous fun t => dT u (s (φ k)) t - hamField H t (y k t) := fun k =>
+    (hy'c k).sub (hXc.comp (continuous_id.prodMk (hyc k)))
+  have heper : ∀ k, Function.Periodic
+      (fun t => ‖dT u (s (φ k)) t - hamField H t (y k t)‖) 1 := by
+    intro k t
+    show ‖dT u (s (φ k)) (t + 1) - hamField H (t + 1) (y k (t + 1))‖
+      = ‖dT u (s (φ k)) t - hamField H t (y k t)‖
+    rw [ApproxOrbit.periodic_deriv (hy k) (hper k) t, hamField_periodic hHt, hper k t]
+  have hedc : ∀ k, Continuous fun t => energyDensity u (s (φ k)) t := fun k => by
+    have h : Continuous fun t => dS u (s (φ k)) t :=
+      hu.continuous_s.comp (continuous_const.prodMk continuous_id)
+    exact continuous_dot₂ h h
+  -- its `L¹` norm tends to `0`
+  obtain ⟨η, hηdef⟩ : ∃ η : ℕ → ℝ,
+      η = fun k => ∫ t in (0:ℝ)..1, ‖dT u (s (φ k)) t - hamField H t (y k t)‖ := ⟨_, rfl⟩
+  have hηk : ∀ k, η k = ∫ t in (0:ℝ)..1, ‖dT u (s (φ k)) t - hamField H t (y k t)‖ :=
+    fun k => by rw [hηdef]
+  have hη0 : ∀ k, 0 ≤ η k := fun k => by
+    rw [hηk]
+    exact intervalIntegral.integral_nonneg zero_le_one fun τ _ => norm_nonneg _
+  have hg : Tendsto (fun k => ∫ t in (0:ℝ)..1, energyDensity u (s (φ k)) t) atTop (𝓝 0) :=
+    hs.comp hφ.tendsto_atTop
+  have hηle : ∀ δ : ℝ, 0 < δ → ∀ k,
+      η k ≤ δ / 2 + (∫ t in (0:ℝ)..1, energyDensity u (s (φ k)) t) / (2 * δ) := by
+    intro δ hδ k
+    have hcont : Continuous fun t => δ / 2 + energyDensity u (s (φ k)) t / (2 * δ) :=
+      continuous_const.add ((hedc k).div_const _)
+    rw [hηk]
+    calc ∫ t in (0:ℝ)..1, ‖dT u (s (φ k)) t - hamField H t (y k t)‖
+        ≤ ∫ t in (0:ℝ)..1, (δ / 2 + energyDensity u (s (φ k)) t / (2 * δ)) :=
+          intervalIntegral.integral_mono_on zero_le_one ((hec k).norm.intervalIntegrable _ _)
+            (hcont.intervalIntegrable _ _) fun t _ => by
+              rw [← hnorm k t]
+              exact ApproxOrbit.norm_le_add_dotProduct _ hδ
+      _ = δ / 2 + (∫ t in (0:ℝ)..1, energyDensity u (s (φ k)) t) / (2 * δ) := by
+          rw [intervalIntegral.integral_add (continuous_const.intervalIntegrable _ _)
+            (((hedc k).div_const _).intervalIntegrable _ _), intervalIntegral.integral_const,
+            intervalIntegral.integral_div]
+          simp
+  have hE : Tendsto η atTop (𝓝 0) := by
+    refine tendsto_order.2 ⟨fun a ha => Eventually.of_forall fun k => ha.trans_le (hη0 k),
+      fun ε hε => ?_⟩
+    have hε2 : 0 < ε ^ 2 := by positivity
+    filter_upwards [(tendsto_order.1 hg).2 (ε ^ 2) hε2] with k hk
+    have h1 := hηle ε hε k
+    have h2 : (∫ t in (0:ℝ)..1, energyDensity u (s (φ k)) t) / (2 * ε) < ε / 2 := by
+      rw [div_lt_iff₀ (by positivity)]
+      nlinarith
+    linarith
+  have hE' : Tendsto (fun k => ∫ t in (0:ℝ)..1, ‖dT u (s (φ k)) t - hamField H t (y k t)‖)
+      atTop (𝓝 0) := by
+    rw [hηdef] at hE
+    exact hE
+  have hp : Tendsto (fun k => y k 0) atTop (𝓝 p) := by
+    have he : (fun k => y k 0) = (fun k => u (s k) 0 - c k) ∘ φ := funext fun k => hyk k 0
+    rw [he]
+    exact hpφ
+  -- the limiting orbit
+  obtain ⟨x, hxd, hxper, hxlim⟩ := ApproxOrbit.exists_orbit_of_approx (X := hamField H)
+    hXc hK (fun t a => hM₁ a t) hy hy'c hper heper hE' hp
+  refine ⟨x, φ, ⟨hxd, hxper⟩, hφ, ?_⟩
+  -- the loops are eventually bounded on `[0, 1]`
+  have hybound : ∀ k, ∀ t ∈ Set.Icc (0:ℝ) 1, ‖y k t‖ ≤ 1 + M₁ + η k := by
+    intro k t ht
+    have hftc : ∫ τ in (0:ℝ)..t, dT u (s (φ k)) τ = y k t - y k 0 :=
+      intervalIntegral.integral_eq_sub_of_hasDerivAt (fun τ _ => hy k τ)
+        ((hy'c k).intervalIntegrable 0 t)
+    have hcont : Continuous fun τ => M₁ + ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖ :=
+      continuous_const.add (hec k).norm
+    have h1 : ‖y k t - y k 0‖ ≤ M₁ + η k := by
+      rw [← hftc, hηk]
+      calc ‖∫ τ in (0:ℝ)..t, dT u (s (φ k)) τ‖
+          ≤ ∫ τ in (0:ℝ)..t, ‖dT u (s (φ k)) τ‖ :=
+            intervalIntegral.norm_integral_le_integral_norm ht.1
+        _ ≤ ∫ τ in (0:ℝ)..t, (M₁ + ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖) :=
+            intervalIntegral.integral_mono_on ht.1 ((hy'c k).norm.intervalIntegrable _ _)
+              (hcont.intervalIntegrable _ _) fun τ _ => by
+                have e : dT u (s (φ k)) τ = hamField H τ (y k τ)
+                    + (dT u (s (φ k)) τ - hamField H τ (y k τ)) := by abel
+                calc ‖dT u (s (φ k)) τ‖
+                    = ‖hamField H τ (y k τ)
+                        + (dT u (s (φ k)) τ - hamField H τ (y k τ))‖ := by rw [← e]
+                  _ ≤ ‖hamField H τ (y k τ)‖
+                        + ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖ := norm_add_le _ _
+                  _ ≤ M₁ + ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖ :=
+                      add_le_add_left (hM₁ _ _) _
+        _ ≤ ∫ τ in (0:ℝ)..1, (M₁ + ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖) :=
+            intervalIntegral.integral_mono_interval le_rfl ht.1 ht.2
+              (Eventually.of_forall fun τ => add_nonneg hM₁0 (norm_nonneg _))
+              (hcont.intervalIntegrable _ _)
+        _ = M₁ + ∫ τ in (0:ℝ)..1, ‖dT u (s (φ k)) τ - hamField H τ (y k τ)‖ := by
+            rw [intervalIntegral.integral_add (continuous_const.intervalIntegrable _ _)
+              ((hec k).norm.intervalIntegrable _ _), intervalIntegral.integral_const]
+            simp
+    have h0 : ‖y k 0‖ ≤ 1 := by
+      rw [hyk]
+      exact hc1 (φ k)
+    calc ‖y k t‖ = ‖y k 0 + (y k t - y k 0)‖ := by rw [add_sub_cancel]
+      _ ≤ ‖y k 0‖ + ‖y k t - y k 0‖ := norm_add_le _ _
+      _ ≤ 1 + (M₁ + η k) := add_le_add h0 h1
+      _ = 1 + M₁ + η k := by ring
+  have hR : ∀ᶠ k in atTop, ∀ t ∈ Set.Icc (0:ℝ) 1, ‖y k t‖ ≤ 2 + M₁ := by
+    filter_upwards [(tendsto_order.1 hE).2 1 one_pos] with k hk t ht
+    linarith [hybound k t ht]
+  -- the action of the translated loop, split along `ẏ = X_t(y) + error`
+  have hact1 : ∀ k, action H (u (s (φ k))) = action H (y k) := fun k => by
+    rw [hyf k]
+    exact (action_sub_const H hH1 (hcH (φ k)) (hu.hasDerivAt_t (s (φ k))) (hy'c k)
+      (hu.periodic (s (φ k)))).symm
+  have hHyc : ∀ k, Continuous fun t => H (y k t) t := fun k =>
+    hH1.continuous.comp ((hyc k).prodMk continuous_id)
+  have hXyc : ∀ k, Continuous fun t => hamField H t (y k t) := fun k =>
+    hXc.comp (continuous_id.prodMk (hyc k))
+  have hAc : ∀ k, Continuous fun t =>
+      H (y k t) t - 1 / 2 * stdForm l (y k t) (hamField H t (y k t)) := fun k =>
+    (hHyc k).sub (continuous_const.mul (continuous_stdForm₂ (hyc k) (hXyc k)))
+  have hBc : ∀ k, Continuous fun t =>
+      stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t)) := fun k =>
+    continuous_stdForm₂ (hyc k) (hec k)
+  have hact2 : ∀ k, action H (y k)
+      = (∫ t in (0:ℝ)..1, (H (y k t) t - 1 / 2 * stdForm l (y k t) (hamField H t (y k t))))
+        - 1 / 2 * ∫ t in (0:ℝ)..1,
+            stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t)) := by
+    intro k
+    have hBc' : Continuous fun t =>
+        1 / 2 * stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t)) :=
+      continuous_const.mul (hBc k)
+    rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_sub
+      ((hAc k).intervalIntegrable _ _) (hBc'.intervalIntegrable _ _)]
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    show H (y k t) t - 1 / 2 * stdForm l (y k t) (deriv (y k) t)
+      = H (y k t) t - 1 / 2 * stdForm l (y k t) (hamField H t (y k t))
+        - 1 / 2 * stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t))
+    rw [(hy k t).deriv, map_sub]
+    ring
+  -- the main term converges by dominated convergence
+  have hactx : action H x
+      = ∫ t in (0:ℝ)..1, (H (x t) t - 1 / 2 * stdForm l (x t) (hamField H t (x t))) := by
+    refine intervalIntegral.integral_congr fun t _ => ?_
+    show H (x t) t - 1 / 2 * stdForm l (x t) (deriv x t)
+      = H (x t) t - 1 / 2 * stdForm l (x t) (hamField H t (x t))
+    rw [(hxd t).deriv]
+  have hΨ : ∀ t, Continuous fun a : (l ⊕ l) → ℝ =>
+      H a t - 1 / 2 * stdForm l a (hamField H t a) := fun t =>
+    (hH1.continuous.comp (continuous_id.prodMk continuous_const)).sub
+      (continuous_const.mul (continuous_stdForm₂ continuous_id
+        (hXc.comp (continuous_const.prodMk continuous_id))))
+  have limA : Tendsto (fun k => ∫ t in (0:ℝ)..1,
+      (H (y k t) t - 1 / 2 * stdForm l (y k t) (hamField H t (y k t)))) atTop
+      (𝓝 (action H x)) := by
+    rw [hactx]
+    refine intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+      (fun _ => M₀ + 1 / 2 * (Cω * (2 + M₁) * M₁))
+      (Eventually.of_forall fun k => (hAc k).aestronglyMeasurable) ?_
+      intervalIntegrable_const
+      (Eventually.of_forall fun t _ => ((hΨ t).tendsto (x t)).comp (hxlim t))
+    filter_upwards [hR] with k hk
+    refine Eventually.of_forall fun t ht => ?_
+    rw [Set.uIoc_of_le zero_le_one] at ht
+    have hyt := hk t (Set.Ioc_subset_Icc_self ht)
+    have h1 : |H (y k t) t| ≤ M₀ := by
+      have := hM₀ (y k t) t
+      rwa [Real.norm_eq_abs] at this
+    have h2 : |stdForm l (y k t) (hamField H t (y k t))| ≤ Cω * (2 + M₁) * M₁ :=
+      (hCω _ _).trans (mul_le_mul (mul_le_mul_of_nonneg_left hyt hCω0) (hM₁ _ _)
+        (norm_nonneg _) (mul_nonneg hCω0 (by linarith)))
+    rw [Real.norm_eq_abs]
+    obtain ⟨h3, h4⟩ := abs_le.mp h1
+    obtain ⟨h5, h6⟩ := abs_le.mp h2
+    exact abs_le.mpr ⟨by linarith, by linarith⟩
+  -- and the error term tends to `0`
+  have limB : Tendsto (fun k => ∫ t in (0:ℝ)..1,
+      stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t))) atTop (𝓝 0) := by
+    have hlim0 : Tendsto (fun k => Cω * (2 + M₁) * η k) atTop (𝓝 0) := by
+      have := hE.const_mul (Cω * (2 + M₁))
+      rwa [mul_zero] at this
+    refine squeeze_zero_norm' ?_ hlim0
+    filter_upwards [hR] with k hk
+    rw [hηk, ← intervalIntegral.integral_const_mul]
+    calc ‖∫ t in (0:ℝ)..1, stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t))‖
+        ≤ ∫ t in (0:ℝ)..1, ‖stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t))‖ :=
+          intervalIntegral.norm_integral_le_integral_norm zero_le_one
+      _ ≤ ∫ t in (0:ℝ)..1,
+            Cω * (2 + M₁) * ‖dT u (s (φ k)) t - hamField H t (y k t)‖ :=
+          intervalIntegral.integral_mono_on zero_le_one ((hBc k).norm.intervalIntegrable _ _)
+            ((continuous_const.mul (hec k).norm).intervalIntegrable _ _) fun t ht => by
+              rw [Real.norm_eq_abs]
+              exact (hCω _ _).trans (mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_left (hk t ht) hCω0) (norm_nonneg _))
+  have hfinal : Tendsto (fun k =>
+      (∫ t in (0:ℝ)..1, (H (y k t) t - 1 / 2 * stdForm l (y k t) (hamField H t (y k t))))
+        - 1 / 2 * ∫ t in (0:ℝ)..1,
+            stdForm l (y k t) (dT u (s (φ k)) t - hamField H t (y k t))) atTop
+      (𝓝 (action H x - 1 / 2 * 0)) := limA.sub (limB.const_mul _)
+  rw [mul_zero, sub_zero] at hfinal
+  refine hfinal.congr fun k => ?_
+  rw [hact1 k, hact2 k]
+
+/-- **Proposition 6.5.7.**  For a finite-energy solution the action converges at
+both ends to critical values of `A_H`.
+
+**Proved**, and without the two tools the book uses.  The energy being finite,
+there are sequences `s_k → ±∞` along which `‖∂u/∂t − X_t(u)‖_{L²(S¹)}` tends to
+`0` (`ApproxOrbit.exists_seq_atTop`).  The book then applies Ascoli and an
+elliptic bootstrap (Lemma 6.5.9); here the loops `u(s_k, ·)`, translated into the
+unit cube, are approximate solutions of Hamilton's equation with an error small
+in `L¹`, so Grönwall's inequality makes them a Cauchy sequence at every time and
+the limit is a periodic orbit (`exists_orbit_tendsto_action`).  The action passes
+to the limit along the subsequence, and since it is monotone
+(`action_antitone`) it converges along the whole half-line.
+
+The finite-energy hypothesis and the torus hypotheses on `H` were missing from an
+earlier statement, which was false without them.  For `H = 0` a non-constant
+holomorphic cylinder `u(s, t) = e^{2π(s ± it)}` in `ℂ = ℝ²`, the sign fixed by
+`J₀`, solves the Floer equation, and its action `± π e^{±4πs}` has no finite
+limit.  For `H = e^{−|y|²}` on `ℝ²`, which is not lattice-invariant, the
+negative gradient line leaving the origin has energy `1` and escapes to
+infinity, so the action tends to `0`, which is not a critical value.
+Smoothness of `H` is the book's standing assumption. -/
+theorem exists_tendsto_action (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u)
+    (hE : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) :
+    ∃ x y : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x ∧ IsPeriodicOrbit (hamField H) y ∧
+      Filter.Tendsto (fun s => action H (u s)) Filter.atBot (nhds (action H x)) ∧
+      Filter.Tendsto (fun s => action H (u s)) Filter.atTop (nhds (action H y)) := by
+  have hH1 : ContDiff ℝ 1 fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2 :=
+    hH.of_le (by exact_mod_cast (le_top : (1 : ℕ∞) ≤ ⊤))
+  have hanti := action_antitone H hH1 hu
+  have h0 : ∀ s, 0 ≤ ∫ t in (0:ℝ)..1, energyDensity u s t := fun s =>
+    intervalIntegral.integral_nonneg zero_le_one fun t _ => energyDensity_nonneg u s t
+  obtain ⟨sm, hsm, hgm⟩ := ApproxOrbit.exists_seq_atBot hE h0
+  obtain ⟨sp, hsp, hgp⟩ := ApproxOrbit.exists_seq_atTop hE h0
+  obtain ⟨x, φ, hx, hφ, hlx⟩ := exists_orbit_tendsto_action H hH hHt hHlat hu hgm
+  obtain ⟨y, ψ, hy, hψ, hly⟩ := exists_orbit_tendsto_action H hH hHt hHlat hu hgp
+  exact ⟨x, y, hx, hy,
+    ApproxOrbit.tendsto_atBot_of_antitone_of_seq hanti (hsm.comp hφ.tendsto_atTop) hlx,
+    ApproxOrbit.tendsto_atTop_of_antitone_of_seq hanti (hsp.comp hψ.tendsto_atTop) hly⟩
+
+end ActionLimit
+
 /-- **Corollary 6.5.11.**  There is a constant `C > 0` bounding the energy of
 every element of `M`.  The book's proof: the action converges at both ends to
 critical values (Proposition 6.5.7), these form a bounded set, and
 `E(u) = A_H(x) − A_H(y)` (Remark 6.5.2(3)); that is exactly the proof here,
 with the boundedness of the critical values supplied by
-`exists_bound_action_of_isPeriodicOrbit`.  The only assumption it rests on is
-Proposition 6.5.7.
+`exists_bound_action_of_isPeriodicOrbit`.  Proposition 6.5.7 being proved, the
+corollary rests on no assumption.
 
 The smoothness of `H`, which Proposition 6.5.7 needs, was missing from an
 earlier statement. -/
