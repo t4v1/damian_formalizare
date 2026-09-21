@@ -730,5 +730,73 @@ theorem contDiff_cauchyTransform_of_isHolderC (hα : 0 < α) (hα1 : α < 1) (k 
   obtain ⟨C'', -, hC''⟩ := isHolderC_cauchyTransform hα hα1 k g C' hgs hg
   exact hC''.contDiff hα
 
+/-! ### The bootstrap
+
+With the Schauder scale in hand the elliptic bootstrap is short, because a compactly supported
+`C¹` function is *equal* to the Cauchy transform of its own `∂̄` (`cauchyTransform_dbar`): its
+regularity is exactly that of that transform, and the scale lifts the regularity of `∂̄u` by one
+derivative at every level.
+-/
+
+/-- A uniform Hölder constant over all directions follows from the two coordinate directions,
+since a directional derivative depends linearly on the direction. -/
+theorem isHolderC_of_basis {k : ℕ} {C₁ C₂ : ℝ} {g : ℂ → ℂ} (hdiff : Differentiable ℝ g)
+    (h1 : IsHolderC k α C₁ fun z => fderiv ℝ g z 1)
+    (hI : IsHolderC k α C₂ fun z => fderiv ℝ g z Complex.I) :
+    IsHolderC (k + 1) α (C₁ + C₂) g := by
+  refine ⟨hdiff, fun v hv => ?_⟩
+  have hfun : (fun z => fderiv ℝ g z v)
+      = fun z => (v.re : ℂ) * fderiv ℝ g z 1 + (v.im : ℂ) * fderiv ℝ g z Complex.I := by
+    funext z
+    have he : v = (v.re : ℝ) • (1 : ℂ) + (v.im : ℝ) • Complex.I := by
+      simp [Complex.real_smul, Complex.re_add_im]
+    conv_lhs => rw [he]
+    rw [map_add, map_smul, map_smul, Complex.real_smul, Complex.real_smul]
+  rw [hfun]
+  refine ((IsHolderC.const_mul (v.re : ℂ) h1).add (IsHolderC.const_mul (v.im : ℂ) hI)).mono ?_
+  have hre : |v.re| ≤ 1 := le_trans (Complex.abs_re_le_norm v) hv
+  have him : |v.im| ≤ 1 := le_trans (Complex.abs_im_le_norm v) hv
+  have hC1 : 0 ≤ C₁ := h1.const_nonneg
+  have hC2 : 0 ≤ C₂ := hI.const_nonneg
+  rw [Complex.norm_real, Complex.norm_real, Real.norm_eq_abs, Real.norm_eq_abs]
+  nlinarith
+
+/-- A compactly supported `C^{k+1}` function sits on the `k`-th level of the Hölder scale. -/
+theorem exists_isHolderC_of_contDiff (hα : 0 < α) (hα1 : α ≤ 1) :
+    ∀ (k : ℕ) (g : ℂ → ℂ), ContDiff ℝ (k + 1) g → HasCompactSupport g →
+      ∃ C : ℝ, IsHolderC k α C g := by
+  intro k
+  induction k with
+  | zero =>
+      intro g hg hgs
+      exact exists_holder_of_contDiff_one hg hgs hα hα1
+  | succ k ih =>
+      intro g hg hgs
+      obtain ⟨hdiff, -, happly⟩ := contDiff_succ_iff_fderiv_apply.1 hg
+      have hs : ∀ v : ℂ, HasCompactSupport fun z => fderiv ℝ g z v := fun v =>
+        (hgs.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+      obtain ⟨C₁, hC₁⟩ := ih _ (happly 1) (hs 1)
+      obtain ⟨C₂, hC₂⟩ := ih _ (happly Complex.I) (hs Complex.I)
+      exact ⟨C₁ + C₂, isHolderC_of_basis hdiff hC₁ hC₂⟩
+
+/-- **The elliptic bootstrap for compactly supported data.**  A compactly supported `C¹`
+function whose `∂̄` is smooth is itself smooth: it equals the Cauchy transform of its `∂̄`, and
+the Schauder scale lifts the regularity of that datum by one derivative at every level. -/
+theorem contDiff_infty_of_dbar {u : ℂ → ℂ} (hu : ContDiff ℝ 1 u) (hus : HasCompactSupport u)
+    (hdbar : ContDiff ℝ ∞ (dbar u)) : ContDiff ℝ ∞ u := by
+  have hα : (0 : ℝ) < 1 / 2 := by norm_num
+  have hα1 : (1 : ℝ) / 2 < 1 := by norm_num
+  have hdbs : HasCompactSupport (dbar u) := hasCompactSupport_dbar hus
+  have heq : cauchyTransform (dbar u) = u := cauchyTransform_dbar hu hus
+  rw [contDiff_infty]
+  intro n
+  cases n with
+  | zero => exact hu.of_le (by norm_num)
+  | succ k =>
+      obtain ⟨C, hC⟩ := exists_isHolderC_of_contDiff (α := 1 / 2) hα hα1.le k (dbar u)
+        ((contDiff_infty.1 hdbar) (k + 1)) hdbs
+      rw [← heq]
+      exact contDiff_cauchyTransform_of_isHolderC hα hα1 k hdbs hC
+
 end CauchyHolder
 end MorseFloer
