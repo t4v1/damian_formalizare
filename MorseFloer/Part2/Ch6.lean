@@ -2,6 +2,8 @@ import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Wirtinger
 import MorseFloer.Part2.FloerRegularity
 import MorseFloer.Part2.ApproxOrbit
+import MorseFloer.Part2.MeanValue
+import MorseFloer.Part2.LatticePath
 
 /-!
 # Chapter 6: The Arnold conjecture and the Floer equation
@@ -108,6 +110,30 @@ Proved here:
   orbit once their starting points do.  The action passes to the limit by
   dominated convergence, and converges on the whole half-line because it is
   monotone;
+* **Proposition 6.6.2** (`exists_gradient_bound`), the uniform bound on the
+  gradient of the solutions of bounded energy — and without the bubbling
+  analysis by which the book obtains it.  `∂u/∂s` solves the linearised Floer
+  equation (`linearized_floer`), whose zeroth-order term, the Hessian of `H_t`,
+  is bounded on the torus; read in `ℂⁿ` it is therefore almost holomorphic, and
+  the mean value inequality of `Part2/MeanValue.lean` bounds its value at the
+  centre of a disc by its `L¹` norm there — hence by the energy, by Fubini on
+  `ℂ ≅ ℝ × ℝ` (`setIntegral_energyDensity_le`) — plus a term that is absorbed on
+  a small disc.  Hofer's lemma (Lemma 6.6.3) supplies a disc on which `|∂u/∂s|`
+  is at most twice its value at the centre.  This is the rescaling argument of
+  the book with the limit taken out: the bubble would be an entire function
+  with bounded derivative and finite energy;
+* **Theorem 6.5.6 and Proposition 6.5.15** (`tendsto_of_finite_energy`): when
+  the periodic orbits are nondegenerate, a finite-energy solution converges at
+  both ends to periodic orbits, and `∂u/∂s → 0` uniformly in `t`.  The decay
+  of `∂u/∂s` (`eventually_norm_dS_lt`) is the mean value inequality again, the
+  `L¹` norm on a disc being controlled by the energy of a window of length `1`,
+  which tends to `0`; the loops are then approximate periodic orbits with an
+  error tending to `0` uniformly, and `exists_orbit_tendsto_of_error` — the
+  flow is `C¹` (`contDiff_flow`, from the `C¹` flow of the suspended autonomous
+  field, `Part2/FlowC1.lean`), the fixed points of `ψ_1` are finite in every
+  compact set (Lemma 6.5.10), and `Part2/LatticePath.lean` runs the book's
+  connectedness argument in `ℝ^{2n}` — makes them converge to a periodic orbit
+  without the compactness theorem;
 * **Corollary 6.5.11** (`exists_bound_action_energy`), *from* Proposition
   6.5.7: the energy of every finite-energy solution is bounded by a constant.
   The book's proof is followed — the action converges at both ends to critical
@@ -142,9 +168,10 @@ Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
-* **Theorem 6.5.6** and **Proposition 6.5.15** (finite-energy solutions converge
-  to periodic orbits), **Theorem 6.5.4** (compactness) and **Proposition 6.6.2**
-  (the uniform gradient bound).
+* **Theorem 6.5.4** (compactness).  With the gradient bound proved, what it
+  still needs is *uniform* `C^{1,α}` estimates — the Schauder estimate of
+  `Part2/CauchyHolder.lean` is there, but the bootstrap built on it is
+  qualitative — and Ascoli's theorem.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -2222,13 +2249,953 @@ theorem exists_bound_action_energy (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
   obtain ⟨h3, h4⟩ := abs_le.mp (hB y hy)
   linarith [le_abs_self B]
 
+section GradientBound
+
+open Filter Topology MeasureTheory
+
+/-- On the torus the Hessian of `H_t` is bounded, uniformly in the point and in time. -/
+theorem exists_bound_fderiv_hamGrad (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) :
+    ∃ L : ℝ, ∀ t x, ‖fderiv ℝ (fun y => hamGrad H t y) x‖ ≤ L := by
+  have hX := contDiff_hamGrad H hH
+  have hunc : ContDiff ℝ ∞ (Function.uncurry
+      fun (p : ((l ⊕ l) → ℝ) × ℝ) (y : (l ⊕ l) → ℝ) => hamGrad H p.2 y) := by
+    have hlin : ContDiff ℝ ∞ fun q : (((l ⊕ l) → ℝ) × ℝ) × ((l ⊕ l) → ℝ) =>
+        ((q.1.2, q.2) : ℝ × ((l ⊕ l) → ℝ)) :=
+      (((ContinuousLinearMap.snd ℝ ((l ⊕ l) → ℝ) ℝ).comp
+          (ContinuousLinearMap.fst ℝ (((l ⊕ l) → ℝ) × ℝ) ((l ⊕ l) → ℝ))).prod
+        (ContinuousLinearMap.snd ℝ (((l ⊕ l) → ℝ) × ℝ) ((l ⊕ l) → ℝ))).contDiff
+    exact hX.comp hlin
+  have hfd : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ =>
+      fderiv ℝ (fun y => hamGrad H p.2 y) p.1 :=
+    ContDiff.fderiv hunc (ContinuousLinearMap.fst ℝ ((l ⊕ l) → ℝ) ℝ).contDiff (by simp)
+  obtain ⟨L, hL⟩ := exists_bound_of_lattice_periodic
+    (f := fun x t => fderiv ℝ (fun y => hamGrad H t y) x) hfd.continuous
+    (fun y t => by
+      have h : (fun z => hamGrad H (t + 1) z) = fun z => hamGrad H t z :=
+        funext (hamGrad_periodic hHt t)
+      show fderiv ℝ (fun z => hamGrad H (t + 1) z) y = fderiv ℝ (fun z => hamGrad H t z) y
+      rw [h])
+    (fun k y t => by
+      have e : fderiv ℝ (fun z => hamGrad H t (z + fun i => (k i : ℝ))) y
+          = fderiv ℝ (fun z => hamGrad H t z) (y + fun i => (k i : ℝ)) :=
+        fderiv_comp_add_right (f := fun z => hamGrad H t z) _
+      have h : (fun z => hamGrad H t (z + fun i => (k i : ℝ))) = fun z => hamGrad H t z :=
+        funext (hamGrad_lattice hHlat k t)
+      rw [h] at e
+      exact e.symm)
+  exact ⟨L, fun t x => hL x t⟩
+
+/-- A Floer solution being smooth, `∂u/∂s` has a continuous derivative in `s`. -/
+theorem exists_dSS (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) :
+    ∃ pss : ℝ → ℝ → ((l ⊕ l) → ℝ), (∀ s t, HasDerivAt (fun σ => dS u σ t) (pss s t) s) ∧
+      Continuous fun q : ℝ × ℝ => pss q.1 q.2 := by
+  have hU : ContDiff ℝ ∞ fun q : ℝ × ℝ => u q.1 q.2 := contDiff_of_isFloerSolution H hH hu
+  have hline : ∀ s t : ℝ, HasDerivAt (fun σ : ℝ => ((σ, t) : ℝ × ℝ)) ((1, 0) : ℝ × ℝ) s :=
+    fun s t => (hasDerivAt_id s).prodMk (hasDerivAt_const s t)
+  have hdS : ∀ s t, dS u s t = fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) (s, t) ((1, 0) : ℝ × ℝ) := by
+    intro s t
+    have h := ((hU.differentiable (by simp)) (s, t)).hasFDerivAt.comp_hasDerivAt s (hline s t)
+    have h' : HasDerivAt (fun σ => u σ t)
+        (fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) (s, t) ((1, 0) : ℝ × ℝ)) s := h
+    exact (hu.hasDerivAt_s s t).unique h'
+  have hV : ContDiff ℝ ∞ fun q : ℝ × ℝ =>
+      fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) q ((1, 0) : ℝ × ℝ) :=
+    (hU.fderiv_right (by simp)).clm_apply contDiff_const
+  refine ⟨fun s t => fderiv ℝ (fun q : ℝ × ℝ =>
+    fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) q ((1, 0) : ℝ × ℝ)) (s, t) ((1, 0) : ℝ × ℝ), ?_, ?_⟩
+  · intro s t
+    have h := ((hV.differentiable (by simp)) (s, t)).hasFDerivAt.comp_hasDerivAt s (hline s t)
+    have hfun : (fun σ => dS u σ t) = fun σ =>
+        fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) (σ, t) ((1, 0) : ℝ × ℝ) := funext fun σ => hdS σ t
+    rw [hfun]
+    exact h
+  · have hc : Continuous fun q : ℝ × ℝ => fderiv ℝ (fun q : ℝ × ℝ =>
+        fderiv ℝ (fun q : ℝ × ℝ => u q.1 q.2) q ((1, 0) : ℝ × ℝ)) q ((1, 0) : ℝ × ℝ) :=
+      (hV.continuous_fderiv (by simp)).clm_apply continuous_const
+    exact hc.comp (continuous_fst.prodMk continuous_snd)
+
+/-- **The linearised Floer equation.**  Differentiating the Floer equation in `s`, which the
+Hamiltonian does not depend on: `∂u/∂s` solves
+`∂p/∂s + J₀ ∂p/∂t + (Hess H_t)(u) p = 0`. -/
+theorem linearized_floer (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u)
+    {pss : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hpss : ∀ s t, HasDerivAt (fun σ => dS u σ t) (pss s t) s)
+    (s t : ℝ) :
+    pss s t + stdJ l (dS (dT u) s t)
+      + fderiv ℝ (fun y => hamGrad H t y) (u s t) (dS u s t) = 0 := by
+  have hdiff : Differentiable ℝ fun y => hamGrad H t y :=
+    ((contDiff_hamGrad H hH).comp (contDiff_const.prodMk contDiff_id)).differentiable (by simp)
+  have h2' := (LinearMap.toContinuousLinearMap (stdJ l)).hasFDerivAt.comp_hasDerivAt s
+    (hu.hasDerivAt_st s t)
+  have h2 : HasDerivAt (fun σ => stdJ l (dT u σ t)) (stdJ l (dS (dT u) s t)) s := h2'
+  have h3' := (hdiff (u s t)).hasFDerivAt.comp_hasDerivAt s (hu.hasDerivAt_s s t)
+  have h3 : HasDerivAt (fun σ => hamGrad H t (u σ t))
+      (fderiv ℝ (fun y => hamGrad H t y) (u s t) (dS u s t)) s := h3'
+  have hsum : HasDerivAt (fun σ => dS u σ t + stdJ l (dT u σ t) + hamGrad H t (u σ t))
+      (pss s t + stdJ l (dS (dT u) s t)
+        + fderiv ℝ (fun y => hamGrad H t y) (u s t) (dS u s t)) s := ((hpss s t).add h2).add h3
+  have hfun : (fun σ => dS u σ t + stdJ l (dT u σ t) + hamGrad H t (u σ t))
+      = fun _ => (0 : (l ⊕ l) → ℝ) := funext fun σ => hu.floer σ t
+  rw [hfun] at hsum
+  exact hsum.unique (hasDerivAt_const s _)
+
+omit [DecidableEq l] in
+/-- `∂u/∂s` is `1`-periodic in `t`, like `u`. -/
+theorem dS_periodic {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsLoopVariation u) (s t : ℝ) :
+    dS u s (t + 1) = dS u s t := by
+  have h : (fun σ => u σ (t + 1)) = fun σ => u σ t := funext fun σ => hu.periodic σ t
+  show deriv (fun σ => u σ (t + 1)) s = deriv (fun σ => u σ t) s
+  rw [h]
+
+omit [DecidableEq l] in
+/-- **The energy on a small disc is at most the energy.**  A disc of radius at most `1/2`
+lies in a strip of height `1`, which is one period of the cylinder; Fubini on `ℂ ≅ ℝ × ℝ`
+then bounds the integral over the strip by the energy. -/
+theorem setIntegral_energyDensity_le {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsLoopVariation u)
+    (hE : Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t)
+    (z₁ : ℂ) {r : ℝ} (hr : r ≤ 1 / 2) :
+    ∫ ξ in Metric.ball (0 : ℂ) r, energyDensity u (z₁ - ξ).re (z₁ - ξ).im ≤ energy u := by
+  have hEDc : Continuous fun q : ℝ × ℝ => energyDensity u q.1 q.2 :=
+    continuous_dot₂ hu.continuous_s hu.continuous_s
+  have hEDper : ∀ s, Function.Periodic (fun t => energyDensity u s t) 1 := fun s t => by
+    show dS u s (t + 1) ⬝ᵥ dS u s (t + 1) = dS u s t ⬝ᵥ dS u s t
+    rw [dS_periodic hu]
+  -- the integrand in product coordinates
+  obtain ⟨h', hh'⟩ : ∃ h' : ℝ × ℝ → ℝ,
+      h' = fun q => energyDensity u (z₁.re - q.1) (z₁.im - q.2) := ⟨_, rfl⟩
+  have hh'q : ∀ q, h' q = energyDensity u (z₁.re - q.1) (z₁.im - q.2) := fun q => by rw [hh']
+  have hh'c : Continuous h' := by
+    rw [hh']
+    exact hEDc.comp ((continuous_const.sub continuous_fst).prodMk
+      (continuous_const.sub continuous_snd))
+  have hh'0 : ∀ q, 0 ≤ h' q := fun q => by rw [hh'q]; exact energyDensity_nonneg u _ _
+  -- the inner integral over a period
+  have hinner : ∀ σ : ℝ, ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' (σ, τ)
+      = ∫ t in (0:ℝ)..1, energyDensity u (z₁.re - σ) t := by
+    intro σ
+    have h1 : ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' (σ, τ)
+        = ∫ τ in (-(1 / 2) : ℝ)..(1 / 2), energyDensity u (z₁.re - σ) (z₁.im - τ) := by
+      rw [intervalIntegral.integral_of_le (by norm_num)]
+      refine setIntegral_congr_fun measurableSet_Ioc fun τ _ => ?_
+      rw [hh'q]
+    rw [h1, intervalIntegral.integral_comp_sub_left (fun t => energyDensity u (z₁.re - σ) t)]
+    have h2 := (hEDper (z₁.re - σ)).intervalIntegral_add_eq (z₁.im - 1 / 2) 0
+    have e1 : z₁.im - 1 / 2 + 1 = z₁.im - -(1 / 2) := by ring
+    rw [e1, zero_add] at h2
+    exact h2
+  -- integrability on the strip, in product coordinates
+  have hrestr : (volume : Measure (ℝ × ℝ)).restrict
+        (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2))
+      = (volume : Measure ℝ).prod ((volume : Measure ℝ).restrict (Set.Ioc (-(1 / 2)) (1 / 2))) := by
+    rw [Measure.volume_eq_prod, ← Measure.prod_restrict, Measure.restrict_univ]
+  have hint' : IntegrableOn h' (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)) := by
+    rw [IntegrableOn, hrestr, integrable_prod_iff hh'c.aestronglyMeasurable]
+    refine ⟨Eventually.of_forall fun σ => ?_, ?_⟩
+    · exact (hh'c.comp (continuous_const.prodMk continuous_id)).integrableOn_Ioc
+    · have he : (fun σ => ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), ‖h' (σ, τ)‖)
+          = fun σ => ∫ t in (0:ℝ)..1, energyDensity u (z₁.re - σ) t := by
+        funext σ
+        rw [← hinner σ]
+        refine setIntegral_congr_fun measurableSet_Ioc fun τ _ => ?_
+        exact Real.norm_of_nonneg (hh'0 _)
+      rw [he]
+      exact hE.comp_sub_left z₁.re
+  -- the integral over the strip is the energy
+  have hstrip : ∫ q in Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' q = energy u := by
+    have hint'' : IntegrableOn h' (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2))
+        ((volume : Measure ℝ).prod (volume : Measure ℝ)) := by
+      rw [← Measure.volume_eq_prod]
+      exact hint'
+    have h1 := setIntegral_prod h' hint''
+    rw [← Measure.volume_eq_prod] at h1
+    rw [h1, Measure.restrict_univ]
+    have he : (fun σ => ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' (σ, τ))
+        = fun σ => (fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) (z₁.re - σ) :=
+      funext hinner
+    rw [he, integral_sub_left_eq_self (fun s => ∫ t in (0:ℝ)..1, energyDensity u s t)]
+    rfl
+  -- back to `ℂ`
+  have hfun : (fun ξ : ℂ => energyDensity u (z₁ - ξ).re (z₁ - ξ).im)
+      = fun ξ => h' (Complex.measurableEquivRealProd ξ) := by
+    funext ξ
+    rw [hh'q, Complex.measurableEquivRealProd_apply, Complex.sub_re, Complex.sub_im]
+  have hmp := Complex.volume_preserving_equiv_real_prod
+  have hemb := Complex.measurableEquivRealProd.measurableEmbedding
+  have hintS : IntegrableOn (fun ξ => h' (Complex.measurableEquivRealProd ξ))
+      (Complex.measurableEquivRealProd ⁻¹' (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2))) :=
+    (hmp.integrableOn_comp_preimage hemb).2 hint'
+  have hsub : Metric.ball (0 : ℂ) r
+      ⊆ Complex.measurableEquivRealProd ⁻¹' (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)) := by
+    intro ξ hξ
+    rw [Metric.mem_ball, dist_zero_right] at hξ
+    have him : |ξ.im| < 1 / 2 := lt_of_le_of_lt (Complex.abs_im_le_norm ξ) (lt_of_lt_of_le hξ hr)
+    rw [Set.mem_preimage, Complex.measurableEquivRealProd_apply]
+    exact ⟨Set.mem_univ _, (abs_lt.1 him).1, (abs_lt.1 him).2.le⟩
+  rw [hfun]
+  calc ∫ ξ in Metric.ball (0 : ℂ) r, h' (Complex.measurableEquivRealProd ξ)
+      ≤ ∫ ξ in Complex.measurableEquivRealProd ⁻¹'
+          (Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)), h' (Complex.measurableEquivRealProd ξ) :=
+        setIntegral_mono_set hintS (Eventually.of_forall fun ξ => hh'0 _)
+          (Eventually.of_forall hsub)
+    _ = ∫ q in Set.univ ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' q :=
+        hmp.setIntegral_preimage_emb hemb h' _
+    _ = energy u := hstrip
+
+omit [DecidableEq l] in
+/-- The squared Euclidean norm is at most the dimension times the squared sup norm. -/
+theorem dotProduct_self_le (v : (l ⊕ l) → ℝ) :
+    v ⬝ᵥ v ≤ Fintype.card (l ⊕ l) * ‖v‖ ^ 2 := by
+  rw [dotProduct]
+  calc ∑ j, v j * v j ≤ ∑ _j : l ⊕ l, ‖v‖ ^ 2 := Finset.sum_le_sum fun j _ => by
+        have h := norm_le_pi_norm v j
+        rw [Real.norm_eq_abs] at h
+        calc v j * v j = |v j| * |v j| := (abs_mul_abs_self _).symm
+          _ ≤ ‖v‖ * ‖v‖ := mul_self_le_mul_self (abs_nonneg _) h
+          _ = ‖v‖ ^ 2 := (sq _).symm
+    _ = Fintype.card (l ⊕ l) * ‖v‖ ^ 2 := by
+        rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+
+omit [DecidableEq l] in
+theorem dotProduct_self_le_two (a b : (l ⊕ l) → ℝ) :
+    a ⬝ᵥ a ≤ 2 * ((a - b) ⬝ᵥ (a - b)) + 2 * (b ⬝ᵥ b) := by
+  simp only [dotProduct, Finset.mul_sum, ← Finset.sum_add_distrib, Pi.sub_apply]
+  refine Finset.sum_le_sum fun j _ => ?_
+  nlinarith [sq_nonneg (a j - 2 * b j)]
+
+/-- **The uniform bound on `∂u/∂s`.**  By Hofer's lemma there is, near any point, a disc on
+which `|∂u/∂s|` is at most twice its value `N` at the centre, of radius `ε` with `ε N` at
+least half the value at the given point.  On a smaller concentric disc `∂u/∂s`, read in `ℂⁿ`,
+is almost holomorphic — the linearised Floer equation bounds its `∂̄` by `2 L · 2N` — so the
+mean value inequality bounds `N` by the `L¹` norm on the disc, hence by the energy, plus
+`4 K₂ L N r`.  For `r` below a fixed threshold the last term is absorbed, and `ε N`, or `N`
+itself if the threshold is the smaller radius, is bounded. -/
+theorem exists_bound_dS (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ) :
+    ∃ A₀ : ℝ, 0 ≤ A₀ ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
+      (Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) → energy u ≤ C →
+      ∀ s t, ‖dS u s t‖ ≤ A₀ := by
+  obtain ⟨K₀, K₂, hK₀, hK₂, hMV⟩ := MeanValue.norm_le_of_dbar_le
+  obtain ⟨L, hL⟩ := exists_bound_fderiv_hamGrad H hH hHt hHlat
+  have hL0 : 0 ≤ L := (norm_nonneg _).trans (hL 0 0)
+  obtain ⟨K₁, hK₁def⟩ : ∃ K₁ : ℝ, K₁ = K₀ * (Real.pi + |C|) / 2 := ⟨_, rfl⟩
+  have hK₁ : 0 ≤ K₁ := by rw [hK₁def]; positivity
+  obtain ⟨D, hDdef⟩ : ∃ D : ℝ, D = 8 * K₂ * L + 1 := ⟨_, rfl⟩
+  have hD : 1 ≤ D := by rw [hDdef]; nlinarith [mul_nonneg hK₂ hL0]
+  have hDpos : 0 < D := lt_of_lt_of_le one_pos hD
+  refine ⟨4 * K₁ + 2 * K₁ * D, by positivity, fun u hu hE hEC s₀ t₀ => ?_⟩
+  obtain ⟨pss, hpss, hpssc⟩ := exists_dSS H hH hu
+  -- `∂u/∂s` read in `ℂⁿ` is `C¹`, and almost holomorphic
+  have hP1 : ∀ i : l, ContDiff ℝ 1 fun z : ℂ => FloerRegularity.toCpxL (dS u z.re z.im) i :=
+    fun i => FloerRegularity.contDiff_one_toCpx hpss hu.hasDerivAt_ts hpssc hu.continuous_st i
+  have hdbarle : ∀ (i : l) (z : ℂ),
+      ‖CauchyPompeiu.dbar (fun z : ℂ => FloerRegularity.toCpxL (dS u z.re z.im) i) z‖
+        ≤ 2 * L * ‖dS u z.re z.im‖ := by
+    intro i z
+    rw [FloerRegularity.dbar_toCpx hpss hu.hasDerivAt_ts hpssc hu.continuous_st i z]
+    have hlin := linearized_floer H hH hu hpss z.re z.im
+    rw [eq_neg_of_add_eq_zero_left hlin]
+    calc ‖FloerRegularity.toCpxL
+            (-(fderiv ℝ (fun y => hamGrad H z.im y) (u z.re z.im) (dS u z.re z.im))) i‖
+        ≤ 2 * ‖-(fderiv ℝ (fun y => hamGrad H z.im y) (u z.re z.im) (dS u z.re z.im))‖ :=
+          FloerRegularity.norm_toCpxL_le _ i
+      _ ≤ 2 * (L * ‖dS u z.re z.im‖) := by
+          rw [norm_neg]
+          exact mul_le_mul_of_nonneg_left (((fderiv ℝ (fun y => hamGrad H z.im y)
+            (u z.re z.im)).le_opNorm _).trans
+              (mul_le_mul_of_nonneg_right (hL _ _) (norm_nonneg _))) (by norm_num)
+      _ = 2 * L * ‖dS u z.re z.im‖ := by ring
+  -- Hofer's lemma
+  have hgc : Continuous fun z : ℂ => ‖dS u z.re z.im‖ :=
+    (hu.continuous_s.comp (Complex.continuous_re.prodMk Complex.continuous_im)).norm
+  obtain ⟨ε, hε, y, hεle, -, hmul, hball'⟩ := hofer (⟨s₀, t₀⟩ : ℂ) (1 / 2) (by norm_num) hgc
+    (fun z => norm_nonneg _)
+  have hball : ∀ x ∈ Metric.ball y ε, ‖dS u x.re x.im‖ ≤ 2 * ‖dS u y.re y.im‖ := fun x hx =>
+    hball' x (by rw [dist_comm]; exact (Metric.mem_ball.mp hx).le)
+  have hz₀ : ‖dS u s₀ t₀‖ ≤ 2 * (ε * ‖dS u y.re y.im‖) := by
+    have : 1 / 2 * ‖dS u s₀ t₀‖ ≤ ε * ‖dS u y.re y.im‖ := hmul
+    linarith
+  have hEC' : energy u ≤ |C| := hEC.trans (le_abs_self C)
+  -- the mean value inequality at the centre, on any smaller disc
+  have hMVN : ∀ r' : ℝ, 0 < r' → r' ≤ ε →
+      ‖dS u y.re y.im‖ ≤ K₁ / r' + 4 * K₂ * L * ‖dS u y.re y.im‖ * r' := by
+    intro r' hr' hr'ε
+    have hN0 : 0 ≤ ‖dS u y.re y.im‖ := norm_nonneg _
+    refine FloerRegularity.norm_le_of_toCpxL_le (by positivity) fun i => ?_
+    have hr'half : r' ≤ 1 / 2 := hr'ε.trans hεle
+    have hmv := hMV _ (hP1 i) y r' (2 * L * (2 * ‖dS u y.re y.im‖)) hr' fun z hz =>
+      (hdbarle i z).trans (mul_le_mul_of_nonneg_left
+        (hball z (Metric.ball_subset_ball hr'ε hz)) (by positivity))
+    -- the `L¹` norm on the disc, through the energy
+    have hPc : Continuous fun ξ : ℂ =>
+        ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖ :=
+      ((hP1 i).continuous.comp (continuous_const.sub continuous_id)).norm
+    have hEDc : Continuous fun ξ : ℂ => energyDensity u (y - ξ).re (y - ξ).im :=
+      (continuous_dot₂ hu.continuous_s hu.continuous_s).comp
+        ((Complex.continuous_re.comp (continuous_const.sub continuous_id)).prodMk
+          (Complex.continuous_im.comp (continuous_const.sub continuous_id)))
+    have hcb : IsCompact (Metric.closedBall (0 : ℂ) r') := isCompact_closedBall _ _
+    have hvol : (volume : Measure ℂ).real (Metric.ball (0 : ℂ) r') = Real.pi * r' ^ 2 := by
+      rw [Measure.real, Complex.volume_ball, ENNReal.toReal_mul, ENNReal.toReal_pow,
+        ENNReal.toReal_ofReal hr'.le]
+      simp [mul_comm]
+    have hfin : (volume : Measure ℂ) (Metric.ball (0 : ℂ) r') ≠ ⊤ := measure_ball_lt_top.ne
+    have hint1 : IntegrableOn (fun _ : ℂ => 1 / (2 * r')) (Metric.ball (0 : ℂ) r') :=
+      integrableOn_const hfin
+    have hint2 : IntegrableOn (fun ξ : ℂ => r' / 2 * energyDensity u (y - ξ).re (y - ξ).im)
+        (Metric.ball (0 : ℂ) r') :=
+      ((hEDc.continuousOn.integrableOn_compact hcb).mono_set Metric.ball_subset_closedBall).const_mul _
+    have hL1 : ∫ ξ in Metric.ball (0 : ℂ) r',
+        ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖
+        ≤ r' / 2 * (Real.pi + |C|) := by
+      calc ∫ ξ in Metric.ball (0 : ℂ) r',
+            ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖
+          ≤ ∫ ξ in Metric.ball (0 : ℂ) r',
+              (1 / (2 * r') + r' / 2 * energyDensity u (y - ξ).re (y - ξ).im) := by
+            refine setIntegral_mono_on
+              ((hPc.continuousOn.integrableOn_compact hcb).mono_set Metric.ball_subset_closedBall)
+              (hint1.add hint2) measurableSet_ball fun ξ _ => ?_
+            have hsq := FloerRegularity.norm_toCpxL_sq_le (dS u (y - ξ).re (y - ξ).im) i
+            have hx0 := norm_nonneg (FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i)
+            have hED : energyDensity u (y - ξ).re (y - ξ).im
+                = dS u (y - ξ).re (y - ξ).im ⬝ᵥ dS u (y - ξ).re (y - ξ).im := rfl
+            rw [hED]
+            have key : ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖
+                ≤ 1 / (2 * r') + r' / 2
+                  * ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖ ^ 2 := by
+              have h3 : 1 / (2 * r') + r' / 2
+                  * ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖ ^ 2
+                  = (1 + r' ^ 2
+                    * ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖ ^ 2) / (2 * r') := by
+                field_simp
+              rw [h3, le_div_iff₀ (by positivity)]
+              nlinarith [sq_nonneg
+                (r' * ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖ - 1)]
+            exact key.trans (add_le_add le_rfl
+              (mul_le_mul_of_nonneg_left hsq (by positivity)))
+        _ = Real.pi * r' ^ 2 * (1 / (2 * r'))
+              + r' / 2 * ∫ ξ in Metric.ball (0 : ℂ) r',
+                  energyDensity u (y - ξ).re (y - ξ).im := by
+            rw [integral_add hint1 hint2, setIntegral_const, integral_const_mul, hvol,
+              smul_eq_mul]
+        _ ≤ Real.pi * r' ^ 2 * (1 / (2 * r')) + r' / 2 * |C| := by
+            have := (setIntegral_energyDensity_le hu.toIsLoopVariation hE y hr'half).trans hEC'
+            gcongr
+        _ = r' / 2 * (Real.pi + |C|) := by
+            field_simp
+    calc ‖FloerRegularity.toCpxL (dS u y.re y.im) i‖
+        ≤ K₀ / r' ^ 2 * (∫ ξ in Metric.ball (0 : ℂ) r',
+              ‖FloerRegularity.toCpxL (dS u (y - ξ).re (y - ξ).im) i‖)
+            + K₂ * (2 * L * (2 * ‖dS u y.re y.im‖)) * r' := hmv
+      _ ≤ K₀ / r' ^ 2 * (r' / 2 * (Real.pi + |C|))
+            + K₂ * (2 * L * (2 * ‖dS u y.re y.im‖)) * r' := by
+          gcongr
+      _ = K₁ / r' + 4 * K₂ * L * ‖dS u y.re y.im‖ * r' := by
+          rw [hK₁def]
+          field_simp
+          ring
+  -- absorb the last term on a disc below the threshold `1 / D`
+  have hN0 : 0 ≤ ‖dS u y.re y.im‖ := norm_nonneg _
+  have habsorb : ∀ r' : ℝ, 0 < r' → r' ≤ ε → r' * D ≤ 1 → ‖dS u y.re y.im‖ * r' ≤ 2 * K₁ := by
+    intro r' hr' hr'ε hr'D
+    have h1 := hMVN r' hr' hr'ε
+    have h2 : 4 * K₂ * L * r' ≤ 1 / 2 := by
+      rw [hDdef] at hr'D
+      nlinarith
+    have h3 : 4 * K₂ * L * ‖dS u y.re y.im‖ * r' ≤ 1 / 2 * ‖dS u y.re y.im‖ := by
+      calc 4 * K₂ * L * ‖dS u y.re y.im‖ * r' = 4 * K₂ * L * r' * ‖dS u y.re y.im‖ := by ring
+        _ ≤ 1 / 2 * ‖dS u y.re y.im‖ := mul_le_mul_of_nonneg_right h2 hN0
+    have h4 : ‖dS u y.re y.im‖ ≤ 2 * (K₁ / r') := by linarith
+    calc ‖dS u y.re y.im‖ * r' ≤ 2 * (K₁ / r') * r' := mul_le_mul_of_nonneg_right h4 hr'.le
+      _ = 2 * K₁ := by field_simp
+  rcases le_total (ε * D) 1 with hcase | hcase
+  · have := habsorb ε hε le_rfl hcase
+    nlinarith [mul_nonneg hK₁ hDpos.le]
+  · have hρ : (1 / D) * D ≤ 1 := by rw [one_div, inv_mul_cancel₀ hDpos.ne']
+    have hρε : 1 / D ≤ ε := by
+      rw [div_le_iff₀ hDpos]
+      exact hcase
+    have h5 := habsorb (1 / D) (by positivity) hρε hρ
+    have h6 : ‖dS u y.re y.im‖ ≤ 2 * K₁ * D := by
+      rw [mul_one_div, div_le_iff₀ hDpos] at h5
+      exact h5
+    have h7 : ε * ‖dS u y.re y.im‖ ≤ 1 / 2 * ‖dS u y.re y.im‖ :=
+      mul_le_mul_of_nonneg_right hεle hN0
+    nlinarith
+
+end GradientBound
+
+/-- **Proposition 6.6.2.**  Under the asphericity Hypothesis 6.2.1 there is a
+constant `A > 0` bounding the gradient of every element of `M` uniformly.
+
+**Proved**, and without bubbles.  The book argues by contradiction: if the
+gradient blew up, rescaling around the blow-up point would produce a nonconstant
+`J`-holomorphic plane of finite, nonzero symplectic area, which Hypothesis 6.2.1
+forbids; that needs `C¹_loc` compactness of the rescaled maps and the area
+computations of Lemmas 6.6.4 and 6.6.5.  On the torus, with the standard `J₀`,
+the same two ingredients — Hofer's lemma (Lemma 6.6.3) and the fact that a
+bounded holomorphic function with small `L²` norm is small — give the bound
+directly.  `∂u/∂s` solves the linearised equation
+`∂p/∂s + J₀ ∂p/∂t + (Hess H_t)(u) p = 0` (`linearized_floer`), so read in `ℂⁿ` it
+is almost holomorphic, and the mean value inequality of `Part2/MeanValue.lean`
+bounds its value at the centre of a disc by its `L¹` norm on the disc, hence by
+the energy (`setIntegral_energyDensity_le`), up to a term that is absorbed on a
+small disc.  Hofer's lemma supplies the disc (`exists_bound_dS`).  The bound on
+`∂u/∂t` follows from the Floer equation, `X_t` being bounded on the torus.
+
+Finite energy was missing from an earlier statement, which was false without
+it: `energy` is a Bochner integral, hence `0` when the energy density is not
+integrable, and for `H = 0` a non-constant holomorphic cylinder then has
+"energy" `0` and an unbounded gradient. -/
+theorem exists_gradient_bound (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ) :
+    ∃ A : ℝ, 0 < A ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
+      (MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) → energy u ≤ C →
+      ∀ s t, dS u s t ⬝ᵥ dS u s t + dT u s t ⬝ᵥ dT u s t ≤ A := by
+  obtain ⟨A₀, hA₀, hb⟩ := exists_bound_dS H hH hHt hHlat C
+  have hXc : Continuous fun q : ℝ × ((l ⊕ l) → ℝ) => hamField H q.1 q.2 :=
+    (contDiff_hamField H hH).continuous
+  obtain ⟨M₁, hM₁⟩ := exists_bound_of_lattice_periodic (f := fun x t => hamField H t x)
+    (hXc.comp (continuous_snd.prodMk continuous_fst)) (fun y t => hamField_periodic hHt t y)
+    (fun k y t => hamField_lattice hHlat k t y)
+  have hM₁0 : 0 ≤ M₁ := (norm_nonneg _).trans (hM₁ 0 0)
+  refine ⟨3 * Fintype.card (l ⊕ l) * A₀ ^ 2 + 2 * Fintype.card (l ⊕ l) * M₁ ^ 2 + 1,
+    by positivity, fun u hu hE hEC s t => ?_⟩
+  have hS : dS u s t ⬝ᵥ dS u s t ≤ Fintype.card (l ⊕ l) * A₀ ^ 2 :=
+    (dotProduct_self_le _).trans (mul_le_mul_of_nonneg_left
+      (pow_le_pow_left₀ (norm_nonneg _) (hb u hu hE hEC s t) 2) (Nat.cast_nonneg _))
+  have hX : hamField H t (u s t) ⬝ᵥ hamField H t (u s t) ≤ Fintype.card (l ⊕ l) * M₁ ^ 2 :=
+    (dotProduct_self_le _).trans (mul_le_mul_of_nonneg_left
+      (pow_le_pow_left₀ (norm_nonneg _) (hM₁ _ _) 2) (Nat.cast_nonneg _))
+  have hT := dotProduct_self_le_two (dT u s t) (hamField H t (u s t))
+  have hED : dS u s t ⬝ᵥ dS u s t
+      = (dT u s t - hamField H t (u s t)) ⬝ᵥ (dT u s t - hamField H t (u s t)) :=
+    energyDensity_eq_of_floer H hu s t
+  rw [← hED] at hT
+  linarith
+
+section Convergence
+
+open Filter Topology MeasureTheory
+
+omit [DecidableEq l] in
+/-- **The energy on a small disc is at most the energy of a window of length `1`.**  The
+refinement of `setIntegral_energyDensity_le` in which the strip is cut down to a square. -/
+theorem setIntegral_energyDensity_le_window {u : ℝ → ℝ → ((l ⊕ l) → ℝ)}
+    (hu : IsLoopVariation u) (z₁ : ℂ) {r : ℝ} (hr : r ≤ 1 / 2) :
+    ∫ ξ in Metric.ball (0 : ℂ) r, energyDensity u (z₁ - ξ).re (z₁ - ξ).im
+      ≤ ∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t := by
+  have hEDc : Continuous fun q : ℝ × ℝ => energyDensity u q.1 q.2 :=
+    continuous_dot₂ hu.continuous_s hu.continuous_s
+  have hEDper : ∀ s, Function.Periodic (fun t => energyDensity u s t) 1 := fun s t => by
+    show dS u s (t + 1) ⬝ᵥ dS u s (t + 1) = dS u s t ⬝ᵥ dS u s t
+    rw [dS_periodic hu]
+  obtain ⟨h', hh'⟩ : ∃ h' : ℝ × ℝ → ℝ,
+      h' = fun q => energyDensity u (z₁.re - q.1) (z₁.im - q.2) := ⟨_, rfl⟩
+  have hh'q : ∀ q, h' q = energyDensity u (z₁.re - q.1) (z₁.im - q.2) := fun q => by rw [hh']
+  have hh'c : Continuous h' := by
+    rw [hh']
+    exact hEDc.comp ((continuous_const.sub continuous_fst).prodMk
+      (continuous_const.sub continuous_snd))
+  have hh'0 : ∀ q, 0 ≤ h' q := fun q => by rw [hh'q]; exact energyDensity_nonneg u _ _
+  have hinner : ∀ σ : ℝ, ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' (σ, τ)
+      = ∫ t in (0:ℝ)..1, energyDensity u (z₁.re - σ) t := by
+    intro σ
+    have h1 : ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' (σ, τ)
+        = ∫ τ in (-(1 / 2) : ℝ)..(1 / 2), energyDensity u (z₁.re - σ) (z₁.im - τ) := by
+      rw [intervalIntegral.integral_of_le (by norm_num)]
+      refine setIntegral_congr_fun measurableSet_Ioc fun τ _ => ?_
+      rw [hh'q]
+    rw [h1, intervalIntegral.integral_comp_sub_left (fun t => energyDensity u (z₁.re - σ) t)]
+    have h2 := (hEDper (z₁.re - σ)).intervalIntegral_add_eq (z₁.im - 1 / 2) 0
+    have e1 : z₁.im - 1 / 2 + 1 = z₁.im - -(1 / 2) := by ring
+    rw [e1, zero_add] at h2
+    exact h2
+  have hint' : IntegrableOn h'
+      (Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)) :=
+    (hh'c.continuousOn.integrableOn_compact (isCompact_Icc.prod isCompact_Icc)).mono_set
+      (Set.prod_mono Set.Ioc_subset_Icc_self Set.Ioc_subset_Icc_self)
+  have hsquare : ∫ q in Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' q
+      = ∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t := by
+    have hint'' : IntegrableOn h'
+        (Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2))
+        ((volume : Measure ℝ).prod (volume : Measure ℝ)) := by
+      rw [← Measure.volume_eq_prod]
+      exact hint'
+    have h1 := setIntegral_prod h' hint''
+    rw [← Measure.volume_eq_prod] at h1
+    rw [h1]
+    have he : ∫ σ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2), ∫ τ in Set.Ioc (-(1 / 2) : ℝ) (1 / 2),
+        h' (σ, τ) = ∫ σ in (-(1 / 2) : ℝ)..(1 / 2),
+          (fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) (z₁.re - σ) := by
+      rw [intervalIntegral.integral_of_le (by norm_num)]
+      exact setIntegral_congr_fun measurableSet_Ioc fun σ _ => hinner σ
+    rw [he, intervalIntegral.integral_comp_sub_left
+      (fun s => ∫ t in (0:ℝ)..1, energyDensity u s t), sub_neg_eq_add]
+  have hfun : (fun ξ : ℂ => energyDensity u (z₁ - ξ).re (z₁ - ξ).im)
+      = fun ξ => h' (Complex.measurableEquivRealProd ξ) := by
+    funext ξ
+    rw [hh'q, Complex.measurableEquivRealProd_apply, Complex.sub_re, Complex.sub_im]
+  have hmp := Complex.volume_preserving_equiv_real_prod
+  have hemb := Complex.measurableEquivRealProd.measurableEmbedding
+  have hintS : IntegrableOn (fun ξ => h' (Complex.measurableEquivRealProd ξ))
+      (Complex.measurableEquivRealProd ⁻¹'
+        (Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2))) :=
+    (hmp.integrableOn_comp_preimage hemb).2 hint'
+  have hsub : Metric.ball (0 : ℂ) r ⊆ Complex.measurableEquivRealProd ⁻¹'
+      (Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)) := by
+    intro ξ hξ
+    rw [Metric.mem_ball, dist_zero_right] at hξ
+    have hre : |ξ.re| < 1 / 2 := lt_of_le_of_lt (Complex.abs_re_le_norm ξ) (lt_of_lt_of_le hξ hr)
+    have him : |ξ.im| < 1 / 2 := lt_of_le_of_lt (Complex.abs_im_le_norm ξ) (lt_of_lt_of_le hξ hr)
+    rw [Set.mem_preimage, Complex.measurableEquivRealProd_apply]
+    exact ⟨⟨(abs_lt.1 hre).1, (abs_lt.1 hre).2.le⟩, (abs_lt.1 him).1, (abs_lt.1 him).2.le⟩
+  rw [hfun]
+  calc ∫ ξ in Metric.ball (0 : ℂ) r, h' (Complex.measurableEquivRealProd ξ)
+      ≤ ∫ ξ in Complex.measurableEquivRealProd ⁻¹'
+          (Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2)),
+            h' (Complex.measurableEquivRealProd ξ) :=
+        setIntegral_mono_set hintS (Eventually.of_forall fun ξ => hh'0 _)
+          (Eventually.of_forall hsub)
+    _ = ∫ q in Set.Ioc (-(1 / 2) : ℝ) (1 / 2) ×ˢ Set.Ioc (-(1 / 2) : ℝ) (1 / 2), h' q :=
+        hmp.setIntegral_preimage_emb hemb h' _
+    _ = _ := hsquare
+
+/-- **The pointwise bound on `∂u/∂s` by the energy of a window.**  The mean value inequality
+for `∂u/∂s`, with the `L¹` norm on the disc estimated by `‖p‖ ≤ δ/2 + ‖p‖²/(2δ)`. -/
+theorem exists_norm_dS_le (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) :
+    ∃ K₀ K₃ : ℝ, 0 ≤ K₀ ∧ 0 ≤ K₃ ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
+      ∀ (z₁ : ℂ) (r δ B : ℝ), 0 < r → r ≤ 1 / 2 → 0 < δ →
+        (∀ z ∈ Metric.ball z₁ r, ‖dS u z.re z.im‖ ≤ B) →
+        ‖dS u z₁.re z₁.im‖ ≤ K₀ * (Real.pi * δ / 2
+            + (∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t)
+              / (2 * δ * r ^ 2))
+          + K₃ * B * r := by
+  obtain ⟨K₀, K₂, hK₀, hK₂, hMV⟩ := MeanValue.norm_le_of_dbar_le
+  obtain ⟨L, hL⟩ := exists_bound_fderiv_hamGrad H hH hHt hHlat
+  have hL0 : 0 ≤ L := (norm_nonneg _).trans (hL 0 0)
+  refine ⟨K₀, K₂ * (2 * L), hK₀, by positivity, fun u hu z₁ r δ B hr hrhalf hδ hB => ?_⟩
+  have hB0 : 0 ≤ B := (norm_nonneg _).trans (hB z₁ (Metric.mem_ball_self hr))
+  obtain ⟨pss, hpss, hpssc⟩ := exists_dSS H hH hu
+  have hP1 : ∀ i : l, ContDiff ℝ 1 fun z : ℂ => FloerRegularity.toCpxL (dS u z.re z.im) i :=
+    fun i => FloerRegularity.contDiff_one_toCpx hpss hu.hasDerivAt_ts hpssc hu.continuous_st i
+  have hdbarle : ∀ (i : l) (z : ℂ),
+      ‖CauchyPompeiu.dbar (fun z : ℂ => FloerRegularity.toCpxL (dS u z.re z.im) i) z‖
+        ≤ 2 * L * ‖dS u z.re z.im‖ := by
+    intro i z
+    rw [FloerRegularity.dbar_toCpx hpss hu.hasDerivAt_ts hpssc hu.continuous_st i z]
+    have hlin := linearized_floer H hH hu hpss z.re z.im
+    rw [eq_neg_of_add_eq_zero_left hlin]
+    calc ‖FloerRegularity.toCpxL
+            (-(fderiv ℝ (fun y => hamGrad H z.im y) (u z.re z.im) (dS u z.re z.im))) i‖
+        ≤ 2 * ‖-(fderiv ℝ (fun y => hamGrad H z.im y) (u z.re z.im) (dS u z.re z.im))‖ :=
+          FloerRegularity.norm_toCpxL_le _ i
+      _ ≤ 2 * (L * ‖dS u z.re z.im‖) := by
+          rw [norm_neg]
+          exact mul_le_mul_of_nonneg_left (((fderiv ℝ (fun y => hamGrad H z.im y)
+            (u z.re z.im)).le_opNorm _).trans
+              (mul_le_mul_of_nonneg_right (hL _ _) (norm_nonneg _))) (by norm_num)
+      _ = 2 * L * ‖dS u z.re z.im‖ := by ring
+  have hT0 : 0 ≤ ∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2),
+      ∫ t in (0:ℝ)..1, energyDensity u s t :=
+    intervalIntegral.integral_nonneg (by linarith) fun s _ =>
+      intervalIntegral.integral_nonneg zero_le_one fun t _ => energyDensity_nonneg u s t
+  refine FloerRegularity.norm_le_of_toCpxL_le (by positivity) fun i => ?_
+  have hmv := hMV _ (hP1 i) z₁ r (2 * L * B) hr fun z hz =>
+    (hdbarle i z).trans (mul_le_mul_of_nonneg_left (hB z hz) (by positivity))
+  have hPc : Continuous fun ξ : ℂ =>
+      ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖ :=
+    ((hP1 i).continuous.comp (continuous_const.sub continuous_id)).norm
+  have hEDc : Continuous fun ξ : ℂ => energyDensity u (z₁ - ξ).re (z₁ - ξ).im :=
+    (continuous_dot₂ hu.continuous_s hu.continuous_s).comp
+      ((Complex.continuous_re.comp (continuous_const.sub continuous_id)).prodMk
+        (Complex.continuous_im.comp (continuous_const.sub continuous_id)))
+  have hcb : IsCompact (Metric.closedBall (0 : ℂ) r) := isCompact_closedBall _ _
+  have hvol : (volume : Measure ℂ).real (Metric.ball (0 : ℂ) r) = Real.pi * r ^ 2 := by
+    rw [Measure.real, Complex.volume_ball, ENNReal.toReal_mul, ENNReal.toReal_pow,
+      ENNReal.toReal_ofReal hr.le]
+    simp [mul_comm]
+  have hfin : (volume : Measure ℂ) (Metric.ball (0 : ℂ) r) ≠ ⊤ := measure_ball_lt_top.ne
+  have hint1 : IntegrableOn (fun _ : ℂ => δ / 2) (Metric.ball (0 : ℂ) r) :=
+    integrableOn_const hfin
+  have hint2 : IntegrableOn (fun ξ : ℂ => 1 / (2 * δ) * energyDensity u (z₁ - ξ).re (z₁ - ξ).im)
+      (Metric.ball (0 : ℂ) r) :=
+    ((hEDc.continuousOn.integrableOn_compact hcb).mono_set Metric.ball_subset_closedBall).const_mul _
+  have hL1 : ∫ ξ in Metric.ball (0 : ℂ) r,
+      ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖
+      ≤ Real.pi * r ^ 2 * (δ / 2) + 1 / (2 * δ)
+        * ∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t := by
+    calc ∫ ξ in Metric.ball (0 : ℂ) r,
+          ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖
+        ≤ ∫ ξ in Metric.ball (0 : ℂ) r,
+            (δ / 2 + 1 / (2 * δ) * energyDensity u (z₁ - ξ).re (z₁ - ξ).im) := by
+          refine setIntegral_mono_on
+            ((hPc.continuousOn.integrableOn_compact hcb).mono_set Metric.ball_subset_closedBall)
+            (hint1.add hint2) measurableSet_ball fun ξ _ => ?_
+          have hsq := FloerRegularity.norm_toCpxL_sq_le (dS u (z₁ - ξ).re (z₁ - ξ).im) i
+          have hED : energyDensity u (z₁ - ξ).re (z₁ - ξ).im
+              = dS u (z₁ - ξ).re (z₁ - ξ).im ⬝ᵥ dS u (z₁ - ξ).re (z₁ - ξ).im := rfl
+          rw [hED]
+          have key : ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖
+              ≤ δ / 2 + 1 / (2 * δ)
+                * ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖ ^ 2 := by
+            have h3 : δ / 2 + 1 / (2 * δ)
+                * ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖ ^ 2
+                = (δ ^ 2 + ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖ ^ 2)
+                  / (2 * δ) := by
+              field_simp
+            rw [h3, le_div_iff₀ (by positivity)]
+            nlinarith [sq_nonneg
+              (‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖ - δ)]
+          exact key.trans (add_le_add le_rfl (mul_le_mul_of_nonneg_left hsq (by positivity)))
+      _ = Real.pi * r ^ 2 * (δ / 2) + 1 / (2 * δ)
+            * ∫ ξ in Metric.ball (0 : ℂ) r, energyDensity u (z₁ - ξ).re (z₁ - ξ).im := by
+          rw [integral_add hint1 hint2, setIntegral_const, integral_const_mul, hvol, smul_eq_mul]
+      _ ≤ _ := by
+          have := setIntegral_energyDensity_le_window hu.toIsLoopVariation z₁ hrhalf
+          gcongr
+  calc ‖FloerRegularity.toCpxL (dS u z₁.re z₁.im) i‖
+      ≤ K₀ / r ^ 2 * (∫ ξ in Metric.ball (0 : ℂ) r,
+            ‖FloerRegularity.toCpxL (dS u (z₁ - ξ).re (z₁ - ξ).im) i‖)
+          + K₂ * (2 * L * B) * r := hmv
+    _ ≤ K₀ / r ^ 2 * (Real.pi * r ^ 2 * (δ / 2) + 1 / (2 * δ)
+          * ∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t)
+          + K₂ * (2 * L * B) * r := by
+        gcongr
+    _ = K₀ * (Real.pi * δ / 2
+          + (∫ s in (z₁.re - 1 / 2)..(z₁.re + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u s t)
+            / (2 * δ * r ^ 2))
+        + K₂ * (2 * L) * B * r := by
+        field_simp
+
+/-- **Proposition 6.5.15, the decay of `∂u/∂s`.**  For a finite-energy solution `∂u/∂s` tends
+to `0` at both ends of the cylinder, uniformly in `t`: the energy of the window
+`[s - 1/2, s + 1/2]` tends to `0`, and the mean value inequality turns that into a pointwise
+bound. -/
+theorem eventually_norm_dS_lt (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u)
+    (hE : Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) {η : ℝ} (hη : 0 < η) :
+    (∀ᶠ s in atTop, ∀ t, ‖dS u s t‖ < η) ∧ ∀ᶠ s in atBot, ∀ t, ‖dS u s t‖ < η := by
+  obtain ⟨K₀, K₃, hK₀, hK₃, hpt⟩ := exists_norm_dS_le H hH hHt hHlat
+  obtain ⟨A₀, hA₀, hb⟩ := exists_bound_dS H hH hHt hHlat (energy u)
+  have hbound : ∀ s t, ‖dS u s t‖ ≤ A₀ := hb u hu hE le_rfl
+  have hη3 : 0 < η / 3 := by positivity
+  -- the three parameters
+  obtain ⟨δ, hδdef⟩ : ∃ δ : ℝ, δ = η / 3 / (K₀ * Real.pi / 2 + 1) := ⟨_, rfl⟩
+  have hδ : 0 < δ := by rw [hδdef]; positivity
+  obtain ⟨r, hrdef⟩ : ∃ r : ℝ, r = min (1 / 2) (η / 3 / (K₃ * A₀ + 1)) := ⟨_, rfl⟩
+  have hr : 0 < r := by rw [hrdef]; exact lt_min (by norm_num) (by positivity)
+  have hrhalf : r ≤ 1 / 2 := by rw [hrdef]; exact min_le_left _ _
+  obtain ⟨τ, hτdef⟩ : ∃ τ : ℝ, τ = η / 3 / (K₀ / (2 * δ * r ^ 2) + 1) := ⟨_, rfl⟩
+  have hτ : 0 < τ := by rw [hτdef]; positivity
+  have h1 : K₀ * (Real.pi * δ / 2) < η / 3 := by
+    have := ApproxOrbit.mul_div_add_one_lt (c := K₀ * Real.pi / 2) (by positivity) hη3
+    rw [← hδdef] at this
+    calc K₀ * (Real.pi * δ / 2) = K₀ * Real.pi / 2 * δ := by ring
+      _ < η / 3 := this
+  have h3 : K₃ * A₀ * r < η / 3 := by
+    have := ApproxOrbit.mul_div_add_one_lt (c := K₃ * A₀) (by positivity) hη3
+    exact lt_of_le_of_lt (mul_le_mul_of_nonneg_left (by rw [hrdef]; exact min_le_right _ _)
+      (by positivity)) this
+  have hmain : ∀ s : ℝ,
+      (∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t) < τ →
+      ∀ t, ‖dS u s t‖ < η := by
+    intro s hs t
+    have h := hpt u hu (⟨s, t⟩ : ℂ) r δ A₀ hr hrhalf hδ fun z _ => hbound _ _
+    have hT0 : 0 ≤ ∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t :=
+      intervalIntegral.integral_nonneg (by linarith) fun σ _ =>
+        intervalIntegral.integral_nonneg zero_le_one fun t _ => energyDensity_nonneg u σ t
+    have h2 : K₀ * ((∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t)
+        / (2 * δ * r ^ 2)) < η / 3 := by
+      have := ApproxOrbit.mul_div_add_one_lt (c := K₀ / (2 * δ * r ^ 2)) (by positivity) hη3
+      rw [← hτdef] at this
+      calc K₀ * ((∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t)
+            / (2 * δ * r ^ 2))
+          = K₀ / (2 * δ * r ^ 2)
+            * ∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t := by ring
+        _ ≤ K₀ / (2 * δ * r ^ 2) * τ := mul_le_mul_of_nonneg_left hs.le (by positivity)
+        _ < η / 3 := this
+    have hsplit : K₀ * (Real.pi * δ / 2
+          + (∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t)
+            / (2 * δ * r ^ 2))
+        = K₀ * (Real.pi * δ / 2)
+          + K₀ * ((∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t)
+            / (2 * δ * r ^ 2)) := by ring
+    have h' : ‖dS u s t‖ ≤ K₀ * (Real.pi * δ / 2
+          + (∫ σ in (s - 1 / 2)..(s + 1 / 2), ∫ t in (0:ℝ)..1, energyDensity u σ t)
+            / (2 * δ * r ^ 2)) + K₃ * A₀ * r := h
+    rw [hsplit] at h'
+    linarith
+  obtain ⟨hTtop, hTbot⟩ := ApproxOrbit.tendsto_window hE
+  exact ⟨((tendsto_order.1 hTtop).2 τ hτ).mono hmain, ((tendsto_order.1 hTbot).2 τ hτ).mono hmain⟩
+
+/-- **The flow of the Hamiltonian vector field is `C¹`** at every time.  The time-dependent
+field is suspended to the autonomous field `(t, x) ↦ (1, X_t(x))` on `ℝ × ℝ^{2n}`, which is
+smooth and globally Lipschitz on the torus, so `Part2/FlowC1.lean` provides its `C¹` flow;
+uniqueness identifies it with `(t, ψ_t)`. -/
+theorem contDiff_flow (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)} (hψ : IsFlow (hamField H) ψ) (t : ℝ) :
+    ContDiff ℝ 1 (ψ t) := by
+  set g : ℝ × ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ) := fun q => hamField H q.1 q.2 with hg
+  have hgs : ContDiff ℝ ∞ g := contDiff_hamField H hH
+  -- the differential of `g` is bounded on the torus
+  obtain ⟨L, hL⟩ := exists_bound_of_lattice_periodic
+    (f := fun x t => fderiv ℝ g (t, x))
+    ((hgs.continuous_fderiv (by simp)).comp (continuous_snd.prodMk continuous_fst))
+    (fun y t => by
+      have e : fderiv ℝ (fun q => g (q + ((1 : ℝ), (0 : (l ⊕ l) → ℝ)))) (t, y)
+          = fderiv ℝ g ((t, y) + ((1 : ℝ), (0 : (l ⊕ l) → ℝ))) := fderiv_comp_add_right _
+      have h : (fun q => g (q + ((1 : ℝ), (0 : (l ⊕ l) → ℝ)))) = g := by
+        funext q
+        simp only [hg, Prod.fst_add, Prod.snd_add, add_zero]
+        exact hamField_periodic hHt _ _
+      rw [h] at e
+      show fderiv ℝ g (t + 1, y) = fderiv ℝ g (t, y)
+      rw [e]
+      congr 1
+      ext <;> simp)
+    (fun k y t => by
+      have e : fderiv ℝ (fun q => g (q + ((0 : ℝ), fun i => (k i : ℝ)))) (t, y)
+          = fderiv ℝ g ((t, y) + ((0 : ℝ), fun i => (k i : ℝ))) := fderiv_comp_add_right _
+      have h : (fun q => g (q + ((0 : ℝ), fun i => (k i : ℝ)))) = g := by
+        funext q
+        simp only [hg, Prod.fst_add, Prod.snd_add, add_zero]
+        exact hamField_lattice hHlat k _ _
+      rw [h] at e
+      show fderiv ℝ g (t, y + fun i => (k i : ℝ)) = fderiv ℝ g (t, y)
+      rw [e]
+      congr 1
+      ext <;> simp)
+  have hL0 : 0 ≤ L := (norm_nonneg _).trans (hL 0 0)
+  have hgd : Differentiable ℝ g := hgs.differentiable (by simp)
+  have hglip : ∀ a b, ‖g a - g b‖ ≤ L * ‖a - b‖ := fun a b =>
+    Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hgd x)
+      (fun x _ => hL x.2 x.1) convex_univ (Set.mem_univ b) (Set.mem_univ a)
+  -- the suspended field
+  set f : ℝ × ((l ⊕ l) → ℝ) → ℝ × ((l ⊕ l) → ℝ) := fun q => ((1 : ℝ), g q) with hf
+  have hfC1 : ContDiff ℝ 1 f := contDiff_const.prodMk (hgs.of_le (by simp))
+  have hflip : LipschitzWith (NNReal.mk L hL0) f := LipschitzWith.of_dist_le_mul fun a b => by
+    rw [dist_eq_norm, dist_eq_norm, NNReal.coe_mk]
+    have e : f a - f b = ((0 : ℝ), g a - g b) := by
+      simp only [hf, Prod.mk_sub_mk, sub_self]
+    rw [e, Prod.norm_def, norm_zero]
+    rw [max_eq_right (norm_nonneg _)]
+    exact hglip a b
+  obtain ⟨Φ, hΦ0, hΦd, -, hΦC1, -⟩ := FlowC1.exists_flow hfC1 hflip
+  -- uniqueness identifies `Φ` with the suspension of `ψ`
+  have hid : ∀ p : (l ⊕ l) → ℝ, ∀ τ, Φ τ (0, p) = (τ, ψ τ p) := by
+    intro p
+    have key : (fun τ => Φ τ (0, p)) = fun τ => (τ, ψ τ p) := by
+      refine ODE_solution_unique_univ (v := fun _ => f) (K := NNReal.mk L hL0)
+        (s := fun _ => Set.univ) (t₀ := (0 : ℝ)) (fun _ => hflip.lipschitzOnWith)
+        (fun τ => ⟨hΦd τ (0, p), Set.mem_univ _⟩) (fun τ => ⟨?_, Set.mem_univ _⟩) ?_
+      · exact (hasDerivAt_id τ).prodMk (hψ.hasDerivAt p τ)
+      · simp [hΦ0, hψ.init]
+    exact fun τ => congrFun key τ
+  have e : ψ t = fun p => (Φ t ((0 : ℝ), p)).2 := by
+    funext p
+    rw [hid p t]
+  rw [e]
+  exact contDiff_snd.comp ((hΦC1 t).comp (contDiff_const.prodMk contDiff_id))
+
+/-- The flow commutes with the lattice translations, `H` being lattice-invariant. -/
+theorem flow_add_lattice (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)} (hψ : IsFlow (hamField H) ψ)
+    (k : (l ⊕ l) → ℤ) (t : ℝ) (p : (l ⊕ l) → ℝ) :
+    ψ t (p + fun i => (k i : ℝ)) = ψ t p + fun i => (k i : ℝ) := by
+  obtain ⟨K, hK⟩ := exists_lipschitz_hamField H hH hHt hHlat
+  have hK' : 0 ≤ |K| + 1 := by positivity
+  have hlip : ∀ τ, LipschitzWith (NNReal.mk (|K| + 1) hK') (hamField H τ) := fun τ =>
+    LipschitzWith.of_dist_le_mul fun a b => by
+      rw [dist_eq_norm, dist_eq_norm, NNReal.coe_mk]
+      exact (hK τ a b).trans (mul_le_mul_of_nonneg_right
+        ((le_abs_self K).trans (le_add_of_nonneg_right zero_le_one)) (norm_nonneg _))
+  have hsol : ∀ τ, HasDerivAt (fun σ => ψ σ p + fun i => (k i : ℝ))
+      (hamField H τ (ψ τ p + fun i => (k i : ℝ))) τ := fun τ => by
+    rw [hamField_lattice hHlat]
+    exact (hψ.hasDerivAt p τ).add_const _
+  have := hψ.eq_flow hlip hsol
+  have h0 : ψ 0 p + (fun i => (k i : ℝ)) = p + fun i => (k i : ℝ) := by rw [hψ.init]
+  rw [h0] at this
+  exact (congrFun this t).symm
+
+/-- **Approximate solutions converge to a periodic orbit.**  Let `w(s, ·)` be `1`-periodic
+`C¹` loops, continuous in `(s, t)`, which solve Hamilton's equation up to an error tending to
+`0` uniformly in `t` as `s → +∞`.  If all the periodic orbits are nondegenerate, `w(s, ·)`
+converges at every time to a periodic orbit.
+
+The starting point `q s = w(s, 0)` is a continuous path along which `ψ₁ q − q` tends to `0`:
+`ψ₁(q s)` is the value at time `1` of the exact solution starting at `q s`, and `w(s, ·)` is an
+approximate one, so the two stay close by Grönwall (`ApproxOrbit.norm_sub_le_of_approx`).  The
+fixed points of `ψ₁` are finite in every compact set (Lemma 6.5.10), so `q s` converges to
+one of them, `p`, by the connectedness argument of `LatticePath.tendsto_of_tendsto_zero`; and
+then `w(s, t)` converges to the orbit through `p`, by Grönwall once more. -/
+theorem exists_orbit_tendsto_of_error (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)} (hψ : IsFlow (hamField H) ψ)
+    (hnd : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
+    {w : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hwc : Continuous fun q : ℝ × ℝ => w q.1 q.2)
+    (hwt : ∀ s t, HasDerivAt (w s) (dT w s t) t) (hwtc : ∀ s, Continuous (dT w s))
+    (hper : ∀ s, Function.Periodic (w s) 1)
+    (herr : ∀ η : ℝ, 0 < η → ∀ᶠ s in atTop, ∀ t, ‖dT w s t - hamField H t (w s t)‖ < η) :
+    ∃ x : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x ∧
+      ∀ t, Tendsto (fun s => w s t) atTop (𝓝 (x t)) := by
+  obtain ⟨K, hK⟩ := exists_lipschitz_hamField H hH hHt hHlat
+  have hK' : 0 < |K| + 1 := by positivity
+  have hXlip : ∀ τ a b, ‖hamField H τ a - hamField H τ b‖ ≤ (|K| + 1) * ‖a - b‖ := fun τ a b =>
+    (hK τ a b).trans (mul_le_mul_of_nonneg_right
+      ((le_abs_self K).trans (le_add_of_nonneg_right zero_le_one)) (norm_nonneg _))
+  have hlip : ∀ τ, LipschitzWith (NNReal.mk (|K| + 1) hK'.le) (hamField H τ) := fun τ =>
+    LipschitzWith.of_dist_le_mul fun a b => by
+      rw [dist_eq_norm, dist_eq_norm, NNReal.coe_mk]
+      exact hXlip τ a b
+  have hXc : Continuous fun q : ℝ × ((l ⊕ l) → ℝ) => hamField H q.1 q.2 :=
+    (contDiff_hamField H hH).continuous
+  have hψ1 : ContDiff ℝ 1 (ψ 1) := contDiff_flow H hH hHt hHlat hψ 1
+  have hexp : 0 < Real.exp (|K| + 1) := Real.exp_pos _
+  -- the error of the loops, in `L¹`
+  have hec : ∀ s, Continuous fun t => dT w s t - hamField H t (w s t) := fun s =>
+    (hwtc s).sub (hXc.comp (continuous_id.prodMk
+      (hwc.comp (continuous_const.prodMk continuous_id))))
+  have hηs : ∀ η : ℝ, 0 < η → ∀ᶠ s in atTop,
+      (∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖) ≤ η := by
+    intro η hη
+    filter_upwards [herr η hη] with s hs
+    have := intervalIntegral.norm_integral_le_of_norm_le_const (a := 0) (b := 1)
+      (f := fun t => ‖dT w s t - hamField H t (w s t)‖) (C := η) fun t _ => by
+        rw [norm_norm]; exact (hs t).le
+    rw [sub_zero, abs_one, mul_one] at this
+    exact (le_abs_self _).trans (by rwa [Real.norm_eq_abs] at this)
+  -- comparison of the loop with the exact solution from its own starting point, at time `1`
+  have hcmp1 : ∀ s, ‖w s 1 - ψ 1 (w s 0)‖
+      ≤ 2 * (∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖) * Real.exp (|K| + 1) := by
+    intro s
+    have h := ApproxOrbit.norm_sub_le_of_approx hK' hXlip (f := w s) (g := fun τ => ψ τ (w s 0))
+      (f' := dT w s) (g' := fun τ => hamField H τ (ψ τ (w s 0))) (hwt s)
+      (fun τ => hψ.hasDerivAt (w s 0) τ) (hec s)
+      (by simp only [sub_self]; exact continuous_const) (t := 1) ⟨zero_le_one, le_rfl⟩
+    simp only [hψ.init, sub_self, norm_zero, zero_add, intervalIntegral.integral_zero,
+      add_zero] at h
+    calc ‖w s 1 - ψ 1 (w s 0)‖ ≤ _ := h
+      _ = _ := by ring
+  -- the path of starting points
+  set q : ℝ → ((l ⊕ l) → ℝ) := fun s => w s 0 with hq
+  have hqc : Continuous q := hwc.comp (continuous_id.prodMk continuous_const)
+  set Fm : ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ) := fun p => ψ 1 p - p with hFm
+  have hFmc : Continuous Fm := hψ1.continuous.sub continuous_id
+  have hFmlat : ∀ (k : (l ⊕ l) → ℤ) (p : (l ⊕ l) → ℝ), Fm (p + fun i => (k i : ℝ)) = Fm p := by
+    intro k p
+    simp only [hFm]
+    rw [flow_add_lattice H hH hHt hHlat hψ]
+    abel
+  have hFmfin : ∀ K : Set ((l ⊕ l) → ℝ), IsCompact K → (K ∩ {p | Fm p = 0}).Finite := by
+    intro K hK
+    have e : {p | Fm p = 0} = {p | ψ 1 p = p} := by
+      ext p
+      simp [hFm, sub_eq_zero]
+    rw [e]
+    exact finite_fixedPoints ψ hnd (fun p _ => (hψ1.differentiable one_ne_zero) p)
+      hψ1.continuous hK
+  have hFq : Tendsto (fun s => Fm (q s)) atTop (𝓝 0) := by
+    rw [tendsto_zero_iff_norm_tendsto_zero]
+    refine squeeze_zero' (Eventually.of_forall fun s => norm_nonneg _) ?_ ?_
+      (g := fun s => 2 * (∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖)
+        * Real.exp (|K| + 1))
+    · refine Eventually.of_forall fun s => ?_
+      have h1 : w s 1 = w s 0 := by simpa using hper s 0
+      show ‖ψ 1 (w s 0) - w s 0‖ ≤ _
+      rw [norm_sub_rev]
+      calc ‖w s 0 - ψ 1 (w s 0)‖ = ‖w s 1 - ψ 1 (w s 0)‖ := by rw [h1]
+        _ ≤ _ := hcmp1 s
+    · refine tendsto_order.2 ⟨fun a ha => Eventually.of_forall fun s => ?_, fun a ha => ?_⟩
+      · have h0 : 0 ≤ ∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖ :=
+          intervalIntegral.integral_nonneg zero_le_one fun t _ => norm_nonneg _
+        exact ha.trans_le (by positivity)
+      · filter_upwards [hηs (a / (4 * Real.exp (|K| + 1))) (by positivity)] with s hs
+        calc 2 * (∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖) * Real.exp (|K| + 1)
+            ≤ 2 * (a / (4 * Real.exp (|K| + 1))) * Real.exp (|K| + 1) := by gcongr
+          _ = a / 2 := by field_simp; ring
+          _ < a := by linarith
+  obtain ⟨p, hp, hqp⟩ := LatticePath.tendsto_of_tendsto_zero hFmc hFmlat hFmfin hqc hFq
+  have hp' : ψ 1 p = p := sub_eq_zero.1 hp
+  obtain ⟨x, hx, hx0⟩ := (isPeriodicOrbit_iff_flow_fixed hψ hlip
+    (fun t p => hamField_periodic hHt t p) p).2 hp'
+  refine ⟨x, hx, fun t => ?_⟩
+  -- convergence at every time, by Grönwall against the orbit
+  have hconv01 : ∀ t ∈ Set.Icc (0:ℝ) 1, Tendsto (fun s => w s t) atTop (𝓝 (x t)) := by
+    intro t ht
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    refine squeeze_zero' (Eventually.of_forall fun s => norm_nonneg _)
+      (Eventually.of_forall fun s => ?_) ?_
+      (g := fun s => (‖w s 0 - p‖
+        + 2 * (∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖)) * Real.exp (|K| + 1))
+    · have h := ApproxOrbit.norm_sub_le_of_approx hK' hXlip (f := w s) (g := x)
+        (f' := dT w s) (g' := fun τ => hamField H τ (x τ)) (hwt s) hx.hasDerivAt (hec s)
+        (by simp only [sub_self]; exact continuous_const) ht
+      simp only [sub_self, norm_zero, intervalIntegral.integral_zero, add_zero, hx0] at h
+      exact h
+    · have hq0 : Tendsto (fun s => ‖w s 0 - p‖) atTop (𝓝 0) :=
+        tendsto_iff_norm_sub_tendsto_zero.1 hqp
+      have hη0 : Tendsto (fun s => ∫ t in (0:ℝ)..1, ‖dT w s t - hamField H t (w s t)‖) atTop
+          (𝓝 0) := by
+        refine tendsto_order.2 ⟨fun a ha => Eventually.of_forall fun s => ha.trans_le ?_,
+          fun a ha => ?_⟩
+        · exact intervalIntegral.integral_nonneg zero_le_one fun t _ => norm_nonneg _
+        · filter_upwards [hηs (a / 2) (by positivity)] with s hs
+          linarith
+      have := (hq0.add (hη0.const_mul 2)).mul_const (Real.exp (|K| + 1))
+      simpa using this
+  have hxper : Function.Periodic x 1 := hx.periodic
+  have e1 : (fun s => w s t) = fun s => w s (Int.fract t) :=
+    funext fun s => ApproxOrbit.periodic_eq_fract (hper s) t
+  rw [e1, ApproxOrbit.periodic_eq_fract hxper t]
+  exact hconv01 _ ⟨Int.fract_nonneg t, (Int.fract_lt_one t).le⟩
+
 /-- **Theorem 6.5.6** (with Lemmas 6.5.13, 6.5.14 and Proposition 6.5.15).  If
 all the periodic orbits of `X_t` are nondegenerate, every finite-energy solution
 converges at `s → ±∞` to `1`-periodic orbits, and `∂u/∂s → 0` uniformly in `t`.
 
-The book's proof uses the compactness of `M` (Theorem 6.5.4), the finiteness of
-the set of critical points (Lemma 6.5.10) and the connectedness of the image of
-a half-line.  It is stated here with pointwise convergence rather than
+**Proved.**  The book's proof uses the compactness of `M` (Theorem 6.5.4), the
+finiteness of the set of critical points (Lemma 6.5.10) and the connectedness of
+the image of a half-line.  Compactness is not needed.  The decay of `∂u/∂s`
+(Proposition 6.5.15, `eventually_norm_dS_lt`) comes from the mean value
+inequality for the almost holomorphic `∂u/∂s`, the `L¹` norm on a disc being
+controlled by the energy of a window of length `1`, which tends to `0`.  So the
+loops `u(s, ·)` solve Hamilton's equation up to an error tending to `0`
+uniformly, and `exists_orbit_tendsto_of_error` — Grönwall, Lemma 6.5.10 and the
+connectedness argument of `Part2/LatticePath.lean` — makes them converge to a
+periodic orbit.  It is stated here with pointwise convergence rather than
 convergence in `C^∞(S¹; W)`, which has no topology available.
 
 The torus hypotheses on `H` were missing from an earlier statement, which was
@@ -2238,44 +3205,62 @@ nondegenerate; yet the negative gradient line leaving the origin is a solution
 of energy `1` that escapes to infinity.  On the torus, `W` is compact and this
 cannot happen. -/
 theorem tendsto_of_finite_energy (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    (_hHt : ∀ y t, H y (t + 1) = H y t)
-    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
       H (y + fun i => (k i : ℝ)) t = H y t)
-    (ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)) (_hψ : IsFlow (hamField H) ψ)
-    (_hnd : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u)
-    (_hE : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) :
+    (ψ : ℝ → ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ)) (hψ : IsFlow (hamField H) ψ)
+    (hnd : ∀ p, ψ 1 p = p → IsNondegenerateOrbit ψ p)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u)
+    (hE : MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) :
     ∃ x y : ℝ → ((l ⊕ l) → ℝ), IsPeriodicOrbit (hamField H) x ∧ IsPeriodicOrbit (hamField H) y ∧
       (∀ t, Filter.Tendsto (fun s => u s t) Filter.atBot (nhds (x t))) ∧
       (∀ t, Filter.Tendsto (fun s => u s t) Filter.atTop (nhds (y t))) ∧
       (∀ t, Filter.Tendsto (fun s => dS u s t) Filter.atBot (nhds 0)) ∧
       (∀ t, Filter.Tendsto (fun s => dS u s t) Filter.atTop (nhds 0)) := by
-  sorry
+  -- the decay of `∂u/∂s`
+  have hdec : ∀ η : ℝ, 0 < η →
+      (∀ᶠ s in atTop, ∀ t, ‖dS u s t‖ < η) ∧ ∀ᶠ s in atBot, ∀ t, ‖dS u s t‖ < η :=
+    fun η hη => eventually_norm_dS_lt H hH hHt hHlat hu hE hη
+  -- the error of Hamilton's equation is `J₀ ∂u/∂s`, which is at most twice as large
+  have hJ : ∀ v : (l ⊕ l) → ℝ, ‖stdJ l v‖ ≤ 2 * ‖v‖ := fun v =>
+    FloerRegularity.norm_le_of_toCpxL_le (by positivity) fun i => by
+      rw [FloerRegularity.toCpxL_stdJ, norm_mul, Complex.norm_I, one_mul]
+      exact FloerRegularity.norm_toCpxL_le v i
+  have herr : ∀ s t, ‖dT u s t - hamField H t (u s t)‖ ≤ 2 * ‖dS u s t‖ := fun s t => by
+    rw [floer_eq H hu s t]
+    exact hJ _
+  -- at `+∞`
+  obtain ⟨y, hy, hly⟩ := exists_orbit_tendsto_of_error H hH hHt hHlat hψ hnd hu.continuous
+    hu.hasDerivAt_t (fun s => hu.continuous_t.comp (continuous_const.prodMk continuous_id))
+    hu.periodic (fun η hη => by
+      filter_upwards [(hdec (η / 2) (by positivity)).1] with s hs t
+      linarith [herr s t, hs t])
+  -- at `-∞`, by reversing `s`
+  obtain ⟨x, hx, hlx⟩ := exists_orbit_tendsto_of_error H hH hHt hHlat hψ hnd
+    (w := fun s t => u (-s) t)
+    (hu.continuous.comp ((continuous_neg.comp continuous_fst).prodMk continuous_snd))
+    (fun s t => hu.hasDerivAt_t (-s) t)
+    (fun s => hu.continuous_t.comp (continuous_const.prodMk continuous_id))
+    (fun s => hu.periodic (-s)) (fun η hη => by
+      have h := (hdec (η / 2) (by positivity)).2
+      filter_upwards [tendsto_neg_atTop_atBot.eventually h] with s hs t
+      show ‖dT u (-s) t - hamField H t (u (-s) t)‖ < η
+      linarith [herr (-s) t, hs t])
+  refine ⟨x, y, hx, hy, fun t => ?_, hly, fun t => ?_, fun t => ?_⟩
+  · have := (hlx t).comp tendsto_neg_atBot_atTop
+    refine this.congr fun s => ?_
+    simp
+  · rw [tendsto_zero_iff_norm_tendsto_zero]
+    refine tendsto_order.2 ⟨fun a ha => Eventually.of_forall fun s => ha.trans_le (norm_nonneg _),
+      fun a ha => ?_⟩
+    filter_upwards [(hdec a ha).2] with s hs using hs t
+  · rw [tendsto_zero_iff_norm_tendsto_zero]
+    refine tendsto_order.2 ⟨fun a ha => Eventually.of_forall fun s => ha.trans_le (norm_nonneg _),
+      fun a ha => ?_⟩
+    filter_upwards [(hdec a ha).1] with s hs using hs t
 
-/-- **Proposition 6.6.2.**  Under the asphericity Hypothesis 6.2.1 there is a
-constant `A > 0` bounding the gradient of every element of `M` uniformly.
-
-This is the heart of the compactness proof: if the gradient blew up, rescaling
-around the blow-up point would produce a nonconstant `J`-holomorphic plane of
-finite, nonzero symplectic area — a *bubble* — whose existence Hypothesis 6.2.1
-forbids.  Both the rescaling (Lemma 6.6.3) and the area computation
-(Lemmas 6.6.4, 6.6.5) are out of reach; the torus satisfies the hypothesis
-because `π₂(T^{2n}) = 0`.
-
-Finite energy was missing from an earlier statement, which was false without
-it: `energy` is a Bochner integral, hence `0` when the energy density is not
-integrable, and for `H = 0` a non-constant holomorphic cylinder then has
-"energy" `0` and an unbounded gradient. -/
-theorem exists_gradient_bound (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    (_hHt : ∀ y t, H y (t + 1) = H y t)
-    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
-      H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ) :
-    ∃ A : ℝ, 0 < A ∧ ∀ u : ℝ → ℝ → ((l ⊕ l) → ℝ), IsFloerSolution H u →
-      (MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity u s t) → energy u ≤ C →
-      ∀ s t, dS u s t ⬝ᵥ dS u s t + dT u s t ⬝ᵥ dT u s t ≤ A := by
-  sorry
+end Convergence
 
 /-- **Theorem 6.5.4** (compactness of `M`).  Under Hypothesis 6.2.1 the space of
 finite-energy solutions is compact in `C^∞_loc(ℝ × S¹, W)`.

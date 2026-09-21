@@ -61,8 +61,11 @@ print(f"Checking {len(names)} declarations cited in the blueprint...")
 res = subprocess.run(
     ["lake", "env", "lean", str(root / "CheckDecls.lean")],
     cwd=project, capture_output=True, text=True)
+# Match Lean's own diagnostics (`file:line:col: error: ...`), not the word
+# "error" wherever it occurs -- a declaration may well be called
+# `exists_orbit_tendsto_of_error`.
 errors = [l for l in res.stdout.splitlines() + res.stderr.splitlines()
-          if "error" in l.lower()]
+          if re.search(r":\d+:\d+: error", l)]
 if res.returncode != 0 or errors:
     print("\n".join(errors) or res.stdout[-2000:])
     sys.exit(f"FAILED: some of the {len(names)} declarations are missing.")

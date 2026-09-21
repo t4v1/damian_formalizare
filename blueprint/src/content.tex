@@ -1378,16 +1378,103 @@ gaps.
   --- and, being monotone, it then converges along the whole half-line.
 \end{proposition}
 
+\begin{lemma}[A mean value inequality for almost holomorphic functions]
+  \label{lem:mean-value}
+  \lean{MorseFloer.MeanValue.cut, MorseFloer.MeanValue.exists_norm_dbar_cut_le,
+        MorseFloer.MeanValue.norm_le_of_dbar_le}
+  \leanok
+  \uses{thm:cauchy-pompeiu}
+  There are universal constants $K_0$, $K_2$ such that for every $C^1$ function
+  $P$ on the plane with $\lvert\bar\partial P\rvert \le a$ on the disc of radius
+  $r$ about $z_1$,
+  \[\lvert P(z_1)\rvert \le \frac{K_0}{r^2}\int_{\lvert\xi\rvert<r}
+    \lvert P(z_1-\xi)\rvert\,d\xi + K_2\,a\,r.\]
+  This is the Cauchy--Pompeiu formula (\ref{thm:cauchy-pompeiu}) applied to
+  $\chi P$ for a cut-off $\chi$ at scale $r$: $P(z_1) = T(\bar\partial(\chi P))(z_1)$
+  and $\bar\partial(\chi P) = \chi\,\bar\partial P + P\,\bar\partial\chi$.  The first
+  term is integrated against the Riesz kernel $1/\lvert\xi\rvert$, whose mass on
+  the disc is proportional to $r$; the second lives on an annulus, where the
+  kernel is at most $2/r$ and $\lvert\bar\partial\chi\rvert$ is $O(1/r)$.
+\end{lemma}
+
+\begin{proposition}[Proposition 6.6.2, the uniform gradient bound]
+  \label{prop:6.6.2}
+  \lean{MorseFloer.FloerRegularity.dbar_toCpx,
+        MorseFloer.Chapter6.exists_bound_fderiv_hamGrad,
+        MorseFloer.Chapter6.exists_dSS,
+        MorseFloer.Chapter6.linearized_floer,
+        MorseFloer.Chapter6.setIntegral_energyDensity_le,
+        MorseFloer.Chapter6.exists_bound_dS,
+        MorseFloer.Chapter6.exists_gradient_bound}
+  \leanok
+  \uses{prop:6.5.3, lem:mean-value}
+  The gradient of the solutions of energy at most $C$ is bounded by a constant
+  depending only on $C$.  \emph{Proved}, and without the bubbling analysis of the
+  book, which needs $C^1_{loc}$ compactness of rescaled solutions and the area
+  computations of Lemmas 6.6.4 and 6.6.5.  A solution being smooth
+  (\ref{prop:6.5.3}), $p = \partial_s u$ solves the linearised equation
+  $\partial_s p + J_0\,\partial_t p + (\mathrm{Hess}\,H_t)(u)\,p = 0$, whose
+  zeroth-order term is bounded on the torus; read in $\mathbb{C}^n$, $p$ is
+  almost holomorphic, $\lvert\bar\partial p\rvert \le 2L\lvert p\rvert$.  Hofer's
+  lemma (Lemma 6.6.3) gives, near any point, a disc of radius
+  $\varepsilon \le \tfrac12$ on which $\lvert p\rvert$ is at most twice its value
+  $N$ at the centre, with $\varepsilon N$ at least half the value at the given
+  point.  On a concentric disc of radius $r \le \varepsilon$ the mean value
+  inequality (\ref{lem:mean-value}) and
+  $\lvert p\rvert \le \tfrac1{2r} + \tfrac r2\lvert p\rvert^2$ give
+  $N \le K_1/r + 4K_2LNr$, the $L^2$ norm on the disc being at most the energy by
+  Fubini, since a disc of radius at most $\tfrac12$ lies in one period of the
+  cylinder.  For $r$ below a fixed threshold the last term is absorbed, which
+  bounds $\varepsilon N$ or $N$ itself.  The bound on $\partial_t u$ follows from
+  the Floer equation.  This is the book's rescaling argument with the limit
+  taken out: on the torus with the standard $J_0$ the bubble would be an entire
+  function with bounded derivative and finite energy.
+\end{proposition}
+
+\begin{theorem}[Theorem 6.5.6 and Proposition 6.5.15, convergence at the ends]
+  \label{thm:6.5.6}
+  \lean{MorseFloer.LatticePath.tendsto_of_tendsto_zero,
+        MorseFloer.ApproxOrbit.tendsto_window,
+        MorseFloer.Chapter6.exists_norm_dS_le,
+        MorseFloer.Chapter6.eventually_norm_dS_lt,
+        MorseFloer.Chapter6.contDiff_flow,
+        MorseFloer.Chapter6.flow_add_lattice,
+        MorseFloer.Chapter6.exists_orbit_tendsto_of_error,
+        MorseFloer.Chapter6.tendsto_of_finite_energy}
+  \leanok
+  \uses{prop:6.6.2, prop:6.5.7, lem:mean-value, thm:5.3.2}
+  If all periodic orbits are nondegenerate, a finite-energy solution converges at
+  $s \to \pm\infty$ to periodic orbits, and $\partial_s u \to 0$ uniformly in
+  $t$.  \emph{Proved}, without the compactness theorem the book relies on.  The
+  decay of $\partial_s u$ is the mean value inequality (\ref{lem:mean-value})
+  once more: the $L^1$ norm of $\partial_s u$ on a disc of radius at most
+  $\tfrac12$ is controlled by the energy of the window $[s-\tfrac12, s+\tfrac12]$,
+  which tends to $0$.  So the loops $u(s,\cdot)$ solve Hamilton's equation up to
+  an error tending to $0$ uniformly, and their starting points $q(s) = u(s,0)$
+  form a continuous path along which $\psi_1 q - q \to 0$, by Gr\"onwall against
+  the exact solution.  The fixed points of $\psi_1$ are finite in every compact
+  set (Lemma 6.5.10), which needs $\psi_1$ to be $C^1$: the time-dependent field
+  is suspended to the autonomous field $(t,x) \mapsto (1, X_t(x))$, whose $C^1$
+  flow of \ref{thm:5.3.2} (\texttt{FlowC1.exists\_flow}) supplies.  The book's connectedness argument then
+  runs in $\mathbb{R}^{2n}$: where $\psi_1 q - q$ is small, $q$ is close to a
+  fixed point, and the fixed points are uniformly separated, both by translating
+  into the unit cube; so the path eventually lies in a union of disjoint balls
+  about fixed points, hence in one of them, and converges.  Gr\"onwall once more
+  makes the loops converge to the orbit through the limit.
+\end{theorem}
+
 \begin{theorem}[Theorem 6.5.4, compactness; Conjecture 6.1.2]
   \label{thm:6.5.4}
   \lean{MorseFloer.Chapter6.compactness_of_energy_bounded,
         MorseFloer.Chapter6.arnold_conjecture_torus}
   \notready
-  \uses{prop:6.5.7}
+  \uses{prop:6.5.7, prop:6.6.2, thm:6.5.6}
   Solutions of bounded energy are compact up to breaking, and the Arnold
-  conjecture on the torus.  \emph{Assumed}: with elliptic regularity in hand
-  (\ref{prop:6.5.3}) what the compactness proof still needs is Ascoli's theorem
-  and the uniform gradient bound of \S6.6, i.e.\ the bubbling analysis.
+  conjecture on the torus.  \emph{Assumed}: with elliptic regularity
+  (\ref{prop:6.5.3}) and the uniform gradient bound (\ref{prop:6.6.2}) in hand,
+  what the compactness proof still needs is Ascoli's theorem together with
+  \emph{uniform} $C^{1,\alpha}$ estimates, the bootstrap of
+  \ref{thm:dbar-bootstrap} being qualitative.
 \end{theorem}
 
 \chapter{The Maslov and Conley--Zehnder indices (Chapter 7)}

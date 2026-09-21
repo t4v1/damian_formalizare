@@ -21,6 +21,8 @@ uniformly Lipschitz, `1`-periodic time-dependent vector field on a Banach space.
 
 * `exists_seq_atTop`, `exists_seq_atBot`: an integrable nonnegative function on
   the line tends to `0` along some sequence going to `+∞`, and to `-∞`;
+* `tendsto_window`: the integral of an integrable function over a moving window of
+  fixed length tends to `0` at both ends;
 * `tendsto_atTop_of_antitone_of_seq`, `tendsto_atBot_of_antitone_of_seq`: an
   antitone function converging along one such sequence converges;
 * `norm_sub_le_of_approx`: the Grönwall comparison of two approximate solutions;
@@ -81,6 +83,46 @@ theorem exists_seq_atBot {g : ℝ → ℝ} (hg : Integrable g) (h0 : ∀ s, 0 �
     (tendsto_neg_atTop_atBot.comp tendsto_natCast_atTop_atTop), ?_⟩
   exact squeeze_zero (fun k => h0 _) (fun k => (hs2 k).le)
     tendsto_one_div_add_atTop_nhds_zero_nat
+
+/-- **The integral of an integrable function over a moving window of fixed length tends to
+zero** at both ends of the line. -/
+theorem tendsto_window {g : ℝ → ℝ} (hg : Integrable g) :
+    Tendsto (fun a : ℝ => ∫ s in (a - 1 / 2)..(a + 1 / 2), g s) atTop (𝓝 0) ∧
+      Tendsto (fun a : ℝ => ∫ s in (a - 1 / 2)..(a + 1 / 2), g s) atBot (𝓝 0) := by
+  have hii : ∀ a b : ℝ, IntervalIntegrable g volume a b := fun a b => hg.intervalIntegrable
+  constructor
+  · have h1 : Tendsto (fun a : ℝ => ∫ s in (0:ℝ)..(a + 1 / 2), g s) atTop
+        (𝓝 (∫ s in Ioi (0:ℝ), g s)) :=
+      intervalIntegral_tendsto_integral_Ioi 0 hg.integrableOn
+        (tendsto_atTop_add_const_right _ _ tendsto_id)
+    have h2 : Tendsto (fun a : ℝ => ∫ s in (0:ℝ)..(a - 1 / 2), g s) atTop
+        (𝓝 (∫ s in Ioi (0:ℝ), g s)) :=
+      intervalIntegral_tendsto_integral_Ioi 0 hg.integrableOn
+        (tendsto_atTop_add_const_right _ (-(1 / 2)) tendsto_id)
+    have h3 := h1.sub h2
+    rw [sub_self] at h3
+    refine h3.congr fun a => ?_
+    exact intervalIntegral.integral_interval_sub_left (hii _ _) (hii _ _)
+  · have h1 : Tendsto (fun a : ℝ => ∫ s in (a - 1 / 2)..(0:ℝ), g s) atBot
+        (𝓝 (∫ s in Iic (0:ℝ), g s)) :=
+      intervalIntegral_tendsto_integral_Iic 0 hg.integrableOn
+        (tendsto_atBot_add_const_right _ (-(1 / 2)) tendsto_id)
+    have h2 : Tendsto (fun a : ℝ => ∫ s in (a + 1 / 2)..(0:ℝ), g s) atBot
+        (𝓝 (∫ s in Iic (0:ℝ), g s)) :=
+      intervalIntegral_tendsto_integral_Iic 0 hg.integrableOn
+        (tendsto_atBot_add_const_right _ _ tendsto_id)
+    have h3 := h1.sub h2
+    rw [sub_self] at h3
+    refine h3.congr fun a => ?_
+    have := intervalIntegral.integral_add_adjacent_intervals (hii (a - 1 / 2) (a + 1 / 2))
+      (hii (a + 1 / 2) 0)
+    linarith
+
+/-- `c · x/(c+1) < x`: the elementary inequality behind every "choose the parameter so that
+this term is below a third of `η`". -/
+theorem mul_div_add_one_lt {c x : ℝ} (hc : 0 ≤ c) (hx : 0 < x) : c * (x / (c + 1)) < x := by
+  rw [← mul_div_assoc, div_lt_iff₀ (by positivity)]
+  nlinarith
 
 /-! ## Antitone functions converging along a sequence -/
 

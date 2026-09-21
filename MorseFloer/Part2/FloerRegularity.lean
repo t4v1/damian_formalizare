@@ -188,6 +188,109 @@ theorem toCpxL_stdJ (X : (l ⊕ l) → ℝ) (i : l) :
   simp only [Sum.elim_inl, Sum.elim_inr, Complex.ofReal_neg]
   linear_combination (-(X (Sum.inr i) : ℂ)) * Complex.I_sq
 
+/-! ### The complexification of a map of two real variables -/
+
+omit [DecidableEq l] in
+/-- The complexification of a function of two real variables with continuous partial
+derivatives is `C¹` on `ℂ`. -/
+theorem contDiff_one_toCpx {w ws wt : ℝ → ℝ → ((l ⊕ l) → ℝ)}
+    (hs : ∀ s t, HasDerivAt (fun σ => w σ t) (ws s t) s)
+    (ht : ∀ s t, HasDerivAt (w s) (wt s t) t)
+    (hcs : Continuous fun p : ℝ × ℝ => ws p.1 p.2)
+    (hct : Continuous fun p : ℝ × ℝ => wt p.1 p.2) (i : l) :
+    ContDiff ℝ 1 fun z : ℂ => toCpxL (w z.re z.im) i := by
+  have hC1 : ContDiff ℝ 1 fun p : ℝ × ℝ => w p.1 p.2 := contDiff_one_of_partials hs ht hcs hct
+  have hEc : ContDiff ℝ 1 fun z : ℂ => ((z.re, z.im) : ℝ × ℝ) :=
+    (Complex.reCLM.prod Complex.imCLM).contDiff
+  exact (ContinuousLinearMap.contDiff
+    ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp toCpxL)).comp
+      (hC1.comp hEc)
+
+/-- **The Cauchy–Riemann operator of the complexification**: `∂̄` of `z ↦ w(Re z, Im z)`, read
+in `ℂⁿ`, is `∂w/∂s + J₀ ∂w/∂t`. -/
+theorem dbar_toCpx {w ws wt : ℝ → ℝ → ((l ⊕ l) → ℝ)}
+    (hs : ∀ s t, HasDerivAt (fun σ => w σ t) (ws s t) s)
+    (ht : ∀ s t, HasDerivAt (w s) (wt s t) t)
+    (hcs : Continuous fun p : ℝ × ℝ => ws p.1 p.2)
+    (hct : Continuous fun p : ℝ × ℝ => wt p.1 p.2) (i : l) (z : ℂ) :
+    dbar (fun z : ℂ => toCpxL (w z.re z.im) i) z
+      = toCpxL (ws z.re z.im + stdJ l (wt z.re z.im)) i := by
+  have hC1 : ContDiff ℝ 1 fun p : ℝ × ℝ => w p.1 p.2 := contDiff_one_of_partials hs ht hcs hct
+  have hfd : ∀ v : ℂ, fderiv ℝ (fun z : ℂ => toCpxL (w z.re z.im) i) z v
+      = toCpxL (v.re • ws z.re z.im + v.im • wt z.re z.im) i := by
+    intro v
+    have hE : HasFDerivAt (fun z : ℂ => ((z.re, z.im) : ℝ × ℝ))
+        (Complex.reCLM.prod Complex.imCLM) z :=
+      (Complex.reCLM.prod Complex.imCLM).hasFDerivAt
+    have hu' : HasFDerivAt (fun q : ℝ × ℝ => w q.1 q.2)
+        (fderiv ℝ (fun q : ℝ × ℝ => w q.1 q.2) (z.re, z.im)) (z.re, z.im) :=
+      ((hC1.differentiable one_ne_zero) _).hasFDerivAt
+    have h1' := hu'.comp z hE
+    have h1 : HasFDerivAt (fun z : ℂ => w z.re z.im)
+        ((fderiv ℝ (fun q : ℝ × ℝ => w q.1 q.2) (z.re, z.im)).comp
+          (Complex.reCLM.prod Complex.imCLM)) z := h1'
+    have hchain0 := (ContinuousLinearMap.hasFDerivAt
+      ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp toCpxL)).comp z h1
+    have hchain : HasFDerivAt (fun z : ℂ => toCpxL (w z.re z.im) i)
+        (((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp toCpxL).comp
+          ((fderiv ℝ (fun q : ℝ × ℝ => w q.1 q.2) (z.re, z.im)).comp
+            (Complex.reCLM.prod Complex.imCLM))) z := hchain0
+    rw [hchain.fderiv]
+    show ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp toCpxL)
+      (fderiv ℝ (fun q : ℝ × ℝ => w q.1 q.2) (z.re, z.im) ((v.re, v.im) : ℝ × ℝ)) = _
+    rw [fderiv_apply_of_partials hs ht hcs hct (z.re, z.im) ((v.re, v.im) : ℝ × ℝ)]
+    rfl
+  rw [dbar, hfd 1, hfd Complex.I]
+  simp only [Complex.one_re, Complex.one_im, Complex.I_re, Complex.I_im, one_smul, zero_smul,
+    add_zero, zero_add]
+  have hJ : toCpxL (stdJ l (wt z.re z.im)) i = Complex.I * toCpxL (wt z.re z.im) i :=
+    toCpxL_stdJ _ i
+  rw [← hJ, map_add]
+  rfl
+
+omit [DecidableEq l] in
+/-- A complex component is at most twice the sup norm. -/
+theorem norm_toCpxL_le (X : (l ⊕ l) → ℝ) (i : l) : ‖toCpxL X i‖ ≤ 2 * ‖X‖ := by
+  rw [toCpxL_apply]
+  calc ‖(X (Sum.inl i) : ℂ) + (X (Sum.inr i) : ℂ) * Complex.I‖
+      ≤ ‖(X (Sum.inl i) : ℂ)‖ + ‖(X (Sum.inr i) : ℂ) * Complex.I‖ := norm_add_le _ _
+    _ = ‖X (Sum.inl i)‖ + ‖X (Sum.inr i)‖ := by
+        rw [norm_mul, Complex.norm_I, mul_one, Complex.norm_real, Complex.norm_real]
+    _ ≤ ‖X‖ + ‖X‖ := add_le_add (norm_le_pi_norm X _) (norm_le_pi_norm X _)
+    _ = 2 * ‖X‖ := by ring
+
+omit [DecidableEq l] in
+/-- The sup norm is controlled by the complex components. -/
+theorem norm_le_of_toCpxL_le {X : (l ⊕ l) → ℝ} {B : ℝ} (hB : 0 ≤ B)
+    (h : ∀ i, ‖toCpxL X i‖ ≤ B) : ‖X‖ ≤ B := by
+  rw [pi_norm_le_iff_of_nonneg hB]
+  intro j
+  cases j with
+  | inl i =>
+    have h1 : (toCpxL X i).re = X (Sum.inl i) := by simp [toCpxL_apply]
+    rw [← h1, Real.norm_eq_abs]
+    exact (Complex.abs_re_le_norm _).trans (h i)
+  | inr i =>
+    have h1 : (toCpxL X i).im = X (Sum.inr i) := by simp [toCpxL_apply]
+    rw [← h1, Real.norm_eq_abs]
+    exact (Complex.abs_im_le_norm _).trans (h i)
+
+omit [DecidableEq l] in
+/-- The squared modulus of a complex component is at most the squared Euclidean norm. -/
+theorem norm_toCpxL_sq_le (X : (l ⊕ l) → ℝ) (i : l) : ‖toCpxL X i‖ ^ 2 ≤ X ⬝ᵥ X := by
+  rw [toCpxL_apply, Complex.sq_norm, Complex.normSq_add_mul_I]
+  have hsum : X ⬝ᵥ X = (∑ i, X (Sum.inl i) * X (Sum.inl i))
+      + ∑ i, X (Sum.inr i) * X (Sum.inr i) := by
+    rw [dotProduct, Fintype.sum_sum_type]
+  have h1 : X (Sum.inl i) * X (Sum.inl i) ≤ ∑ i, X (Sum.inl i) * X (Sum.inl i) :=
+    Finset.single_le_sum (f := fun i => X (Sum.inl i) * X (Sum.inl i))
+      (fun j _ => mul_self_nonneg _) (Finset.mem_univ i)
+  have h2 : X (Sum.inr i) * X (Sum.inr i) ≤ ∑ i, X (Sum.inr i) * X (Sum.inr i) :=
+    Finset.single_le_sum (f := fun i => X (Sum.inr i) * X (Sum.inr i))
+      (fun j _ => mul_self_nonneg _) (Finset.mem_univ i)
+  rw [hsum]
+  nlinarith
+
 /-! ### Regularity for the real Floer equation -/
 
 /-- **A `C¹` solution of the Floer equation is `C^∞`.**  The equation
