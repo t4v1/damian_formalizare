@@ -1304,5 +1304,300 @@ theorem contDiff_infty_of_dbar_comp {u F : ℂ → ℂ} (hu : ContDiff ℝ 1 u) 
     rw [hχ1 z hz.le, one_mul]
   exact h1.contDiffAt.congr_of_eventuallyEq hfeq
 
+/-! ### A nonlinearity that depends on the point as well
+
+In the Floer equation the Hamiltonian depends on time, so the right-hand side is `F z (u z)`
+and not `F (u z)`.  Rather than carry an unbounded variable through the estimates, the point is
+treated as a second inner function: near the disc where the bootstrap works, `z` may be
+replaced by `χ z * z`, which is smooth with compact support and so sits on every level of the
+scale.  What is needed is therefore the chain rule for a smooth function of *two* complex
+variables composed with two functions of the scale.
+-/
+
+/-- The `∂/∂z` of the first variable of a function of two complex variables. -/
+noncomputable def dz₁ (G : ℂ × ℂ → ℂ) (p : ℂ × ℂ) : ℂ :=
+  fderiv ℝ G p (1, 0) - Complex.I * fderiv ℝ G p (Complex.I, 0)
+
+/-- The `∂/∂z̄` of the first variable. -/
+noncomputable def dbar₁ (G : ℂ × ℂ → ℂ) (p : ℂ × ℂ) : ℂ :=
+  fderiv ℝ G p (1, 0) + Complex.I * fderiv ℝ G p (Complex.I, 0)
+
+/-- The `∂/∂z` of the second variable. -/
+noncomputable def dz₂ (G : ℂ × ℂ → ℂ) (p : ℂ × ℂ) : ℂ :=
+  fderiv ℝ G p (0, 1) - Complex.I * fderiv ℝ G p (0, Complex.I)
+
+/-- The `∂/∂z̄` of the second variable. -/
+noncomputable def dbar₂ (G : ℂ × ℂ → ℂ) (p : ℂ × ℂ) : ℂ :=
+  fderiv ℝ G p (0, 1) + Complex.I * fderiv ℝ G p (0, Complex.I)
+
+theorem contDiff_dz₁ {G : ℂ × ℂ → ℂ} (hG : ContDiff ℝ ∞ G) : ContDiff ℝ ∞ (dz₁ G) :=
+  ((hG.fderiv_right (by simp)).clm_apply contDiff_const).sub
+    (contDiff_const.mul ((hG.fderiv_right (by simp)).clm_apply contDiff_const))
+
+theorem contDiff_dbar₁ {G : ℂ × ℂ → ℂ} (hG : ContDiff ℝ ∞ G) : ContDiff ℝ ∞ (dbar₁ G) :=
+  ((hG.fderiv_right (by simp)).clm_apply contDiff_const).add
+    (contDiff_const.mul ((hG.fderiv_right (by simp)).clm_apply contDiff_const))
+
+theorem contDiff_dz₂ {G : ℂ × ℂ → ℂ} (hG : ContDiff ℝ ∞ G) : ContDiff ℝ ∞ (dz₂ G) :=
+  ((hG.fderiv_right (by simp)).clm_apply contDiff_const).sub
+    (contDiff_const.mul ((hG.fderiv_right (by simp)).clm_apply contDiff_const))
+
+theorem contDiff_dbar₂ {G : ℂ × ℂ → ℂ} (hG : ContDiff ℝ ∞ G) : ContDiff ℝ ∞ (dbar₂ G) :=
+  ((hG.fderiv_right (by simp)).clm_apply contDiff_const).add
+    (contDiff_const.mul ((hG.fderiv_right (by simp)).clm_apply contDiff_const))
+
+/-- **The derivative of a composition with two inner functions**, in Wirtinger form. -/
+theorem fderiv_comp₂_apply {G : ℂ × ℂ → ℂ} (hG : Differentiable ℝ G) {w₁ w₂ : ℂ → ℂ}
+    (h₁ : Differentiable ℝ w₁) (h₂ : Differentiable ℝ w₂) (z v : ℂ) :
+    fderiv ℝ (fun z => G (w₁ z, w₂ z)) z v
+      = (dz₁ G (w₁ z, w₂ z) * fderiv ℝ w₁ z v
+          + dbar₁ G (w₁ z, w₂ z) * (starRingEnd ℂ) (fderiv ℝ w₁ z v)
+          + (dz₂ G (w₁ z, w₂ z) * fderiv ℝ w₂ z v
+            + dbar₂ G (w₁ z, w₂ z) * (starRingEnd ℂ) (fderiv ℝ w₂ z v))) / 2 := by
+  have hW : ∀ y : ℂ, HasFDerivAt (fun z => (w₁ z, w₂ z))
+      ((fderiv ℝ w₁ y).prod (fderiv ℝ w₂ y)) y := fun y =>
+    (h₁ y).hasFDerivAt.prodMk (h₂ y).hasFDerivAt
+  have hchain : fderiv ℝ (fun z => G (w₁ z, w₂ z)) z
+      = (fderiv ℝ G (w₁ z, w₂ z)).comp ((fderiv ℝ w₁ z).prod (fderiv ℝ w₂ z)) :=
+    (((hG _).hasFDerivAt).comp z (hW z)).fderiv
+  rw [hchain]
+  show fderiv ℝ G (w₁ z, w₂ z) (fderiv ℝ w₁ z v, fderiv ℝ w₂ z v) = _
+  have hsplit : ((fderiv ℝ w₁ z v, fderiv ℝ w₂ z v) : ℂ × ℂ)
+      = (fderiv ℝ w₁ z v, 0) + (0, fderiv ℝ w₂ z v) := by simp
+  rw [hsplit, map_add]
+  have hL₁ : ∀ a : ℂ, fderiv ℝ G (w₁ z, w₂ z) (a, 0)
+      = ((fderiv ℝ G (w₁ z, w₂ z)).comp (ContinuousLinearMap.inl ℝ ℂ ℂ)) a := fun a => rfl
+  have hL₂ : ∀ a : ℂ, fderiv ℝ G (w₁ z, w₂ z) (0, a)
+      = ((fderiv ℝ G (w₁ z, w₂ z)).comp (ContinuousLinearMap.inr ℝ ℂ ℂ)) a := fun a => rfl
+  rw [hL₁, hL₂]
+  rw [eq_dPair ((fderiv ℝ G (w₁ z, w₂ z)).comp (ContinuousLinearMap.inl ℝ ℂ ℂ)),
+    eq_dPair ((fderiv ℝ G (w₁ z, w₂ z)).comp (ContinuousLinearMap.inr ℝ ℂ ℂ)),
+    dPair_apply, dPair_apply]
+  simp only [dz₁, dbar₁, dz₂, dbar₂, ContinuousLinearMap.comp_apply,
+    ContinuousLinearMap.inl_apply, ContinuousLinearMap.inr_apply]
+  ring
+
+/-- **The chain rule on the scale, for a function of two variables.** -/
+theorem exists_isHolderC_comp₂ (hα : 0 < α) (hα1 : α ≤ 1) :
+    ∀ (k : ℕ) (G : ℂ × ℂ → ℂ) (w₁ w₂ : ℂ → ℂ) (C₁ C₂ : ℝ), ContDiff ℝ ∞ G →
+      IsHolderC k α C₁ w₁ → HasCompactSupport w₁ →
+      IsHolderC k α C₂ w₂ → HasCompactSupport w₂ →
+      ∃ C' : ℝ, IsHolderC k α C' fun z => G (w₁ z, w₂ z) - G (0, 0) := by
+  intro k
+  induction k with
+  | zero =>
+      intro G w₁ w₂ C₁ C₂ hG hw₁ hw₁s hw₂ hw₂s
+      obtain ⟨R₁, hR₁⟩ := hw₁s.exists_bound_of_continuous (hw₁.continuous hα)
+      obtain ⟨R₂, hR₂⟩ := hw₂s.exists_bound_of_continuous (hw₂.continuous hα)
+      have hR0 : (0 : ℝ) ≤ max R₁ R₂ :=
+        le_trans (le_trans (norm_nonneg (w₁ 0)) (hR₁ 0)) (le_max_left _ _)
+      obtain ⟨L, hL⟩ := (isCompact_closedBall (0 : ℂ × ℂ) (max R₁ R₂)).exists_bound_of_continuousOn
+        (hG.continuous_fderiv (by simp)).continuousOn
+      have hdiffG : Differentiable ℝ G := hG.differentiable (by simp)
+      have hmem : ∀ z : ℂ, ((w₁ z, w₂ z) : ℂ × ℂ) ∈ closedBall (0 : ℂ × ℂ) (max R₁ R₂) := by
+        intro z
+        rw [mem_closedBall, dist_zero_right, Prod.norm_mk, max_le_iff]
+        exact ⟨le_trans (hR₁ z) (le_max_left _ _), le_trans (hR₂ z) (le_max_right _ _)⟩
+      have hL0 : (0 : ℝ) ≤ L :=
+        le_trans (norm_nonneg _) (hL 0 (by rw [mem_closedBall, dist_self]; exact hR0))
+      refine ⟨L * (C₁ + C₂), fun ξ η => ?_⟩
+      have he : G (w₁ ξ, w₂ ξ) - G (0, 0) - (G (w₁ η, w₂ η) - G (0, 0))
+          = G (w₁ ξ, w₂ ξ) - G (w₁ η, w₂ η) := by ring
+      rw [he]
+      have hlip : ‖G (w₁ ξ, w₂ ξ) - G (w₁ η, w₂ η)‖ ≤ L * ‖((w₁ ξ, w₂ ξ) : ℂ × ℂ) - (w₁ η, w₂ η)‖ :=
+        Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hdiffG x) (fun x hx => hL x hx)
+          (convex_closedBall _ _) (hmem η) (hmem ξ)
+      have hnorm : ‖((w₁ ξ, w₂ ξ) : ℂ × ℂ) - (w₁ η, w₂ η)‖ ≤ ‖w₁ ξ - w₁ η‖ + ‖w₂ ξ - w₂ η‖ := by
+        rw [Prod.mk_sub_mk, Prod.norm_mk, max_le_iff]
+        exact ⟨by linarith [norm_nonneg (w₂ ξ - w₂ η)], by linarith [norm_nonneg (w₁ ξ - w₁ η)]⟩
+      have h1 := hw₁ ξ η
+      have h2 := hw₂ ξ η
+      have hpow : (0 : ℝ) ≤ ‖ξ - η‖ ^ α := Real.rpow_nonneg (norm_nonneg _) _
+      calc ‖G (w₁ ξ, w₂ ξ) - G (w₁ η, w₂ η)‖
+          ≤ L * (‖w₁ ξ - w₁ η‖ + ‖w₂ ξ - w₂ η‖) :=
+            le_trans hlip (mul_le_mul_of_nonneg_left hnorm hL0)
+        _ ≤ L * (C₁ * ‖ξ - η‖ ^ α + C₂ * ‖ξ - η‖ ^ α) := by nlinarith
+        _ = L * (C₁ + C₂) * ‖ξ - η‖ ^ α := by ring
+  | succ k ih =>
+      intro G w₁ w₂ C₁ C₂ hG hw₁ hw₁s hw₂ hw₂s
+      have hdiffG : Differentiable ℝ G := hG.differentiable (by simp)
+      have hcs : ∀ H : ℂ × ℂ → ℂ, HasCompactSupport fun z => H (w₁ z, w₂ z) - H (0, 0) := by
+        intro H
+        refine HasCompactSupport.intro (hw₁s.union hw₂s) fun z hz => ?_
+        rw [image_eq_zero_of_notMem_tsupport (fun hc => hz (Or.inl hc)),
+          image_eq_zero_of_notMem_tsupport (fun hc => hz (Or.inr hc))]
+        ring
+      obtain ⟨Cw₁, hCw₁⟩ := isHolderC_of_succ hα hα1 k w₁ C₁ hw₁ hw₁s
+      obtain ⟨Cw₂, hCw₂⟩ := isHolderC_of_succ hα hα1 k w₂ C₂ hw₂ hw₂s
+      obtain ⟨A₁, hA₁⟩ := ih (dz₁ G) w₁ w₂ Cw₁ Cw₂ (contDiff_dz₁ hG) hCw₁ hw₁s hCw₂ hw₂s
+      obtain ⟨A₂, hA₂⟩ := ih (dbar₁ G) w₁ w₂ Cw₁ Cw₂ (contDiff_dbar₁ hG) hCw₁ hw₁s hCw₂ hw₂s
+      obtain ⟨A₃, hA₃⟩ := ih (dz₂ G) w₁ w₂ Cw₁ Cw₂ (contDiff_dz₂ hG) hCw₁ hw₁s hCw₂ hw₂s
+      obtain ⟨A₄, hA₄⟩ := ih (dbar₂ G) w₁ w₂ Cw₁ Cw₂ (contDiff_dbar₂ hG) hCw₁ hw₁s hCw₂ hw₂s
+      have hdiffcomp : Differentiable ℝ fun z => G (w₁ z, w₂ z) - G (0, 0) := fun z =>
+        ((hdiffG _).comp z ((hw₁.1 z).prodMk (hw₂.1 z))).sub_const _
+      have hstep : ∀ v : ℂ, ‖v‖ ≤ 1 → ∃ D : ℝ,
+          IsHolderC k α D fun z => fderiv ℝ (fun z => G (w₁ z, w₂ z) - G (0, 0)) z v := by
+        intro v hv
+        have hd₁ : IsHolderC k α C₁ fun z => fderiv ℝ w₁ z v := hw₁.2 v hv
+        have hd₂ : IsHolderC k α C₂ fun z => fderiv ℝ w₂ z v := hw₂.2 v hv
+        have hd₁s : HasCompactSupport fun z => fderiv ℝ w₁ z v :=
+          (hw₁s.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+        have hd₂s : HasCompactSupport fun z => fderiv ℝ w₂ z v :=
+          (hw₂s.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+        have hc₁ : IsHolderC k α C₁ fun z => (starRingEnd ℂ) (fderiv ℝ w₁ z v) := hd₁.conj
+        have hc₂ : IsHolderC k α C₂ fun z => (starRingEnd ℂ) (fderiv ℝ w₂ z v) := hd₂.conj
+        have hc₁s : HasCompactSupport fun z => (starRingEnd ℂ) (fderiv ℝ w₁ z v) :=
+          hd₁s.comp_left (g := starRingEnd ℂ) (by simp)
+        have hc₂s : HasCompactSupport fun z => (starRingEnd ℂ) (fderiv ℝ w₂ z v) :=
+          hd₂s.comp_left (g := starRingEnd ℂ) (by simp)
+        obtain ⟨D₁, hD₁⟩ := exists_isHolderC_mul_mul hα hα1 k _ _ A₁ C₁ hA₁ (hcs (dz₁ G)) hd₁ hd₁s
+        obtain ⟨D₂, hD₂⟩ := exists_isHolderC_mul_mul hα hα1 k _ _ A₂ C₁ hA₂ (hcs (dbar₁ G))
+          hc₁ hc₁s
+        obtain ⟨D₃, hD₃⟩ := exists_isHolderC_mul_mul hα hα1 k _ _ A₃ C₂ hA₃ (hcs (dz₂ G)) hd₂ hd₂s
+        obtain ⟨D₄, hD₄⟩ := exists_isHolderC_mul_mul hα hα1 k _ _ A₄ C₂ hA₄ (hcs (dbar₂ G))
+          hc₂ hc₂s
+        have hsum := ((hD₁.add (IsHolderC.const_mul (dz₁ G (0, 0)) hd₁)).add
+          (hD₂.add (IsHolderC.const_mul (dbar₁ G (0, 0)) hc₁))).add
+          ((hD₃.add (IsHolderC.const_mul (dz₂ G (0, 0)) hd₂)).add
+            (hD₄.add (IsHolderC.const_mul (dbar₂ G (0, 0)) hc₂)))
+        have hhalf := IsHolderC.const_mul ((2 : ℂ)⁻¹) hsum
+        have hfun : (fun z => fderiv ℝ (fun z => G (w₁ z, w₂ z) - G (0, 0)) z v)
+            = fun z => (2 : ℂ)⁻¹ * ((((dz₁ G (w₁ z, w₂ z) - dz₁ G (0, 0)) * fderiv ℝ w₁ z v
+                  + dz₁ G (0, 0) * fderiv ℝ w₁ z v)
+                + ((dbar₁ G (w₁ z, w₂ z) - dbar₁ G (0, 0))
+                    * (starRingEnd ℂ) (fderiv ℝ w₁ z v)
+                  + dbar₁ G (0, 0) * (starRingEnd ℂ) (fderiv ℝ w₁ z v)))
+              + (((dz₂ G (w₁ z, w₂ z) - dz₂ G (0, 0)) * fderiv ℝ w₂ z v
+                  + dz₂ G (0, 0) * fderiv ℝ w₂ z v)
+                + ((dbar₂ G (w₁ z, w₂ z) - dbar₂ G (0, 0))
+                    * (starRingEnd ℂ) (fderiv ℝ w₂ z v)
+                  + dbar₂ G (0, 0) * (starRingEnd ℂ) (fderiv ℝ w₂ z v)))) := by
+          funext z
+          have hd : fderiv ℝ (fun z => G (w₁ z, w₂ z) - G (0, 0)) z v
+              = fderiv ℝ (fun z => G (w₁ z, w₂ z)) z v := by
+            have h1 : HasFDerivAt (fun z => G (w₁ z, w₂ z) - G (0, 0))
+                (fderiv ℝ (fun z => G (w₁ z, w₂ z)) z) z :=
+              (((hdiffG _).comp z ((hw₁.1 z).prodMk (hw₂.1 z))).hasFDerivAt).sub_const _
+            rw [h1.fderiv]
+          rw [hd, fderiv_comp₂_apply hdiffG hw₁.1 hw₂.1 z v]
+          ring
+        rw [hfun]
+        exact ⟨_, hhalf⟩
+      obtain ⟨D₁, hD₁⟩ := hstep 1 (by simp)
+      obtain ⟨D₂, hD₂⟩ := hstep Complex.I (by simp)
+      exact ⟨D₁ + D₂, isHolderC_of_basis hdiffcomp hD₁ hD₂⟩
+
+/-- **The bootstrap for a point-dependent nonlinear right-hand side, on shrinking discs.**  The
+equation is `∂̄u = G (·, u)`, so the right-hand side depends on the point as well as on the
+solution; the point is fed to the chain rule as a second inner function, cut off by the same
+cut-off as the solution. -/
+theorem exists_cutoff_isHolderC_comp₂ (hα : 0 < α) (hα1 : α < 1) {u : ℂ → ℂ} {G : ℂ × ℂ → ℂ}
+    (hu : ContDiff ℝ 1 u) (hG : ContDiff ℝ ∞ G) (heq : ∀ z, dbar u z = G (z, u z)) :
+    ∀ (k : ℕ) (z₀ : ℂ) (r : ℝ), 0 < r →
+      ∃ (χ : ℂ → ℂ) (C : ℝ), ContDiff ℝ ∞ χ ∧ HasCompactSupport χ
+        ∧ (∀ z, dist z z₀ ≤ r → χ z = 1) ∧ IsHolderC k α C fun z => χ z * u z := by
+  have hdiffu : Differentiable ℝ u := hu.differentiable one_ne_zero
+  intro k
+  induction k with
+  | zero =>
+      intro z₀ r hr
+      obtain ⟨χ, hχ, hχs, hχ1, -⟩ := exists_cutoff z₀ hr
+      have hv1 : ContDiff ℝ 1 fun z => χ z * u z := (hχ.of_le (by simp)).mul hu
+      obtain ⟨C, hC⟩ := exists_holder_of_contDiff_one hv1 hχs.mul_right hα hα1.le
+      exact ⟨χ, C, hχ, hχs, hχ1, hC⟩
+  | succ k ih =>
+      intro z₀ r hr
+      obtain ⟨χ₀, C₀, hχ₀, hχ₀s, hχ₀1, hC₀⟩ := ih z₀ (4 * r) (by linarith)
+      obtain ⟨χ, hχ, hχs, hχ1, hχ0⟩ := exists_cutoff z₀ hr
+      have hdiffχ : Differentiable ℝ χ := hχ.differentiable (by simp)
+      have hv1 : ContDiff ℝ 1 fun z => χ z * u z := (hχ.of_le (by simp)).mul hu
+      have hvs : HasCompactSupport fun z => χ z * u z := hχs.mul_right
+      have hws : HasCompactSupport fun z => χ₀ z * u z := hχ₀s.mul_right
+      have htsup : tsupport χ ⊆ closedBall z₀ (2 * r) := by
+        refine closure_minimal (fun z hz => ?_) isClosed_closedBall
+        by_contra hcon
+        rw [mem_closedBall, not_le] at hcon
+        exact hz (hχ0 z hcon.le)
+      have hone : ∀ z : ℂ, z ∈ tsupport χ → χ₀ z = 1 := by
+        intro z hz
+        have hdist := htsup hz
+        rw [mem_closedBall] at hdist
+        exact hχ₀1 z (by linarith)
+      have honeχ : ∀ z : ℂ, χ z ≠ 0 → χ₀ z = 1 := fun z hz => hone z (subset_tsupport _ hz)
+      have honedb : ∀ z : ℂ, dbar χ z ≠ 0 → χ₀ z = 1 := by
+        intro z hz
+        have hfd : fderiv ℝ χ z ≠ 0 := by
+          intro h0
+          apply hz
+          rw [dbar, h0]
+          simp
+        exact hone z (support_fderiv_subset (𝕜 := ℝ) hfd)
+      have hrhs : ∀ z : ℂ, χ z * dbar u z
+          = χ z * (G (χ₀ z * z, χ₀ z * u z) - G (0, 0)) + χ z * G (0, 0) := by
+        intro z
+        rw [heq z]
+        by_cases hz : χ z = 0
+        · rw [hz]
+          ring
+        · rw [honeχ z hz, one_mul, one_mul]
+          ring
+      have hcomps : HasCompactSupport fun z => G (χ₀ z * z, χ₀ z * u z) - G (0, 0) := by
+        refine HasCompactSupport.intro hχ₀s fun z hz => ?_
+        rw [image_eq_zero_of_notMem_tsupport hz]
+        simp
+      obtain ⟨Cid, hCid⟩ := exists_isHolderC_of_contDiff hα hα1.le k (fun z => χ₀ z * z)
+        ((hχ₀.mul contDiff_id).of_le (by exact_mod_cast (le_top : ((k + 1 : ℕ) : ℕ∞) ≤ ⊤)))
+        hχ₀s.mul_right
+      obtain ⟨A, hA⟩ := exists_isHolderC_comp₂ hα hα1.le k G (fun z => χ₀ z * z)
+        (fun z => χ₀ z * u z) Cid C₀ hG hCid hχ₀s.mul_right hC₀ hws
+      obtain ⟨B₁, hB₁⟩ := exists_isHolderC_mul hα hα1.le k χ
+        (fun z => G (χ₀ z * z, χ₀ z * u z) - G (0, 0)) A hχ hχs hA hcomps
+      obtain ⟨B₂, hB₂⟩ := exists_isHolderC_of_contDiff hα hα1.le k (fun z => χ z * G (0, 0))
+        ((hχ.mul contDiff_const).of_le (by exact_mod_cast (le_top : ((k + 1 : ℕ) : ℕ∞) ≤ ⊤)))
+        hχs.mul_right
+      obtain ⟨B₃, hB₃⟩ := exists_isHolderC_mul hα hα1.le k (dbar χ) (fun z => χ₀ z * u z) C₀
+        (contDiff_dbar hχ) (hasCompactSupport_dbar hχs) hC₀ hws
+      have hdbv : ∀ z : ℂ, dbar (fun z => χ z * u z) z
+          = χ z * (G (χ₀ z * z, χ₀ z * u z) - G (0, 0)) + χ z * G (0, 0)
+            + dbar χ z * (χ₀ z * u z) := by
+        intro z
+        rw [dbar_mul hdiffχ hdiffu z, hrhs z]
+        by_cases hz : dbar χ z = 0
+        · rw [hz]
+          ring
+        · rw [honedb z hz]
+          ring
+      have hsum : IsHolderC k α (B₁ + B₂ + B₃) (dbar fun z => χ z * u z) := by
+        have hfun : (dbar fun z => χ z * u z)
+            = fun z => χ z * (G (χ₀ z * z, χ₀ z * u z) - G (0, 0)) + χ z * G (0, 0)
+              + dbar χ z * (χ₀ z * u z) := funext hdbv
+        rw [hfun]
+        exact (hB₁.add hB₂).add hB₃
+      obtain ⟨C, -, hC⟩ := isHolderC_cauchyTransform hα hα1 k _ _
+        (hasCompactSupport_dbar hvs) hsum
+      refine ⟨χ, C, hχ, hχs, hχ1, ?_⟩
+      rw [← cauchyTransform_dbar hv1 hvs]
+      exact hC
+
+/-- **Elliptic regularity with a point-dependent nonlinearity.**  A `C¹` solution of
+`∂u/∂x + i ∂u/∂y = G (z, u z)`, with `G` smooth in both variables, is smooth.  This is the form
+the Floer equation takes once the Hamiltonian is allowed to depend on time. -/
+theorem contDiff_infty_of_dbar_comp₂ {u : ℂ → ℂ} {G : ℂ × ℂ → ℂ} (hu : ContDiff ℝ 1 u)
+    (hG : ContDiff ℝ ∞ G) (heq : ∀ z, dbar u z = G (z, u z)) : ContDiff ℝ ∞ u := by
+  have hα : (0 : ℝ) < 1 / 2 := by norm_num
+  have hα1 : (1 : ℝ) / 2 < 1 := by norm_num
+  rw [contDiff_infty]
+  intro n
+  rw [contDiff_iff_contDiffAt]
+  intro z₀
+  obtain ⟨χ, C, hχ, hχs, hχ1, hC⟩ :=
+    exists_cutoff_isHolderC_comp₂ (α := 1 / 2) hα hα1 hu hG heq n z₀ 1 one_pos
+  have h1 : ContDiff ℝ n fun z => χ z * u z := hC.contDiff hα
+  have hfeq : u =ᶠ[𝓝 z₀] fun z => χ z * u z := by
+    filter_upwards [Metric.ball_mem_nhds z₀ one_pos] with z hz
+    rw [mem_ball] at hz
+    rw [hχ1 z hz.le, one_mul]
+  exact h1.contDiffAt.congr_of_eventuallyEq hfeq
+
 end CauchyHolder
 end MorseFloer
