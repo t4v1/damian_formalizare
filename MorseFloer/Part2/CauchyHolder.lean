@@ -866,13 +866,146 @@ theorem exists_isHolderC_mul (hα : 0 < α) (hα1 : α ≤ 1) :
               = χ z • fderiv ℝ g z + g z • fderiv ℝ χ z :=
             ((hdiffχ z).hasFDerivAt.mul (hg.1 z).hasFDerivAt).fderiv
           rw [h2]
-          simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply, smul_eq_mul]
+          simp only [add_apply, smul_apply, smul_eq_mul]
           ring
         rw [hfun]
         exact hC₁.add hC₂
       obtain ⟨C₁, hC₁⟩ := hstep 1 (by simp)
       obtain ⟨C₂, hC₂⟩ := hstep Complex.I (by simp)
       exact ⟨C₁ + C₂, isHolderC_of_basis hprod hC₁ hC₂⟩
+
+/-! ### The local bootstrap
+
+A solution is not compactly supported, so it is cut off.  The cut-off costs a commutator term,
+which involves the solution only where the previous cut-off was already one, so the induction
+runs on shrinking discs: at each round the regularity gained on the larger disc feeds the
+commutator on the smaller one.
+-/
+
+/-- A smooth cut-off, one on the closed disc of radius `r` and supported in the disc of radius
+`2r`. -/
+theorem exists_cutoff (z₀ : ℂ) {r : ℝ} (hr : 0 < r) :
+    ∃ χ : ℂ → ℂ, ContDiff ℝ ∞ χ ∧ HasCompactSupport χ
+      ∧ (∀ z, dist z z₀ ≤ r → χ z = 1) ∧ ∀ z, 2 * r ≤ dist z z₀ → χ z = 0 := by
+  have hlt : r < 2 * r := by linarith
+  set f : ContDiffBump z₀ := ⟨r, 2 * r, hr, hlt⟩ with hfdef
+  refine ⟨fun z => ((f z : ℝ) : ℂ), ?_, ?_, ?_, ?_⟩
+  · exact Complex.ofRealCLM.contDiff.comp f.contDiff
+  · refine HasCompactSupport.intro (isCompact_closedBall z₀ (2 * r)) fun z hz => ?_
+    rw [mem_closedBall, not_le] at hz
+    show ((f z : ℝ) : ℂ) = 0
+    rw [f.zero_of_le_dist (show f.rOut ≤ dist z z₀ from hz.le)]
+    simp
+  · intro z hz
+    show ((f z : ℝ) : ℂ) = 1
+    rw [f.one_of_mem_closedBall (show dist z z₀ ≤ f.rIn from hz)]
+    simp
+  · intro z hz
+    show ((f z : ℝ) : ℂ) = 0
+    rw [f.zero_of_le_dist (show f.rOut ≤ dist z z₀ from hz)]
+    simp
+
+/-- The Leibniz rule for `∂̄`. -/
+theorem dbar_mul {χ u : ℂ → ℂ} (hχ : Differentiable ℝ χ) (hu : Differentiable ℝ u) (z : ℂ) :
+    dbar (fun z => χ z * u z) z = χ z * dbar u z + u z * dbar χ z := by
+  have h1 : fderiv ℝ (fun z => χ z * u z) z = χ z • fderiv ℝ u z + u z • fderiv ℝ χ z :=
+    ((hχ z).hasFDerivAt.mul (hu z).hasFDerivAt).fderiv
+  rw [dbar, dbar, dbar, h1]
+  simp only [add_apply, smul_apply, smul_eq_mul]
+  ring
+
+theorem contDiff_dbar {χ : ℂ → ℂ} (hχ : ContDiff ℝ ∞ χ) : ContDiff ℝ ∞ (dbar χ) := by
+  have h1 : ContDiff ℝ ∞ fun z => fderiv ℝ χ z 1 :=
+    (hχ.fderiv_right (by simp)).clm_apply contDiff_const
+  have hI : ContDiff ℝ ∞ fun z => fderiv ℝ χ z Complex.I :=
+    (hχ.fderiv_right (by simp)).clm_apply contDiff_const
+  exact h1.add (contDiff_const.mul hI)
+
+/-- **The bootstrap, on shrinking discs.**  A `C¹` function with smooth `∂̄` is, after a cut-off,
+on every level of the Hölder scale. -/
+theorem exists_cutoff_isHolderC (hα : 0 < α) (hα1 : α < 1) {u : ℂ → ℂ} (hu : ContDiff ℝ 1 u)
+    (hdb : ContDiff ℝ ∞ (dbar u)) :
+    ∀ (k : ℕ) (z₀ : ℂ) (r : ℝ), 0 < r →
+      ∃ (χ : ℂ → ℂ) (C : ℝ), ContDiff ℝ ∞ χ ∧ HasCompactSupport χ
+        ∧ (∀ z, dist z z₀ ≤ r → χ z = 1) ∧ IsHolderC k α C fun z => χ z * u z := by
+  have hdiffu : Differentiable ℝ u := hu.differentiable one_ne_zero
+  intro k
+  induction k with
+  | zero =>
+      intro z₀ r hr
+      obtain ⟨χ, hχ, hχs, hχ1, -⟩ := exists_cutoff z₀ hr
+      have hv1 : ContDiff ℝ 1 fun z => χ z * u z := (hχ.of_le (by simp)).mul hu
+      obtain ⟨C, hC⟩ := exists_holder_of_contDiff_one hv1 hχs.mul_right hα hα1.le
+      exact ⟨χ, C, hχ, hχs, hχ1, hC⟩
+  | succ k ih =>
+      intro z₀ r hr
+      obtain ⟨χ₀, C₀, hχ₀, hχ₀s, hχ₀1, hC₀⟩ := ih z₀ (4 * r) (by linarith)
+      obtain ⟨χ, hχ, hχs, hχ1, hχ0⟩ := exists_cutoff z₀ hr
+      have hdiffχ : Differentiable ℝ χ := hχ.differentiable (by simp)
+      have hv1 : ContDiff ℝ 1 fun z => χ z * u z := (hχ.of_le (by simp)).mul hu
+      have hvs : HasCompactSupport fun z => χ z * u z := hχs.mul_right
+      have htsup : tsupport χ ⊆ closedBall z₀ (2 * r) := by
+        refine closure_minimal (fun z hz => ?_) isClosed_closedBall
+        by_contra hcon
+        rw [mem_closedBall, not_le] at hcon
+        exact hz (hχ0 z hcon.le)
+      have hone : ∀ z : ℂ, dbar χ z ≠ 0 → χ₀ z = 1 := by
+        intro z hz
+        have hfd : fderiv ℝ χ z ≠ 0 := by
+          intro h0
+          apply hz
+          rw [dbar, h0]
+          simp
+        have hzt : z ∈ tsupport χ := support_fderiv_subset (𝕜 := ℝ) hfd
+        have hdist := htsup hzt
+        rw [mem_closedBall] at hdist
+        exact hχ₀1 z (by linarith)
+      have hdbv : ∀ z : ℂ, dbar (fun z => χ z * u z) z
+          = χ z * dbar u z + dbar χ z * (χ₀ z * u z) := by
+        intro z
+        rw [dbar_mul hdiffχ hdiffu z]
+        by_cases hz : dbar χ z = 0
+        · rw [hz]
+          ring
+        · rw [hone z hz]
+          ring
+      obtain ⟨C₁, hC₁⟩ := exists_isHolderC_of_contDiff hα hα1.le k (fun z => χ z * dbar u z)
+        ((hχ.mul hdb).of_le (by exact_mod_cast (le_top : ((k + 1 : ℕ) : ℕ∞) ≤ ⊤)))
+        hχs.mul_right
+      obtain ⟨C₂, hC₂⟩ := exists_isHolderC_mul hα hα1.le k (dbar χ) (fun z => χ₀ z * u z) C₀
+        (contDiff_dbar hχ) (hasCompactSupport_dbar hχs) hC₀ hχ₀s.mul_right
+      have hsum : IsHolderC k α (C₁ + C₂) (dbar fun z => χ z * u z) := by
+        have hfun : (dbar fun z => χ z * u z)
+            = fun z => χ z * dbar u z + dbar χ z * (χ₀ z * u z) := funext hdbv
+        rw [hfun]
+        exact hC₁.add hC₂
+      obtain ⟨C, -, hC⟩ := isHolderC_cauchyTransform hα hα1 k _ _
+        (hasCompactSupport_dbar hvs) hsum
+      refine ⟨χ, C, hχ, hχs, hχ1, ?_⟩
+      rw [← cauchyTransform_dbar hv1 hvs]
+      exact hC
+
+/-- **Elliptic regularity for the Cauchy–Riemann operator.**  A `C¹` function whose
+`∂u/∂x + i ∂u/∂y` is smooth is itself smooth.  This is the bootstrap: near any point the
+function is cut off, the cut-off function is the Cauchy transform of its own `∂̄`, and the
+Schauder scale lifts the regularity of that datum by one derivative at every round, the
+commutator term being fed by the regularity already gained on a larger disc. -/
+theorem contDiff_infty_of_dbar_contDiff {u : ℂ → ℂ} (hu : ContDiff ℝ 1 u)
+    (hdb : ContDiff ℝ ∞ (dbar u)) : ContDiff ℝ ∞ u := by
+  have hα : (0 : ℝ) < 1 / 2 := by norm_num
+  have hα1 : (1 : ℝ) / 2 < 1 := by norm_num
+  rw [contDiff_infty]
+  intro n
+  rw [contDiff_iff_contDiffAt]
+  intro z₀
+  obtain ⟨χ, C, hχ, hχs, hχ1, hC⟩ :=
+    exists_cutoff_isHolderC (α := 1 / 2) hα hα1 hu hdb n z₀ 1 one_pos
+  have h1 : ContDiff ℝ n fun z => χ z * u z := hC.contDiff hα
+  have heq : u =ᶠ[𝓝 z₀] fun z => χ z * u z := by
+    filter_upwards [Metric.ball_mem_nhds z₀ one_pos] with z hz
+    rw [mem_ball] at hz
+    rw [hχ1 z hz.le, one_mul]
+  exact h1.contDiffAt.congr_of_eventuallyEq heq
 
 end CauchyHolder
 end MorseFloer

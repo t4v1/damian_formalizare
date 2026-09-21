@@ -119,7 +119,7 @@ verifies every cited declaration still exists.
 | `Part2/Ch11.lean` | 11 Invariance | 0 | the full invariance chain, up to isomorphism |
 | `Part2/Weyl.lean` | helper for 12.1.1 | 0 | Weyl's lemma for `∂̄`: radial mollifier, mean value property by polar coordinates and Cauchy, Lebesgue differentiation |
 | `Part2/CauchyPompeiu.lean` | first brick for 6.5.3 | 0 | the Cauchy–Pompeiu formula `∫ (∂w/∂x + i ∂w/∂y)(z - ξ)/ξ = 2π w z` for compactly supported `C¹` functions, by polar coordinates and the fundamental theorem of calculus; the Cauchy transform `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` as the solution operator of `∂̄v = f`, both halves (`T ∘ ∂̄ = id` and `∂̄ ∘ T = id`), and local integrability of the kernel `1/ξ`; then the Beurling transform: the Riesz kernel `‖ξ‖^(-a)` is integrable on a disc exactly for `a < 2`, the two halves of the principal value converge for Hölder data with compact support, the kernel `(z-ξ)⁻²` has zero mean on every annulus centred at its pole (by the quarter turn `ξ ↦ iξ`), the cut-off radius is therefore immaterial, the transform is bounded on the plane by the mass of the Riesz kernel on the unit disc plus the `L¹` norm of `f`, it commutes with translations, and — the Calderón–Zygmund estimate, `norm_beurling_sub_le_holder` — it maps compactly supported `C^{0,α}` data to `C^{0,α}` at the sharp exponent, for `0 < α < 1`, the pivot being that the difference of two truncated kernels integrates to zero over the plane, by the reflection through the midpoint of the two poles; finally `dz_cauchyTransform_eq_beurling`, the identification `∂(Tf)/∂x - i ∂(Tf)/∂y = -(1/π) B f` for compactly supported `C¹` data, by an integration by parts in the angle |
-| `Part2/CauchyHolder.lean` | second brick for 6.5.3 | 0 | the Cauchy transform of merely Hölder data, by mollification: mollification preserves the Hölder constant and converges uniformly at the rate `ε^α`, both transforms are stable under such convergence, and a uniform limit of derivatives is the derivative of the limit; hence `∂̄(Tf) = f` and `∂(Tf)/∂z = -(1/π) B f` for compactly supported `C^{0,α}` data, the **Schauder estimate** `holder_fderiv_cauchyTransform` (the derivative of `T f` is again `C^{0,α}`), and the **induction on `k`**: a Hölder scale `IsHolderC` defined recursively through directional derivatives, on which `isHolderC_cauchyTransform` proves `C^{k,α} → C^{k+1,α}` for every `k`, with `contDiff_cauchyTransform_of_isHolderC` tying it to Mathlib's `ContDiff` |
+| `Part2/CauchyHolder.lean` | second brick for 6.5.3 | 0 | the Cauchy transform of merely Hölder data, by mollification: mollification preserves the Hölder constant and converges uniformly at the rate `ε^α`, both transforms are stable under such convergence, and a uniform limit of derivatives is the derivative of the limit; hence `∂̄(Tf) = f` and `∂(Tf)/∂z = -(1/π) B f` for compactly supported `C^{0,α}` data, the **Schauder estimate** `holder_fderiv_cauchyTransform` (the derivative of `T f` is again `C^{0,α}`), and the **induction on `k`**: a Hölder scale `IsHolderC` defined recursively through directional derivatives, on which `isHolderC_cauchyTransform` proves `C^{k,α} → C^{k+1,α}` for every `k`, with `contDiff_cauchyTransform_of_isHolderC` tying it to Mathlib's `ContDiff`; finally the **bootstrap**, `contDiff_infty_of_dbar_contDiff`: a `C¹` function whose `∂̄` is smooth is smooth, by cutting off, identifying the cut-off function with the Cauchy transform of its own `∂̄`, and climbing the scale on shrinking discs |
 | `Part2/Ch12.lean` | 12 Elliptic regularity | 0 | Cauchy–Riemann regularity (classical and distributional, the latter restated from `Weyl.lean`), the bootstrapping recursion; the chapter assumes nothing |
 | `Part2/Ch13.lean` | 13 Second derivative | 0 | Lemmas 13.4.1 and 13.5.1 in full |
 | `Part2/SardMoreira/*.lean` | helper for 14.2.1 | 0 | Moreira's Sard theorem (Hausdorff-measure bound), transplanted from Kudryashov's `SardMoreira` and adapted to the pinned Mathlib; see the note below |
@@ -261,11 +261,17 @@ result recorded in the blueprint with no Lean statement at all:
    without losing the Hölder exponent, on every level of the scale. The induction is short
    because the first derivative of `T f` in a direction `v` is the fixed combination
    `(v/2) T(∂f/∂z) + (v̄/2) f`, in which `∂f/∂z` sits one step lower. So **(b) is done**;
-   (c) the bootstrap itself, which is what is now left: cut off a `C¹` solution of
-   `∂̄u = -∇H_t(u)`, compare it with the Cauchy transform of the cut-off right-hand side, note
-   that the difference is holomorphic by `Part2/Weyl.lean`, and climb the scale with (b). Note
-   that the `C^k` scale alone is not enough: the Cauchy transform of a `C^k` function is only
-   `C^k`, which is why (b) is stated on the Hölder scale. With 6.5.3 in hand, 6.5.6 and 6.5.7
+   (c) the bootstrap, **done for the linear equation**
+   (`contDiff_infty_of_dbar_contDiff`): a `C¹` function whose `∂̄` is smooth is smooth. Weyl's
+   lemma is not even needed for it, because a compactly supported `C¹` function *equals* the
+   Cauchy transform of its own `∂̄` (`cauchyTransform_dbar`), so after a cut-off the regularity
+   of the function is exactly that of that transform; the cut-off costs a commutator term,
+   which involves the function only where the previous cut-off was already one, so the
+   induction runs on shrinking discs. Note that the `C^k` scale alone is not enough: the Cauchy
+   transform of a `C^k` function is only `C^k`, which is why (b) and (c) are run on the Hölder
+   scale. **What 6.5.3 needs beyond this** is the nonlinearity: for `∂̄u = -∇H_t(u)` the
+   right-hand side is only as regular as `u`, so the bootstrap needs a chain rule on the Hölder
+   scale, `u ∈ C^{k,α} → G ∘ u ∈ C^{k,α}` for smooth `G`. With 6.5.3 in hand, 6.5.6 and 6.5.7
    still need Ascoli, and 6.5.4 and 6.6.2 need the bubbling analysis.
 
 4. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
