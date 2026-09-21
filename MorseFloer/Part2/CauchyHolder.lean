@@ -798,5 +798,81 @@ theorem contDiff_infty_of_dbar {u : ℂ → ℂ} (hu : ContDiff ℝ 1 u) (hus : 
       rw [← heq]
       exact contDiff_cauchyTransform_of_isHolderC hα hα1 k hdbs hC
 
+/-- On compactly supported functions the scale is decreasing: one derivative more than needed
+gives the lower level, because the top derivative is then Lipschitz on its support. -/
+theorem isHolderC_of_succ (hα : 0 < α) (hα1 : α ≤ 1) :
+    ∀ (k : ℕ) (g : ℂ → ℂ) (C' : ℝ), IsHolderC (k + 1) α C' g → HasCompactSupport g →
+      ∃ C'' : ℝ, IsHolderC k α C'' g := by
+  intro k
+  induction k with
+  | zero =>
+      intro g C' h hgs
+      exact exists_holder_of_contDiff_one (h.contDiff_one hα) hgs hα hα1
+  | succ k ih =>
+      intro g C' h hgs
+      have hs : ∀ v : ℂ, HasCompactSupport fun z => fderiv ℝ g z v := fun v =>
+        (hgs.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+      obtain ⟨C₁, hC₁⟩ := ih _ _ (h.2 1 (by simp)) (hs 1)
+      obtain ⟨C₂, hC₂⟩ := ih _ _ (h.2 Complex.I (by simp)) (hs Complex.I)
+      exact ⟨C₁ + C₂, isHolderC_of_basis h.1 hC₁ hC₂⟩
+
+/-- **Multiplying by a smooth compactly supported factor preserves the level of the scale.**
+This is what localises the bootstrap: a cut-off may be applied without losing regularity. -/
+theorem exists_isHolderC_mul (hα : 0 < α) (hα1 : α ≤ 1) :
+    ∀ (k : ℕ) (χ g : ℂ → ℂ) (C' : ℝ), ContDiff ℝ ∞ χ → HasCompactSupport χ →
+      IsHolderC k α C' g → HasCompactSupport g →
+      ∃ C'' : ℝ, IsHolderC k α C'' fun z => χ z * g z := by
+  intro k
+  induction k with
+  | zero =>
+      intro χ g C' hχ hχs hg hgs
+      obtain ⟨Mχ, hMχ⟩ := hχs.exists_bound_of_continuous hχ.continuous
+      obtain ⟨Mg, hMg⟩ := hgs.exists_bound_of_continuous (hg.continuous hα)
+      obtain ⟨Cχ, hCχ⟩ := exists_holder_of_contDiff_one (hχ.of_le (by simp)) hχs hα hα1
+      have hMχ0 : 0 ≤ Mχ := le_trans (norm_nonneg _) (hMχ 0)
+      have hMg0 : 0 ≤ Mg := le_trans (norm_nonneg _) (hMg 0)
+      refine ⟨Mχ * C' + Mg * Cχ, fun ξ η => ?_⟩
+      have hsplit : χ ξ * g ξ - χ η * g η = χ ξ * (g ξ - g η) + (χ ξ - χ η) * g η := by ring
+      rw [hsplit]
+      refine le_trans (norm_add_le _ _) ?_
+      rw [norm_mul, norm_mul]
+      have h1 : ‖χ ξ‖ * ‖g ξ - g η‖ ≤ Mχ * (C' * ‖ξ - η‖ ^ α) :=
+        mul_le_mul (hMχ ξ) (hg ξ η) (norm_nonneg _) hMχ0
+      have h2 : ‖χ ξ - χ η‖ * ‖g η‖ ≤ (Cχ * ‖ξ - η‖ ^ α) * Mg :=
+        mul_le_mul (hCχ ξ η) (hMg η) (norm_nonneg _)
+          (mul_nonneg (holder_const_nonneg hCχ) (Real.rpow_nonneg (norm_nonneg _) _))
+      nlinarith
+  | succ k ih =>
+      intro χ g C' hχ hχs hg hgs
+      have hdiffχ : Differentiable ℝ χ := hχ.differentiable (by simp)
+      have hprod : Differentiable ℝ fun z => χ z * g z := fun z => (hdiffχ z).mul (hg.1 z)
+      obtain ⟨Cg, hCg⟩ := isHolderC_of_succ hα hα1 k g C' hg hgs
+      have hχ' : ∀ v : ℂ, ContDiff ℝ ∞ fun z => fderiv ℝ χ z v := fun v =>
+        (hχ.fderiv_right (by simp)).clm_apply contDiff_const
+      have hχ's : ∀ v : ℂ, HasCompactSupport fun z => fderiv ℝ χ z v := fun v =>
+        (hχs.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+      have hgs' : ∀ v : ℂ, HasCompactSupport fun z => fderiv ℝ g z v := fun v =>
+        (hgs.fderiv (𝕜 := ℝ)).comp_left (g := fun L : ℂ →L[ℝ] ℂ => L v) rfl
+      have hstep : ∀ v : ℂ, ‖v‖ ≤ 1 → ∃ C'' : ℝ,
+          IsHolderC k α C'' fun z => fderiv ℝ (fun z => χ z * g z) z v := by
+        intro v hv
+        obtain ⟨C₁, hC₁⟩ := ih (fun z => fderiv ℝ χ z v) g Cg (hχ' v) (hχ's v) hCg hgs
+        obtain ⟨C₂, hC₂⟩ := ih χ (fun z => fderiv ℝ g z v) C' hχ hχs (hg.2 v hv) (hgs' v)
+        refine ⟨C₁ + C₂, ?_⟩
+        have hfun : (fun z => fderiv ℝ (fun z => χ z * g z) z v)
+            = fun z => fderiv ℝ χ z v * g z + χ z * fderiv ℝ g z v := by
+          funext z
+          have h2 : fderiv ℝ (fun z => χ z * g z) z
+              = χ z • fderiv ℝ g z + g z • fderiv ℝ χ z :=
+            ((hdiffχ z).hasFDerivAt.mul (hg.1 z).hasFDerivAt).fderiv
+          rw [h2]
+          simp only [ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply, smul_eq_mul]
+          ring
+        rw [hfun]
+        exact hC₁.add hC₂
+      obtain ⟨C₁, hC₁⟩ := hstep 1 (by simp)
+      obtain ⟨C₂, hC₂⟩ := hstep Complex.I (by simp)
+      exact ⟨C₁ + C₂, isHolderC_of_basis hprod hC₁ hC₂⟩
+
 end CauchyHolder
 end MorseFloer
