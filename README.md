@@ -17,11 +17,11 @@ blueprint entry with no Lean declaration, rather than an invented statement.
 
 ## Status
 
-All sixteen chapters are formalized. **14 `sorry`s remain**, all in Part II:
+All sixteen chapters are formalized. **13 `sorry`s remain**, all in Part II:
 
 | Chapter | `sorry` | What is missing |
 |---|---|---|
-| 6 The Arnold conjecture and the Floer equation | 6 | elliptic regularity for the Floer equation (Prop. 6.5.3), convergence and compactness of finite-energy solutions (6.5.4, 6.5.6, 6.5.7, 6.6.2), the Arnold conjecture on the torus |
+| 6 The Arnold conjecture and the Floer equation | 5 | convergence and compactness of finite-energy solutions (6.5.4, 6.5.6, 6.5.7, 6.6.2), which need Ascoli and the bubbling analysis, and the Arnold conjecture on the torus |
 | 7 The symplectic group and the Maslov index | 8 | the map `ρ : Sp(2n) → S¹` and `π₁(Sp(2n)) ≅ ℤ` (7.1.3–7.1.6), existence of the Conley–Zehnder index (7.2.1), Lemma 7.2.4 |
 
 Everything else is proved, including:
@@ -40,7 +40,8 @@ Everything else is proved, including:
   transform, the Calderón–Zygmund estimate for it at the sharp Hölder exponent, the
   identification of the other derivative of the Cauchy transform with it, and the Schauder
   estimate for that solution operator on Hölder data, at every order of the scale, and the
-  elliptic bootstrap for `∂̄` that follows from it, linear and nonlinear; Sard's theorem in all
+  elliptic bootstrap for `∂̄` that follows from it, linear and nonlinear, and hence **elliptic
+  regularity for the Floer equation itself** (Prop. 6.5.3: every `C¹` solution is `C^∞`); Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

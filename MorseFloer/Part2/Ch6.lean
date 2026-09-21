@@ -1,5 +1,6 @@
 import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Wirtinger
+import MorseFloer.Part2.FloerRegularity
 
 /-!
 # Chapter 6: The Arnold conjecture and the Floer equation
@@ -119,14 +120,18 @@ Proved here:
   fact that `f` decreases along a pseudo-gradient trajectory (Chapter 2):
   `d/ds A_H(u_s) = −∫_{S¹} |∂u/∂s|² dt ≤ 0` (`hasDerivAt_action_of_floer`) and
   hence `Antitone (fun s => A_H (u_s))` (`action_antitone`).
+* **Proposition 6.5.3**, elliptic regularity for the Floer equation
+  (`contDiff_of_isFloerSolution`): every `C¹` solution is `C^∞`.  The proof is
+  the dictionary of `Part2/FloerRegularity.lean` — `ℝ^{2n} ≅ ℂⁿ` turns the
+  equation into the semilinear system `∂̄u_i = G_i(z, u)` — followed by the
+  Cauchy-transform bootstrap of `Part2/CauchyHolder.lean`.
 
 Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
-* **Proposition 6.5.3** (elliptic regularity, i.e. Lemma 12.1.1),
-  **Proposition 6.5.7**,
+* **Proposition 6.5.7**,
   **Theorem 6.5.6** and **Proposition 6.5.15** (finite-energy solutions converge
   to periodic orbits), **Theorem 6.5.4** (compactness) and **Proposition 6.6.2**
   (the uniform gradient bound).
@@ -1523,14 +1528,32 @@ variable {l : Type*} [DecidableEq l] [Fintype l]
 solution of the Floer equation is `C^∞`, and on `M` the topologies `C⁰_loc`,
 `C¹_loc` and `C^∞_loc` coincide.
 
-This is the analytic engine of the whole chapter.  Mathlib has neither Sobolev
-spaces on `ℝ × S¹` nor elliptic estimates, so only the first assertion is stated
-and it is assumed. -/
+This is the analytic engine of the whole chapter.  Only the first assertion is
+stated — the comparison of the three topologies needs the `C^∞_loc` topology,
+which Mathlib does not have — and it is **proved**, through
+`FloerRegularity.contDiff_infty_of_floer`: under the identification of `ℝ^{2n}`
+with `ℂⁿ` the equation becomes the semilinear system `∂̄u_i = G_i(z, u)`, whose
+`C¹` solutions are smooth by the Cauchy-transform bootstrap of
+`Part2/CauchyHolder.lean`.  No Sobolev space is involved: the whole chain runs
+on the Hölder scale.  The only input needed here is the joint smoothness of
+`(t, x) ↦ ∇H_t(x)`, which `ContDiff.fderiv` supplies from `hH`. -/
 theorem contDiff_of_isFloerSolution (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (_hu : IsFloerSolution H u) :
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) :
     ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2 := by
-  sorry
+  have hswap : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) => H q.2 q.1.1 := by
+    have hlin : ContDiff ℝ ∞ fun q : (ℝ × ((l ⊕ l) → ℝ)) × ((l ⊕ l) → ℝ) =>
+        ((q.2, q.1.1) : ((l ⊕ l) → ℝ) × ℝ) :=
+      ((ContinuousLinearMap.snd ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)).prod
+        ((ContinuousLinearMap.fst ℝ ℝ ((l ⊕ l) → ℝ)).comp
+          (ContinuousLinearMap.fst ℝ (ℝ × ((l ⊕ l) → ℝ)) ((l ⊕ l) → ℝ)))).contDiff
+    exact hH.comp hlin
+  have hfd : ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => fderiv ℝ (fun y => H y p.1) p.2 :=
+    ContDiff.fderiv hswap (ContinuousLinearMap.snd ℝ ℝ ((l ⊕ l) → ℝ)).contDiff (by simp)
+  have hN : ContDiff ℝ ∞ fun p : ℝ × ((l ⊕ l) → ℝ) => hamGrad H p.1 p.2 :=
+    contDiff_pi.2 fun i => hfd.clm_apply contDiff_const
+  exact FloerRegularity.contDiff_infty_of_floer hu.hasDerivAt_s hu.hasDerivAt_t
+    hu.continuous_s hu.continuous_t hN hu.floer
 
 omit [DecidableEq l] in
 /-- **Lemma 6.5.10.**  Under the nondegeneracy hypothesis the `1`-periodic

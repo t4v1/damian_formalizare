@@ -1802,9 +1802,11 @@ chain rule of the previous section, and every component climbs to level `k + 1`.
 system, with the point in the extra slot. -/
 def consPt (z : ℂ) (y : ι → ℂ) : Option ι → ℂ := fun o => o.elim z y
 
+omit [Fintype ι] [DecidableEq ι] in
 @[simp]
 theorem consPt_none (z : ℂ) (y : ι → ℂ) : consPt z y none = z := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 @[simp]
 theorem consPt_some (z : ℂ) (y : ι → ℂ) (i : ι) : consPt z y (some i) = y i := rfl
 

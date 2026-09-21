@@ -110,7 +110,8 @@ verifies every cited declaration still exists.
 | `Part2/Darboux.lean` | helper for 5.3.2 | 0 | Darboux by Moser: Poincaré lemma for closed 2-forms, the cut-off suspended Moser field, invariance along its flow, inverse function theorem |
 | `Part2/Ch5.lean` | 5 Symplectic geometry | 0 | Darboux (5.3.2) restated from `Darboux.lean`; the chapter assumes nothing |
 | `Part2/Wirtinger.lean` | helper for 6.1.5 | 0 | Wirtinger's inequality from Parseval; Yorke's theorem |
-| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 6 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; 6.5.11 derived from 6.5.7 |
+| `Part2/FloerRegularity.lean` | dictionary for 6.5.3 | 0 | the Floer equation read on `ℂ`: `ℝ^{2n} ≅ ℂⁿ` with `J₀` becoming multiplication by `i`, the two real partials assembled into a Fréchet derivative (`hasStrictFDerivAt_uncurry_coprod`), and the equation turned into the system `∂̄u_i = G_i(z, u)` to which `contDiff_infty_of_dbar_system` applies |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 5 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; 6.5.11 derived from 6.5.7; **elliptic regularity 6.5.3 proved** through `FloerRegularity` |
 | `Part2/LinearYorke.lean` | helper for 7.1.2 | 0 | `exp A` has no eigenvalue 1 when `‖A‖ < 2π`, by Yorke; `‖S‖ = max|λ|` for symmetric `S` |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 8 | index axiomatised; dimension two in full; Lemma 7.2.3, Remark 7.1.2, `Δ` well defined, `exp(θJ₂) = rot θ` proved |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 0 | the Fredholm index bookkeeping; Lemma 8.3.2 (separability of `C¹` on a compact set, finite dimension), Props 8.3.1 and 8.3.4 proved; the chapter assumes nothing |
@@ -225,13 +226,14 @@ result recorded in the blueprint with no Lean statement at all:
    neighbourhoods and transversality. Without it there is no space of
    trajectories, so all of §3.2 and the Smale condition are unstatable, and
    Chapter 3 has to take the broken-trajectory count as a hypothesis.
-3. **Schauder theory for `∂̄`, which is what blocks Chapter 6.** All six remaining
-   assumptions of Chapter 6 stand behind elliptic regularity for the Floer equation
-   (Proposition 6.5.3): a `C¹` solution of `∂̄u = -∇H_t(u)` is `C^∞`. The chain is
+3. **Schauder theory for `∂̄` — closed, and with it Proposition 6.5.3.** Elliptic
+   regularity for the Floer equation (a `C¹` solution of `∂̄u = -∇H_t(u)` is `C^∞`) was what
+   stood behind six of Chapter 6's assumptions; it is now **proved**, from scratch, on the
+   Hölder scale and with no Sobolev space anywhere. The chain is
    (a) solve `∂̄v = w` for compactly supported `w` — **done**, in
    `Part2/CauchyPompeiu.lean`, where the solution operator is the Cauchy transform
    `T f = (2π)⁻¹ ∫ f(· - ξ)/ξ` and both `T(∂̄w) = w` and `∂̄(T f) = f` are proved; (b) the Hölder estimate `C^{k,α} → C^{k+1,α}` for that
-   solution operator, which is the step that gains a derivative and is **still missing**.
+   solution operator, the step that gains a derivative — **done**.
    Its hard half is the *other* derivative `∂(Tf)/∂z`, the Beurling transform, a singular
    integral. That operator is now defined in the same file, as a principal value: the
    regularised near integral and the far integral both converge absolutely (the Riesz kernel
@@ -279,14 +281,17 @@ result recorded in the blueprint with no Lean statement at all:
    without redoing the Cauchy transform for `ℂⁿ`-valued maps: the chain rule is generalised to
    an outer function of `n` variables (`exists_isHolderC_compPi`) and the bootstrap runs on all
    components at once (`contDiff_infty_of_dbar_system`), since the components are coupled only
-   through the right-hand side. **One gap remains before 6.5.3 itself**: the dictionary. Chapter
-   6 states the equation for `u : ℝ → ℝ → ℝ^{2n}` with `∂u/∂s + J₀ ∂u/∂t + ∇H_t(u) = 0`, and it
-   has to be matched with `∂̄u_i = G_i (z, u)` for `u : ℂ → ℂⁿ` — the identification
-   `ℝ^{2n} ≅ ℂⁿ` under which `stdJ` is multiplication by `i`, the passage from `IsLoopVariation`
-   (partial derivatives, continuous) to `ContDiff ℝ 1` of the map on `ℂ`, for which Mathlib's
-   `hasStrictFDerivAt_uncurry_coprod` is the tool, and the smoothness of the nonlinearity
-   `∇H_t` as a function of the point and the value. With 6.5.3 in hand, 6.5.6 and 6.5.7 still need Ascoli, and 6.5.4 and
-   6.6.2 need the bubbling analysis.
+   through the right-hand side. Finally the **dictionary**, `Part2/FloerRegularity.lean`: Chapter
+   6 states the equation for `u : ℝ → ℝ → ℝ^{2n}` as `∂u/∂s + J₀ ∂u/∂t + ∇H_t(u) = 0`, and the
+   file matches it with `∂̄u_i = G_i (z, u)` for `u : ℂ → ℂⁿ` — the identification
+   `ℝ^{2n} ≅ ℂⁿ` (`toCpxL`, `ofCpxL`) under which `stdJ` becomes multiplication by `i`
+   (`toCpxL_stdJ`), and the passage from `IsLoopVariation` (two continuous partial derivatives)
+   to `ContDiff ℝ 1` of the map on `ℂ`, by Mathlib's `hasStrictFDerivAt_uncurry_coprod`. Its
+   theorem `contDiff_infty_of_floer` is what `Chapter6.contDiff_of_isFloerSolution` now
+   restates; the only extra input is the joint smoothness of `(t, x) ↦ ∇H_t(x)`, which
+   `ContDiff.fderiv` supplies. **Proposition 6.5.3 is therefore proved**, and Chapter 6 is down
+   to five assumptions: 6.5.6 and 6.5.7 still need Ascoli, 6.5.4 and 6.6.2 the bubbling
+   analysis, and the torus case of the conjecture needs the two of them.
 
 4. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
    symplectic manifolds (only the linear theory is reachable in Chapter 5); the
