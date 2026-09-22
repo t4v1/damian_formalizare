@@ -48,7 +48,8 @@ Everything else is proved, including:
   of finite-energy solutions to periodic orbits at both ends (Thm. 6.5.6), without the
   compactness theorem; and the compactness theorem itself (Thm. 6.5.4), by Ascoli and the
   Cauchy transform rather than uniform elliptic estimates; the continuity of the roots of a
-  polynomial in its coefficients, the first brick towards the map `ρ` of Chapter 7; Sard's theorem in all
+  polynomial in its coefficients and the continuous spectral projectors of a matrix, the first two
+  bricks towards the map `ρ` of Chapter 7; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

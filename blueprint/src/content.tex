@@ -1565,6 +1565,41 @@ gaps.
   and the matching exists along the subsequence after all.
 \end{lemma}
 
+\begin{lemma}[Spectral projectors, continuous in the matrix]
+  \label{lem:spectral-projector}
+  \lean{MorseFloer.SpectralProjector.continuous_charpoly_coeff,
+        MorseFloer.SpectralProjector.fPoly_mul_gPoly,
+        MorseFloer.SpectralProjector.isCoprime_fPoly_gPoly,
+        MorseFloer.SpectralProjector.continuousAt_coeff_filterProd,
+        MorseFloer.SpectralProjector.proj_spec,
+        MorseFloer.SpectralProjector.eventually_circle,
+        MorseFloer.SpectralProjector.exists_continuous_projector}
+  \leanok
+  \uses{lem:roots-continuity}
+  Let $A_0$ be a complex square matrix and $D$ a disc whose boundary circle
+  carries no eigenvalue of $A_0$.  The characteristic polynomial of any $A$
+  splits as $f_A g_A$, with $f_A$ collecting the eigenvalues in $D$ and $g_A$ the
+  others; the two are coprime, so $\mathbb{C}^n = \ker f_A(A) \oplus \ker g_A(A)$,
+  the first summand being the sum of the generalised eigenspaces for the
+  eigenvalues in $D$.  There are a neighbourhood $U$ of $A_0$ and a continuous
+  $P \colon U \to M_n(\mathbb{C})$ such that $P_A$ is the projector onto
+  $\ker f_A(A)$ along $\ker g_A(A)$, commuting with $A$; and the number of
+  eigenvalues in $D$, with multiplicity, is constant on $U$.  This is the
+  second brick for $\rho$: the continuity argument of \S7.3.c compares the form
+  $Q$ on the generalised eigenspaces of nearby matrices, which $P$ transports.
+  No contour integral is used.  The projector comes from a B\'ezout relation
+  $u_0 f_{A_0} + v_0 g_{A_0} = 1$ at the base point: for $A$ near $A_0$,
+  $R_A = u_0 f_A(A) + v_0 g_A(A)$ is close to the identity, hence invertible,
+  and $P_A = v_0(A) g_A(A) R_A^{-1}$ has the required properties by pure algebra
+  ($f_A g_A$ vanishes at $A$ by Cayley--Hamilton).  Its continuity reduces to
+  that of the coefficients of $f_A$ and $g_A$, which follows from the continuity
+  of the eigenvalues (\ref{lem:roots-continuity}): the matching of the
+  eigenvalues of $A$ with those of $A_0$ preserves the side of the circle, and
+  the coefficients of $\prod (X - a_i)$ are uniformly continuous in $a$ on a
+  bounded set.  The coefficients of the characteristic polynomial itself are
+  continuous in the matrix, by the Leibniz formula.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1572,7 +1607,7 @@ gaps.
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
-  \uses{def:7.1.c, lem:roots-continuity}
+  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

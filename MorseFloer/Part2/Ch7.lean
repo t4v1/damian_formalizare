@@ -74,11 +74,13 @@ Rather than inventing a construction, this file
   `‖S‖ < 2π` implies `exp(JS)` has no eigenvalue `1`, by Yorke's theorem applied
   to the linear field `JS` (`Part2/LinearYorke.lean`).
 
-The first brick towards the construction of `ρ` is in place:
-`Part2/RootsContinuity.lean` proves that the roots of a monic polynomial over
-`ℂ` depend continuously on its coefficients, counted with multiplicity, so that
-the number of eigenvalues of a matrix in a small disc is locally constant.  It
-is not yet used here.
+The first two bricks towards the construction of `ρ` are in place, not yet
+used here: `Part2/RootsContinuity.lean` proves that the roots of a monic
+polynomial over `ℂ` depend continuously on its coefficients, counted with
+multiplicity, and `Part2/SpectralProjector.lean` builds, for a disc whose
+boundary carries no eigenvalue, the spectral projector onto the sum of the
+generalised eigenspaces of the eigenvalues in the disc, continuous in the
+matrix, with the number of those eigenvalues locally constant.
 
 Assumed (`sorry`):
 
