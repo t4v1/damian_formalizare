@@ -1627,6 +1627,36 @@ gaps.
   meaningful, the third brick for $\rho$.
 \end{lemma}
 
+\begin{lemma}[The kernel of a factor of the characteristic polynomial]
+  \label{lem:eigen-decomp}
+  \lean{MorseFloer.EigenDecomp.fS, MorseFloer.EigenDecomp.aeval_toLin',
+        MorseFloer.EigenDecomp.eq_zero_of_aeval_coprime,
+        MorseFloer.EigenDecomp.pow_count_mulVec_eq_zero,
+        MorseFloer.EigenDecomp.kerAeval_fS_eq_iSup,
+        MorseFloer.EigenDecomp.kerAeval_fS_sup_not,
+        MorseFloer.EigenDecomp.HForm_eq_zero_of_mem_kerAeval,
+        MorseFloer.EigenDecomp.eq_zero_of_mem_kerAeval_fS_of_forall}
+  \leanok
+  \uses{lem:spectral-projector, lem:7.3.3}
+  For a complex matrix $M$ and a predicate on $\mathbb{C}$, let $f$ be the
+  product of $X - \mu$ over the eigenvalues $\mu$ satisfying it, with
+  multiplicity.  Then $\ker f(M)$ is the sum of the generalised eigenspaces
+  $E_\mu$ for those eigenvalues; for the predicate ``inside a disc'' this
+  identifies the range of the spectral projector of \ref{lem:spectral-projector}
+  with the object the book works with.  Both inclusions rest on one trick, and
+  neither needs the dimension of a generalised eigenspace: writing the
+  characteristic polynomial as $(X-\mu)^c r$ with $r(\mu) \ne 0$, a vector
+  killed by a power of $M - \mu$ has $Y = (M-\mu)^c X$ killed both by a power of
+  $M - \mu$ and, by Cayley--Hamilton, by $r(M)$, and these are coprime, so
+  $Y = 0$; hence $E_\mu \subseteq \ker (M-\mu)^c$.  The other inclusion is the
+  splitting of the kernel of a product of pairwise coprime polynomials.  For a
+  symplectic matrix and a predicate stable under $\mu \mapsto 1/\bar\mu$ on the
+  eigenvalues, $\ker f(M)$ and the complementary kernel are $H$-orthogonal
+  (\ref{lem:7.3.3} spread over the sums), so $H$ and $B$ are nondegenerate on
+  $\ker f(M)$: the signature of $Q$ on the sum of the generalised eigenspaces in
+  a small disc is meaningful.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1634,7 +1664,7 @@ gaps.
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
-  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3}
+  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

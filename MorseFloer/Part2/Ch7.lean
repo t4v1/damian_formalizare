@@ -85,7 +85,11 @@ number of those eigenvalues locally constant; and `Part2/SymplecticEigen.lean`
 Corollary 7.3.4 for the sesquilinear form `H(X, Y) = ω(X, Ȳ)` — the generalised
 eigenspaces `E_μ`, `E_ν` of a symplectic matrix are `H`-orthogonal when
 `μν̄ ≠ 1`, `E_μ` is isotropic when `|μ| ≠ 1` — and that `H` and `B` are
-nondegenerate on `E_ν` when `|ν| = 1`.
+nondegenerate on `E_ν` when `|ν| = 1`; and `Part2/EigenDecomp.lean` identifies
+the kernel of the disc factor of the characteristic polynomial, the range of
+the spectral projector, with the sum of the generalised eigenspaces of the
+eigenvalues in the disc, on which `H` is nondegenerate when the disc is stable
+under `μ ↦ 1/μ̄`.
 
 Assumed (`sorry`):
 

@@ -50,8 +50,9 @@ Everything else is proved, including:
   Cauchy transform rather than uniform elliptic estimates; the continuity of the roots of a
   polynomial in its coefficients, the continuous spectral projectors of a matrix, and the
   orthogonality and nondegeneracy properties of the form `ω(X, Ȳ)` on the generalised eigenspaces
-  of a symplectic matrix (Lemma 7.3.3, Corollary 7.3.4), the first three bricks towards the map `ρ`
-  of Chapter 7; Sard's theorem in all
+  of a symplectic matrix (Lemma 7.3.3, Corollary 7.3.4), and the identification of the kernel of a
+  factor of the characteristic polynomial with the sum of the corresponding generalised eigenspaces,
+  the first four bricks towards the map `ρ` of Chapter 7; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 
