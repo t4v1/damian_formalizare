@@ -36,6 +36,7 @@ import MorseFloer.Part2.RootsContinuity
 import MorseFloer.Part2.SpectralProjector
 import MorseFloer.Part2.SymplecticEigen
 import MorseFloer.Part2.EigenDecomp
+import MorseFloer.Part2.SymplecticSpectrum
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.SardMoreira.MainTheorem

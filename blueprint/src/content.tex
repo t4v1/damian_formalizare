@@ -1657,6 +1657,31 @@ gaps.
   a small disc is meaningful.
 \end{lemma}
 
+\begin{lemma}[The spectrum of a symplectic matrix is stable under $\mu \mapsto 1/\bar\mu$]
+  \label{lem:symplectic-spectrum}
+  \lean{MorseFloer.SymplecticSpectrum.roots_map_conj,
+        MorseFloer.SymplecticSpectrum.charpoly_eval_inv,
+        MorseFloer.SymplecticSpectrum.roots_map_inv,
+        MorseFloer.SymplecticSpectrum.inv_conj_mem_roots,
+        MorseFloer.SymplecticSpectrum.norm_inv_conj_sub}
+  \leanok
+  \uses{prop:5.6.4}
+  The multiset of eigenvalues of a real symplectic matrix, counted with
+  multiplicity, is stable under conjugation, the coefficients being real, and
+  under inversion, which is Proposition 5.6.4 read on the multiset of roots: the
+  polynomial $q = \prod (X - 1/z)$ over the eigenvalues $z$ satisfies
+  $q(\lambda) = \lambda^{2n} (\prod 1/z)\, p(1/\lambda) = (\prod 1/z)\, p(\lambda)$
+  for $\lambda \ne 0$, hence $q = (\prod 1/z)\, p$ as polynomials, and the
+  constant is $1$ by comparing leading coefficients.  No eigenvalue is zero, the
+  determinant being $1$.  This is the book's remark that the eigenvalues off the
+  unit circle come in pairs $\mu, 1/\bar\mu$ of equal multiplicity, which
+  Corollary 7.3.9 needs; and for a point $c$ of the unit circle,
+  $\lvert 1/\bar\mu - c\rvert = \lvert \mu - c\rvert / \lvert\mu\rvert$, so the
+  eigenvalues near $c$ of a nearby matrix stay in a disc about $c$ under this
+  map, which is what makes the disc factor of \ref{lem:eigen-decomp}
+  nondegenerate for $Q$.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1664,7 +1689,8 @@ gaps.
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
-  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp}
+  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
+    lem:symplectic-spectrum}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

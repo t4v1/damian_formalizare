@@ -52,7 +52,8 @@ Everything else is proved, including:
   orthogonality and nondegeneracy properties of the form `ω(X, Ȳ)` on the generalised eigenspaces
   of a symplectic matrix (Lemma 7.3.3, Corollary 7.3.4), and the identification of the kernel of a
   factor of the characteristic polynomial with the sum of the corresponding generalised eigenspaces,
-  the first four bricks towards the map `ρ` of Chapter 7; Sard's theorem in all
+  and the symmetry of the spectrum of a symplectic matrix under `μ ↦ 1/μ̄` with multiplicities,
+  the bricks towards the map `ρ` of Chapter 7; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 
