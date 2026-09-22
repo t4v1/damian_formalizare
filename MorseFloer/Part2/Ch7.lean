@@ -74,6 +74,12 @@ Rather than inventing a construction, this file
   `‖S‖ < 2π` implies `exp(JS)` has no eigenvalue `1`, by Yorke's theorem applied
   to the linear field `JS` (`Part2/LinearYorke.lean`).
 
+The first brick towards the construction of `ρ` is in place:
+`Part2/RootsContinuity.lean` proves that the roots of a monic polynomial over
+`ℂ` depend continuously on its coefficients, counted with multiplicity, so that
+the number of eigenvalues of a matrix in a small disc is locally constant.  It
+is not yet used here.
+
 Assumed (`sorry`):
 
 * **Theorem 7.1.3**, the existence of `ρ` (`exists_isRho`);

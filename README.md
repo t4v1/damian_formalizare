@@ -47,7 +47,8 @@ Everything else is proved, including:
   (Prop. 6.6.2), by a mean value inequality and Hofer's lemma instead of bubbling; the convergence
   of finite-energy solutions to periodic orbits at both ends (Thm. 6.5.6), without the
   compactness theorem; and the compactness theorem itself (Thm. 6.5.4), by Ascoli and the
-  Cauchy transform rather than uniform elliptic estimates; Sard's theorem in all
+  Cauchy transform rather than uniform elliptic estimates; the continuity of the roots of a
+  polynomial in its coefficients, the first brick towards the map `ρ` of Chapter 7; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

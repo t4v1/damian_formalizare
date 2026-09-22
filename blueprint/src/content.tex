@@ -1539,6 +1539,32 @@ gaps.
   Chapter 7 keeps aliases and the general-field version.
 \end{proposition}
 
+\begin{lemma}[The roots of a polynomial depend continuously on its coefficients]
+  \label{lem:roots-continuity}
+  \lean{MorseFloer.RootsContinuity.norm_root_le,
+        MorseFloer.RootsContinuity.continuous_coeff_prod,
+        MorseFloer.RootsContinuity.exists_delta_roots_close,
+        MorseFloer.RootsContinuity.exists_delta_countP_roots}
+  \leanok
+  For a monic polynomial $p$ over $\mathbb{C}$ and every $\varepsilon > 0$ there
+  is $\delta > 0$ such that every monic $q$ of the same degree whose coefficients
+  are within $\delta$ of those of $p$ has its roots within $\varepsilon$ of those
+  of $p$, counted with multiplicity: the two root multisets admit enumerations
+  $a, b \colon \{1,\dots,n\} \to \mathbb{C}$ with $\lvert a_i - b_i\rvert <
+  \varepsilon$ for all $i$.  Consequently the number of roots of $q$ in a small
+  disc about any point equals the multiplicity of that point as a root of $p$.
+  This is the first brick for the map $\rho$ of Theorem 7.1.3, whose continuity
+  (\S7.3.c) is an argument about the eigenvalues of a varying symplectic
+  matrix.  Mathlib has the roots as a multiset but nothing about their
+  dependence on the polynomial.  The proof is a compactness argument: if the
+  statement failed there would be a sequence $q_k \to p$ with no
+  $\varepsilon$-matching of the roots; the roots of the $q_k$ are bounded by
+  Cauchy's bound, so an enumeration of them has a convergent subsequence, and
+  since the coefficients of $\prod (X - a_i)$ are continuous in $a$, the limiting
+  enumeration satisfies $\prod (X - b_i) = p$, so it enumerates the roots of $p$,
+  and the matching exists along the subsequence after all.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1546,7 +1572,7 @@ gaps.
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
-  \uses{def:7.1.c}
+  \uses{def:7.1.c, lem:roots-continuity}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
