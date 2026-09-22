@@ -114,7 +114,9 @@ verifies every cited declaration still exists.
 | `Part2/ApproxOrbit.lean` | helper for 6.5.7 | 0 | loops solving `ẋ = X_t(x)` up to an error small in `L¹` converge to a periodic orbit once their starting points do: Grönwall applied to the difference *minus the integrated errors*, then dominated convergence in the integral equation — no Ascoli, no bootstrap; also the sequences `s_k → ±∞` on which an integrable function is small, and convergence of an antitone function from convergence along one sequence |
 | `Part2/MeanValue.lean` | helper for 6.6.2 | 0 | the mean value inequality for almost holomorphic functions, `‖P z₁‖ ≤ K₀ r⁻² ∫_{|ξ|<r} ‖P(z₁-ξ)‖ + K₂ a r` when `‖∂̄P‖ ≤ a` on the disc: Cauchy–Pompeiu applied to `χP` for a cut-off at scale `r` with `‖∂̄χ‖ = O(1/r)` |
 | `Part2/LatticePath.lean` | helper for 6.5.6 | 0 | a continuous path along which a lattice-periodic map with locally finitely many zeros tends to zero converges to a zero: the book's connectedness argument, run in `ℝⁿ` after translating into the unit cube |
-| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 2 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; **6.5.3 proved** through `FloerRegularity`; **6.5.7 proved** through `ApproxOrbit`, and with it 6.5.11; **6.6.2 proved without bubbling** through `MeanValue` and Hofer's lemma; **6.5.6 and 6.5.15 proved without compactness**, through the decay of `∂u/∂s`, the `C¹` flow and `LatticePath` |
+| `Part2/LipschitzLimit.lean` | helper for 6.5.4 | 0 | Arzelà–Ascoli for equi-Lipschitz maps `ℝ × ℝ → E`: a convergent subsequence on the rational points comes from a compact, first-countable product of closed balls (no diagonal argument), and the Lipschitz bound spreads it to locally uniform convergence |
+| `Part2/DbarLimit.lean` | helper for 6.5.4 | 0 | a locally uniform limit of `C¹` solutions of `∂̄w = f_n`, with `f_n → g` locally uniformly and the limits Lipschitz, is `C¹` and solves `∂̄V = g`: the identity `χw = T(∂̄(χw))` passes to the limit, and the Cauchy transform of Lipschitz compactly supported data is `C¹` |
+| `Part2/Ch6.lean` | 6 Arnold conjecture, Floer equation | 1 | critical points of the action = periodic orbits; the first variation; Yorke (6.1.5), 6.5.2(2)(3), 6.5.10, Hofer; **6.5.3, 6.5.7 (with 6.5.11), 6.6.2, 6.5.6 (with 6.5.15) and 6.5.4 all proved** — every analytic statement of the chapter; only the torus case of the Arnold conjecture is assumed |
 | `Part2/LinearYorke.lean` | helper for 7.1.2 | 0 | `exp A` has no eigenvalue 1 when `‖A‖ < 2π`, by Yorke; `‖S‖ = max|λ|` for symmetric `S` |
 | `Part2/Ch7.lean` | 7 Maslov, Conley–Zehnder | 8 | index axiomatised; dimension two in full; Lemma 7.2.3, Remark 7.1.2, `Δ` well defined, `exp(θJ₂) = rot θ` proved |
 | `Part2/Ch8.lean` | 8 Linearisation, transversality | 0 | the Fredholm index bookkeeping; Lemma 8.3.2 (separability of `C¹` on a compact set, finite dimension), Props 8.3.1 and 8.3.4 proved; the chapter assumes nothing |
@@ -315,10 +317,16 @@ result recorded in the blueprint with no Lean statement at all:
    continuous path along which `ψ₁ q − q → 0`, and `Part2/LatticePath.lean` runs the book's
    connectedness argument in `ℝ^{2n}` — the fixed points of `ψ₁` are finite in every compact
    set by Lemma 6.5.10, for which the flow has to be `C¹`; that is `contDiff_flow`, from the
-   `C¹` flow of the suspended autonomous field in `Part2/FlowC1.lean`. Chapter 6 is down to
-   two assumptions: 6.5.4 needs Ascoli together with *uniform* `C^{1,α}` estimates (the
-   Schauder estimate is there with explicit constants, but the bootstrap built on it is
-   qualitative), and the torus case of the conjecture needs all of Part II's geometric input.
+   `C¹` flow of the suspended autonomous field in `Part2/FlowC1.lean`. **Theorem 6.5.4, the
+   compactness of the space of solutions, is proved too**, and it needed no uniform elliptic
+   estimate: the gradient bound makes the translated solutions equi-Lipschitz,
+   `Part2/LipschitzLimit.lean` extracts a locally uniformly convergent subsequence (Ascoli by
+   hand — the diagonal argument is a compact product over the rational points), and
+   `Part2/DbarLimit.lean` shows that a locally uniform limit of solutions of `∂̄w = f_n` is
+   `C¹` and solves the limiting equation, by passing `χw = T(∂̄(χw))` to the limit; the
+   bootstrap then makes the limit smooth. With it, **every analytic statement of Chapter 6 is
+   proved**; the one assumption left is the torus case of the Arnold conjecture, which is the
+   book's main theorem and needs all of Part II's geometric input (gap 2).
 
 4. **Differential forms on manifolds, and Sobolev spaces.** The first blocks
    symplectic manifolds (only the linear theory is reachable in Chapter 5); the

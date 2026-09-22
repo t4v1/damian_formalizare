@@ -4,6 +4,8 @@ import MorseFloer.Part2.FloerRegularity
 import MorseFloer.Part2.ApproxOrbit
 import MorseFloer.Part2.MeanValue
 import MorseFloer.Part2.LatticePath
+import MorseFloer.Part2.LipschitzLimit
+import MorseFloer.Part2.DbarLimit
 
 /-!
 # Chapter 6: The Arnold conjecture and the Floer equation
@@ -134,6 +136,17 @@ Proved here:
   compact set (Lemma 6.5.10), and `Part2/LatticePath.lean` runs the book's
   connectedness argument in `ℝ^{2n}` — makes them converge to a periodic orbit
   without the compactness theorem;
+* **Theorem 6.5.4** (`compactness_of_energy_bounded`): a sequence of solutions
+  of bounded energy has a subsequence converging, after lattice translations,
+  uniformly on compact sets to a solution.  The gradient bound makes the family
+  equi-Lipschitz, so Ascoli — done by hand in `Part2/LipschitzLimit.lean`, the
+  diagonal argument being a compact product over the rational points — gives a
+  Lipschitz limit; `Part2/DbarLimit.lean` shows that a locally uniform limit of
+  solutions of `∂̄w = f` is `C¹` and solves the limiting equation, by passing the
+  identity `χw = T(∂̄(χw))` to the limit; the bootstrap then makes the limit
+  smooth, and `isSmoothLoopVariation_of_contDiff` turns smoothness into the
+  partial derivatives the definition asks for.  No uniform elliptic estimate is
+  used: the convergence of the derivatives comes out, it is not put in;
 * **Corollary 6.5.11** (`exists_bound_action_energy`), *from* Proposition
   6.5.7: the energy of every finite-energy solution is bounded by a constant.
   The book's proof is followed — the action converges at both ends to critical
@@ -168,10 +181,7 @@ Assumed (`sorry`), each with the missing ingredient recorded at the statement:
 * **Conjecture 6.1.2** in the case of the torus `T^{2n} = ℝ^{2n}/ℤ^{2n}`, where
   `∑_i dim HM_i(T^{2n}; ℤ/2) = 2^{2n}` is an explicit number
   (`arnold_conjecture_torus`);
-* **Theorem 6.5.4** (compactness).  With the gradient bound proved, what it
-  still needs is *uniform* `C^{1,α}` estimates — the Schauder estimate of
-  `Part2/CauchyHolder.lean` is there, but the bootstrap built on it is
-  qualitative — and Ascoli's theorem.
+* nothing else: every analytic statement of the chapter is proved.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -920,6 +930,112 @@ structure IsSmoothLoopVariation (u : ℝ → ℝ → F) : Prop extends IsLoopVar
   hasDerivAt_ts : ∀ s t, HasDerivAt (dS u s) (dS (dT u) s t) t
   /-- The mixed partial is continuous. -/
   continuous_st : Continuous fun p : ℝ × ℝ => dS (dT u) p.1 p.2
+
+/-- The partial derivative in the first variable of a differentiable map on the plane. -/
+theorem hasDerivAt_fst_of_differentiable {U : ℝ × ℝ → F} (hU : Differentiable ℝ U) (s t : ℝ) :
+    HasDerivAt (fun σ => U (σ, t)) (fderiv ℝ U (s, t) ((1, 0) : ℝ × ℝ)) s := by
+  have hline : HasDerivAt (fun σ : ℝ => ((σ, t) : ℝ × ℝ)) ((1, 0) : ℝ × ℝ) s :=
+    (hasDerivAt_id s).prodMk (hasDerivAt_const s t)
+  have h := (hU (s, t)).hasFDerivAt.comp_hasDerivAt s hline
+  exact h
+
+/-- The partial derivative in the second variable of a differentiable map on the plane. -/
+theorem hasDerivAt_snd_of_differentiable {U : ℝ × ℝ → F} (hU : Differentiable ℝ U) (s t : ℝ) :
+    HasDerivAt (fun τ => U (s, τ)) (fderiv ℝ U (s, t) ((0, 1) : ℝ × ℝ)) t := by
+  have hline : HasDerivAt (fun τ : ℝ => ((s, τ) : ℝ × ℝ)) ((0, 1) : ℝ × ℝ) t :=
+    (hasDerivAt_const t s).prodMk (hasDerivAt_id t)
+  have h := (hU (s, t)).hasFDerivAt.comp_hasDerivAt t hline
+  exact h
+
+/-- The derivative of a directional derivative is the second derivative. -/
+theorem fderiv_fderiv_apply_const {U : ℝ × ℝ → F} (hU : Differentiable ℝ (fderiv ℝ U))
+    (q w v : ℝ × ℝ) : fderiv ℝ (fun y => fderiv ℝ U y v) q w = fderiv ℝ (fderiv ℝ U) q w v := by
+  have h := (hU q).hasFDerivAt.clm_apply (hasFDerivAt_const v q)
+  rw [h.fderiv]
+  simp
+
+/-- A smooth family of `1`-periodic loops is a smooth loop variation: all the partial
+derivatives exist and are continuous, and the mixed ones agree by the symmetry of the second
+derivative. -/
+theorem isSmoothLoopVariation_of_contDiff {u : ℝ → ℝ → F}
+    (hU : ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2) (hper : ∀ s, Function.Periodic (u s) 1) :
+    IsSmoothLoopVariation u := by
+  have hUd : Differentiable ℝ fun p : ℝ × ℝ => u p.1 p.2 := hU.differentiable (by simp)
+  have hU' : ContDiff ℝ ∞ (fderiv ℝ fun p : ℝ × ℝ => u p.1 p.2) := hU.fderiv_right (by simp)
+  have hU'd : Differentiable ℝ (fderiv ℝ fun p : ℝ × ℝ => u p.1 p.2) :=
+    hU'.differentiable (by simp)
+  have hV₁ : ContDiff ℝ ∞ fun q : ℝ × ℝ =>
+      fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((1, 0) : ℝ × ℝ) :=
+    hU'.clm_apply contDiff_const
+  have hV₂ : ContDiff ℝ ∞ fun q : ℝ × ℝ =>
+      fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ) :=
+    hU'.clm_apply contDiff_const
+  have hV₁d : Differentiable ℝ fun q : ℝ × ℝ =>
+      fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((1, 0) : ℝ × ℝ) := hV₁.differentiable (by simp)
+  have hV₂d : Differentiable ℝ fun q : ℝ × ℝ =>
+      fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ) := hV₂.differentiable (by simp)
+  -- the first partials
+  have hS : ∀ s t, HasDerivAt (fun σ => u σ t)
+      (fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (s, t) ((1, 0) : ℝ × ℝ)) s := fun s t =>
+    hasDerivAt_fst_of_differentiable hUd s t
+  have hT : ∀ s t, HasDerivAt (u s)
+      (fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (s, t) ((0, 1) : ℝ × ℝ)) t := fun s t =>
+    hasDerivAt_snd_of_differentiable hUd s t
+  have hdS : ∀ s t, dS u s t = fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (s, t) ((1, 0) : ℝ × ℝ) :=
+    fun s t => (hS s t).deriv
+  have hdT : ∀ s t, dT u s t = fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (s, t) ((0, 1) : ℝ × ℝ) :=
+    fun s t => (hT s t).deriv
+  have hdSf : ∀ s, dS u s = fun τ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (s, τ) ((1, 0) : ℝ × ℝ) :=
+    fun s => funext fun τ => hdS s τ
+  have hdTf : ∀ t, (fun σ => dT u σ t)
+      = fun σ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) (σ, t) ((0, 1) : ℝ × ℝ) :=
+    fun t => funext fun σ => hdT σ t
+  -- the second partials
+  have hST : ∀ s t, HasDerivAt (fun σ => dT u σ t)
+      (fderiv ℝ (fun q : ℝ × ℝ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ))
+        (s, t) ((1, 0) : ℝ × ℝ)) s := by
+    intro s t
+    rw [hdTf t]
+    exact hasDerivAt_fst_of_differentiable hV₂d s t
+  have hdST : ∀ s t, dS (dT u) s t
+      = fderiv ℝ (fun q : ℝ × ℝ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ))
+        (s, t) ((1, 0) : ℝ × ℝ) := fun s t => (hST s t).deriv
+  have hsymm : ∀ s t,
+      fderiv ℝ (fun q : ℝ × ℝ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ))
+        (s, t) ((1, 0) : ℝ × ℝ)
+      = fderiv ℝ (fun q : ℝ × ℝ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((1, 0) : ℝ × ℝ))
+        (s, t) ((0, 1) : ℝ × ℝ) := by
+    intro s t
+    rw [fderiv_fderiv_apply_const hU'd, fderiv_fderiv_apply_const hU'd]
+    exact (hU.contDiffAt.isSymmSndFDerivAt
+      (by
+        rw [minSmoothness_of_isRCLikeNormedField]
+        show ((2 : ℕ∞) : WithTop ℕ∞) ≤ ((⊤ : ℕ∞) : WithTop ℕ∞)
+        exact WithTop.coe_le_coe.2 le_top)) _ _
+  refine ⟨⟨hper, fun s t => ?_, fun s t => ?_, hU.continuous, ?_, ?_⟩, fun s t => ?_,
+    fun s t => ?_, ?_⟩
+  · rw [hdS]; exact hS s t
+  · rw [hdT]; exact hT s t
+  · have e : (fun p : ℝ × ℝ => dS u p.1 p.2)
+        = fun p => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) p ((1, 0) : ℝ × ℝ) :=
+      funext fun p => hdS p.1 p.2
+    rw [e]
+    exact hV₁.continuous
+  · have e : (fun p : ℝ × ℝ => dT u p.1 p.2)
+        = fun p => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) p ((0, 1) : ℝ × ℝ) :=
+      funext fun p => hdT p.1 p.2
+    rw [e]
+    exact hV₂.continuous
+  · rw [hdST]
+    exact hST s t
+  · rw [hdST, hsymm, hdSf]
+    exact hasDerivAt_snd_of_differentiable hV₁d s t
+  · have e : (fun p : ℝ × ℝ => dS (dT u) p.1 p.2) = fun p =>
+        fderiv ℝ (fun q : ℝ × ℝ => fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) q ((0, 1) : ℝ × ℝ))
+          p ((1, 0) : ℝ × ℝ) :=
+      funext fun p => hdST p.1 p.2
+    rw [e]
+    exact (hV₂.continuous_fderiv (by simp)).clm_apply continuous_const
 
 end Partials
 
@@ -3262,33 +3378,406 @@ theorem tendsto_of_finite_energy (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
 
 end Convergence
 
+section LimitSolution
+
+open Filter Topology MeasureTheory
+
+/-- `∇H_t(x)` is Lipschitz jointly in `(t, x)`, on the torus. -/
+theorem exists_lipschitz_hamGrad_joint (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t) :
+    ∃ L : ℝ, 0 ≤ L ∧ ∀ (t t' : ℝ) (x x' : (l ⊕ l) → ℝ),
+      ‖hamGrad H t x - hamGrad H t' x'‖ ≤ L * ‖((t, x) : ℝ × ((l ⊕ l) → ℝ)) - (t', x')‖ := by
+  set g : ℝ × ((l ⊕ l) → ℝ) → ((l ⊕ l) → ℝ) := fun q => hamGrad H q.1 q.2 with hg
+  have hgs : ContDiff ℝ ∞ g := contDiff_hamGrad H hH
+  obtain ⟨L, hL⟩ := exists_bound_of_lattice_periodic
+    (f := fun x t => fderiv ℝ g (t, x))
+    ((hgs.continuous_fderiv (by simp)).comp (continuous_snd.prodMk continuous_fst))
+    (fun y t => by
+      have e : fderiv ℝ (fun q => g (q + ((1 : ℝ), (0 : (l ⊕ l) → ℝ)))) (t, y)
+          = fderiv ℝ g ((t, y) + ((1 : ℝ), (0 : (l ⊕ l) → ℝ))) := fderiv_comp_add_right _
+      have h : (fun q => g (q + ((1 : ℝ), (0 : (l ⊕ l) → ℝ)))) = g := by
+        funext q
+        show hamGrad H (q.1 + 1) (q.2 + 0) = hamGrad H q.1 q.2
+        rw [add_zero]
+        exact hamGrad_periodic hHt _ _
+      rw [h] at e
+      show fderiv ℝ g (t + 1, y) = fderiv ℝ g (t, y)
+      rw [e]
+      congr 1
+      ext <;> simp)
+    (fun k y t => by
+      have e : fderiv ℝ (fun q => g (q + ((0 : ℝ), fun i => (k i : ℝ)))) (t, y)
+          = fderiv ℝ g ((t, y) + ((0 : ℝ), fun i => (k i : ℝ))) := fderiv_comp_add_right _
+      have h : (fun q => g (q + ((0 : ℝ), fun i => (k i : ℝ)))) = g := by
+        funext q
+        show hamGrad H (q.1 + 0) (q.2 + fun i => (k i : ℝ)) = hamGrad H q.1 q.2
+        rw [add_zero]
+        exact hamGrad_lattice hHlat k _ _
+      rw [h] at e
+      show fderiv ℝ g (t, y + fun i => (k i : ℝ)) = fderiv ℝ g (t, y)
+      rw [e]
+      congr 1
+      ext <;> simp)
+  have hL0 : 0 ≤ L := (norm_nonneg _).trans (hL 0 0)
+  have hgd : Differentiable ℝ g := hgs.differentiable (by simp)
+  have hglip : ∀ a b, ‖g a - g b‖ ≤ L * ‖a - b‖ := fun a b =>
+    Convex.norm_image_sub_le_of_norm_fderiv_le (fun q _ => hgd q)
+      (fun q _ => hL q.2 q.1) convex_univ (Set.mem_univ b) (Set.mem_univ a)
+  refine ⟨L, hL0, fun t t' x x' => ?_⟩
+  have := hglip (t, x) (t', x')
+  rw [hg] at this
+  exact this
+
+/-- Translating a Floer solution by a lattice vector gives a Floer solution. -/
+theorem IsFloerSolution.sub_lattice (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+      H (y + fun i => (k i : ℝ)) t = H y t)
+    {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsFloerSolution H u) (k : (l ⊕ l) → ℤ) :
+    IsFloerSolution H fun s t => u s t - fun i => (k i : ℝ) := by
+  have hU : ContDiff ℝ ∞ fun p : ℝ × ℝ => u p.1 p.2 := contDiff_of_isFloerSolution H hH hu
+  have hdS : ∀ s t, dS (fun s t => u s t - fun i => (k i : ℝ)) s t = dS u s t := fun s t =>
+    deriv_sub_const _
+  have hdT : ∀ s t, dT (fun s t => u s t - fun i => (k i : ℝ)) s t = dT u s t := fun s t =>
+    deriv_sub_const _
+  refine ⟨isSmoothLoopVariation_of_contDiff (hU.sub contDiff_const)
+    (fun s t => by simp only [hu.periodic s t]), fun s t => ?_⟩
+  rw [hdS, hdT]
+  have e : hamGrad H t (u s t - fun i => (k i : ℝ)) = hamGrad H t (u s t) := by
+    have := hamGrad_lattice hHlat k t (u s t - fun i => (k i : ℝ))
+    rw [sub_add_cancel] at this
+    exact this.symm
+  rw [e]
+  exact hu.floer s t
+
+omit [DecidableEq l] in
+/-- A Floer solution with bounded gradient is Lipschitz on the cylinder. -/
+theorem lipschitz_of_gradient_bound {u : ℝ → ℝ → ((l ⊕ l) → ℝ)} (hu : IsLoopVariation u)
+    {A : ℝ} (hb : ∀ s t, dS u s t ⬝ᵥ dS u s t + dT u s t ⬝ᵥ dT u s t ≤ A)
+    (p q : ℝ × ℝ) : ‖u p.1 p.2 - u q.1 q.2‖ ≤ 2 * Real.sqrt A * ‖p - q‖ := by
+  have hC1 : ContDiff ℝ 1 fun p : ℝ × ℝ => u p.1 p.2 :=
+    FloerRegularity.contDiff_one_of_partials hu.hasDerivAt_s hu.hasDerivAt_t hu.continuous_s
+      hu.continuous_t
+  have hnn : ∀ v : (l ⊕ l) → ℝ, 0 ≤ v ⬝ᵥ v := fun v =>
+    Finset.sum_nonneg fun j _ => mul_self_nonneg (v j)
+  have hS : ∀ s t, ‖dS u s t‖ ≤ Real.sqrt A := fun s t =>
+    (ApproxOrbit.norm_le_sqrt_dotProduct _).trans (Real.sqrt_le_sqrt
+      (by linarith [hb s t, hnn (dT u s t)]))
+  have hT : ∀ s t, ‖dT u s t‖ ≤ Real.sqrt A := fun s t =>
+    (ApproxOrbit.norm_le_sqrt_dotProduct _).trans (Real.sqrt_le_sqrt
+      (by linarith [hb s t, hnn (dS u s t)]))
+  have hfd : ∀ x : ℝ × ℝ, ‖fderiv ℝ (fun p : ℝ × ℝ => u p.1 p.2) x‖ ≤ 2 * Real.sqrt A := by
+    intro x
+    refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) fun h => ?_
+    rw [FloerRegularity.fderiv_apply_of_partials hu.hasDerivAt_s hu.hasDerivAt_t hu.continuous_s
+      hu.continuous_t]
+    have h1 : |h.1| ≤ ‖h‖ := by rw [← Real.norm_eq_abs]; exact norm_fst_le h
+    have h2 : |h.2| ≤ ‖h‖ := by rw [← Real.norm_eq_abs]; exact norm_snd_le h
+    calc ‖h.1 • dS u x.1 x.2 + h.2 • dT u x.1 x.2‖
+        ≤ ‖h.1 • dS u x.1 x.2‖ + ‖h.2 • dT u x.1 x.2‖ := norm_add_le _ _
+      _ = |h.1| * ‖dS u x.1 x.2‖ + |h.2| * ‖dT u x.1 x.2‖ := by
+          rw [norm_smul, norm_smul, Real.norm_eq_abs, Real.norm_eq_abs]
+      _ ≤ ‖h‖ * Real.sqrt A + ‖h‖ * Real.sqrt A := by
+          gcongr
+          · exact hS _ _
+          · exact hT _ _
+      _ = 2 * Real.sqrt A * ‖h‖ := by ring
+  exact Convex.norm_image_sub_le_of_norm_fderiv_le
+    (fun x _ => hC1.differentiable one_ne_zero x) (fun x _ => hfd x) convex_univ
+    (Set.mem_univ q) (Set.mem_univ p)
+
 /-- **Theorem 6.5.4** (compactness of `M`).  Under Hypothesis 6.2.1 the space of
 finite-energy solutions is compact in `C^∞_loc(ℝ × S¹, W)`.
 
 Stated sequentially and on the torus: a sequence of solutions of uniformly
 bounded energy has a subsequence which, after translation by lattice vectors,
-converges uniformly on every compact subset of `ℝ × S¹` to a solution.  The
-proof combines the gradient bound of Proposition 6.6.2, Ascoli's theorem and the
-elliptic regularity of Proposition 6.5.3.
+converges uniformly on every compact subset of `ℝ × S¹` to a solution.
+
+**Proved.**  The gradient bound of Proposition 6.6.2 makes the translated
+solutions equi-Lipschitz, so a subsequence converges locally uniformly to a
+Lipschitz limit (`LipschitzLimit.exists_subseq_tendstoUniformlyOn`, Ascoli by
+hand).  Read in `ℂⁿ`, each solution satisfies `∂̄u_i = G_i(z, u)` and the
+right-hand sides converge locally uniformly too; `DbarLimit.contDiff_one_of_tendsto_dbar`
+— the identity `χu = T(∂̄(χu))` passed to the limit — shows the limit is `C¹` and
+solves the same equation, and the bootstrap of `Part2/CauchyHolder.lean` makes it
+smooth.  Neither Ascoli's theorem in `C¹` nor uniform elliptic estimates are
+needed: the convergence of the derivatives is a consequence, not an input.
 
 Finite energy was missing from an earlier statement, which was false without
 it: with `H = 0` the holomorphic cylinders `u_n(s, t) = n e^{2π(s ± it)}` have
 non-integrable energy density, so "energy" `0`, and their loops at `s = 0` have
 radius `n`, so no translates converge. -/
 theorem compactness_of_energy_bounded (H : ((l ⊕ l) → ℝ) → ℝ → ℝ)
-    (_hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
-    (_hHt : ∀ y t, H y (t + 1) = H y t)
-    (_hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
+    (hH : ContDiff ℝ ∞ fun p : ((l ⊕ l) → ℝ) × ℝ => H p.1 p.2)
+    (hHt : ∀ y t, H y (t + 1) = H y t)
+    (hHlat : ∀ (k : (l ⊕ l) → ℤ) (y : (l ⊕ l) → ℝ) (t : ℝ),
       H (y + fun i => (k i : ℝ)) t = H y t) (C : ℝ)
-    (u : ℕ → ℝ → ℝ → ((l ⊕ l) → ℝ)) (_hu : ∀ n, IsFloerSolution H (u n))
-    (_hEi : ∀ n, MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity (u n) s t)
-    (_hE : ∀ n, energy (u n) ≤ C) :
+    (u : ℕ → ℝ → ℝ → ((l ⊕ l) → ℝ)) (hu : ∀ n, IsFloerSolution H (u n))
+    (hEi : ∀ n, MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1, energyDensity (u n) s t)
+    (hE : ∀ n, energy (u n) ≤ C) :
     ∃ (φ : ℕ → ℕ) (k : ℕ → ((l ⊕ l) → ℤ)) (v : ℝ → ℝ → ((l ⊕ l) → ℝ)),
       StrictMono φ ∧ IsFloerSolution H v ∧
       ∀ K : Set (ℝ × ℝ), IsCompact K →
         TendstoUniformlyOn (fun n p => u (φ n) p.1 p.2 - fun i => ((k n i : ℝ)))
           (fun p => v p.1 p.2) Filter.atTop K := by
-  sorry
+  obtain ⟨A, hA, hgb⟩ := exists_gradient_bound H hH hHt hHlat C
+  obtain ⟨LN, hLN0, hLN⟩ := exists_lipschitz_hamGrad_joint H hH hHt hHlat
+  -- translation into the unit cube
+  choose k hk using fun n => LatticePath.exists_lattice_near (u n 0 0)
+  have hw : ∀ n, IsFloerSolution H fun s t => u n s t - fun i => (k n i : ℝ) := fun n =>
+    (hu n).sub_lattice H hH hHlat (k n)
+  have hdSw : ∀ n s t, dS (fun s t => u n s t - fun i => (k n i : ℝ)) s t = dS (u n) s t :=
+    fun n s t => deriv_sub_const _
+  have hED : ∀ n, energyDensity (fun s t => u n s t - fun i => (k n i : ℝ))
+      = energyDensity (u n) := by
+    intro n
+    funext s t
+    show dS (fun s t => u n s t - fun i => (k n i : ℝ)) s t
+        ⬝ᵥ dS (fun s t => u n s t - fun i => (k n i : ℝ)) s t = dS (u n) s t ⬝ᵥ dS (u n) s t
+    rw [hdSw]
+  have hwEi : ∀ n, MeasureTheory.Integrable fun s => ∫ t in (0:ℝ)..1,
+      energyDensity (fun s t => u n s t - fun i => (k n i : ℝ)) s t := fun n => by
+    rw [hED n]
+    exact hEi n
+  have hwE : ∀ n, energy (fun s t => u n s t - fun i => (k n i : ℝ)) ≤ C := fun n => by
+    have e : energy (fun s t => u n s t - fun i => (k n i : ℝ)) = energy (u n) := by
+      simp only [energy, hED n]
+    rw [e]
+    exact hE n
+  have hb : ∀ n s t, dS (fun s t => u n s t - fun i => (k n i : ℝ)) s t
+      ⬝ᵥ dS (fun s t => u n s t - fun i => (k n i : ℝ)) s t
+      + dT (fun s t => u n s t - fun i => (k n i : ℝ)) s t
+        ⬝ᵥ dT (fun s t => u n s t - fun i => (k n i : ℝ)) s t ≤ A :=
+    fun n => hgb _ (hw n) (hwEi n) (hwE n)
+  -- the equi-Lipschitz family and its convergent subsequence
+  have hL0 : 0 ≤ 2 * Real.sqrt A := by positivity
+  have hlip : ∀ n (p q : ℝ × ℝ),
+      ‖(fun p : ℝ × ℝ => u n p.1 p.2 - fun i => (k n i : ℝ)) p
+        - (fun p : ℝ × ℝ => u n p.1 p.2 - fun i => (k n i : ℝ)) q‖
+        ≤ 2 * Real.sqrt A * ‖p - q‖ := fun n p q =>
+    lipschitz_of_gradient_bound (hw n).toIsLoopVariation (hb n) p q
+  have hbd : ∀ n, ‖(fun p : ℝ × ℝ => u n p.1 p.2 - fun i => (k n i : ℝ)) (0 : ℝ × ℝ)‖ ≤ 1 :=
+    fun n => hk n
+  obtain ⟨φ, v, hφ, hvlip, hvu⟩ := LipschitzLimit.exists_subseq_tendstoUniformlyOn hL0 hlip hbd
+  have hvpt : ∀ p : ℝ × ℝ, Tendsto (fun n => u (φ n) p.1 p.2 - fun i => (k (φ n) i : ℝ)) atTop
+      (𝓝 (v p)) := fun p => (hvu {p} isCompact_singleton).tendsto_at (Set.mem_singleton p)
+  have hvper : ∀ s t, v (s, t + 1) = v (s, t) := by
+    intro s t
+    have h1 := hvpt (s, t + 1)
+    have h2 := hvpt (s, t)
+    have e : (fun n => u (φ n) s (t + 1) - fun i => (k (φ n) i : ℝ))
+        = fun n => u (φ n) s t - fun i => (k (φ n) i : ℝ) :=
+      funext fun n => by rw [(hu (φ n)).periodic s t]
+    exact tendsto_nhds_unique (e ▸ h1) h2
+  -- the map `κ : ℂ → ℝ × ℝ`
+  have hκc : Continuous fun z : ℂ => ((z.re, z.im) : ℝ × ℝ) :=
+    Complex.continuous_re.prodMk Complex.continuous_im
+  have hκlip : ∀ z z' : ℂ, ‖((z.re, z.im) : ℝ × ℝ) - (z'.re, z'.im)‖ ≤ ‖z - z'‖ := by
+    intro z z'
+    have e : ((z.re, z.im) : ℝ × ℝ) - (z'.re, z'.im) = ((z - z').re, (z - z').im) := by
+      ext <;> simp
+    rw [e, Prod.norm_def]
+    show max ‖(z - z').re‖ ‖(z - z').im‖ ≤ ‖z - z'‖
+    rw [Real.norm_eq_abs, Real.norm_eq_abs]
+    exact max_le (Complex.abs_re_le_norm _) (Complex.abs_im_le_norm _)
+  -- the complexified sequence and limit
+  have hWC1 : ∀ n (i : l), ContDiff ℝ 1 fun z : ℂ =>
+      FloerRegularity.toCpxL (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) i := fun n i =>
+    FloerRegularity.contDiff_one_toCpx (hw (φ n)).hasDerivAt_s (hw (φ n)).hasDerivAt_t
+      (hw (φ n)).continuous_s (hw (φ n)).continuous_t i
+  have hWdbar : ∀ n (i : l) (z : ℂ),
+      CauchyPompeiu.dbar (fun z : ℂ =>
+        FloerRegularity.toCpxL (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) i) z
+      = -(FloerRegularity.toCpxL
+          (hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))) i) := by
+    intro n i z
+    rw [FloerRegularity.dbar_toCpx (hw (φ n)).hasDerivAt_s (hw (φ n)).hasDerivAt_t
+      (hw (φ n)).continuous_s (hw (φ n)).continuous_t i z]
+    have h := (hw (φ n)).floer z.re z.im
+    rw [← eq_neg_iff_add_eq_zero] at h
+    rw [h, map_neg]
+    rfl
+  have hfc : ∀ n (i : l), Continuous fun z : ℂ => -(FloerRegularity.toCpxL
+      (hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))) i) := by
+    intro n i
+    have h1 : Continuous fun z : ℂ => u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ) :=
+      (hw (φ n)).continuous.comp hκc
+    have h2 : Continuous fun z : ℂ =>
+        hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) :=
+      (contDiff_hamGrad H hH).continuous.comp (Complex.continuous_im.prodMk h1)
+    exact (((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp
+      FloerRegularity.toCpxL).continuous.comp h2).neg
+  have hVlip : ∀ (i : l) (z z' : ℂ), ‖FloerRegularity.toCpxL (v (z.re, z.im)) i
+      - FloerRegularity.toCpxL (v (z'.re, z'.im)) i‖ ≤ 2 * (2 * Real.sqrt A) * ‖z - z'‖ := by
+    intro i z z'
+    rw [← Pi.sub_apply, ← map_sub]
+    calc ‖FloerRegularity.toCpxL (v (z.re, z.im) - v (z'.re, z'.im)) i‖
+        ≤ 2 * ‖v (z.re, z.im) - v (z'.re, z'.im)‖ := FloerRegularity.norm_toCpxL_le _ i
+      _ ≤ 2 * (2 * Real.sqrt A * ‖((z.re, z.im) : ℝ × ℝ) - (z'.re, z'.im)‖) := by
+          gcongr
+          exact hvlip _ _
+      _ ≤ 2 * (2 * Real.sqrt A * ‖z - z'‖) := by
+          gcongr
+          exact hκlip z z'
+      _ = 2 * (2 * Real.sqrt A) * ‖z - z'‖ := by ring
+  have hpair : ∀ (a a' : ℝ) (x x' : (l ⊕ l) → ℝ),
+      ‖((a, x) : ℝ × ((l ⊕ l) → ℝ)) - (a', x')‖ = max |a - a'| ‖x - x'‖ := by
+    intro a a' x x'
+    rw [Prod.norm_def, Real.norm_eq_abs]
+    rfl
+  have hglip : ∀ (i : l) (z z' : ℂ),
+      ‖-(FloerRegularity.toCpxL (hamGrad H z.im (v (z.re, z.im))) i)
+        - -(FloerRegularity.toCpxL (hamGrad H z'.im (v (z'.re, z'.im))) i)‖
+        ≤ 2 * LN * (1 + 2 * Real.sqrt A) * ‖z - z'‖ := by
+    intro i z z'
+    rw [neg_sub_neg, ← Pi.sub_apply, ← map_sub]
+    have h1 := hLN z'.im z.im (v (z'.re, z'.im)) (v (z.re, z.im))
+    rw [hpair] at h1
+    have h2 : |z'.im - z.im| ≤ ‖z - z'‖ := by
+      rw [← Complex.sub_im, ← norm_neg, neg_sub]
+      exact Complex.abs_im_le_norm _
+    have h3 : ‖v (z'.re, z'.im) - v (z.re, z.im)‖ ≤ 2 * Real.sqrt A * ‖z - z'‖ := by
+      rw [norm_sub_rev]
+      exact (hvlip _ _).trans (mul_le_mul_of_nonneg_left (hκlip z z') hL0)
+    have hmax : max |z'.im - z.im| ‖v (z'.re, z'.im) - v (z.re, z.im)‖
+        ≤ (1 + 2 * Real.sqrt A) * ‖z - z'‖ := by
+      refine max_le (h2.trans ?_) (h3.trans ?_)
+      · nlinarith [norm_nonneg (z - z'), Real.sqrt_nonneg A]
+      · nlinarith [norm_nonneg (z - z')]
+    calc ‖FloerRegularity.toCpxL (hamGrad H z'.im (v (z'.re, z'.im))
+            - hamGrad H z.im (v (z.re, z.im))) i‖
+        ≤ 2 * ‖hamGrad H z'.im (v (z'.re, z'.im)) - hamGrad H z.im (v (z.re, z.im))‖ :=
+          FloerRegularity.norm_toCpxL_le _ i
+      _ ≤ 2 * (LN * max |z'.im - z.im| ‖v (z'.re, z'.im) - v (z.re, z.im)‖) := by
+          gcongr
+      _ ≤ 2 * (LN * ((1 + 2 * Real.sqrt A) * ‖z - z'‖)) := by gcongr
+      _ = 2 * LN * (1 + 2 * Real.sqrt A) * ‖z - z'‖ := by ring
+  -- the locally uniform convergence of the complexified data
+  have hconv : ∀ K : Set ℂ, IsCompact K → TendstoUniformlyOn
+      (fun n z => u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))
+      (fun z => v (z.re, z.im)) atTop K := by
+    intro K hK
+    have hK' : IsCompact ((fun z : ℂ => ((z.re, z.im) : ℝ × ℝ)) '' K) := hK.image hκc
+    have h := (hvu _ hK').comp fun z : ℂ => ((z.re, z.im) : ℝ × ℝ)
+    exact h.mono (Set.subset_preimage_image _ _)
+  have hWlim : ∀ (i : l) (K : Set ℂ), IsCompact K → TendstoUniformlyOn
+      (fun n z => FloerRegularity.toCpxL (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) i)
+      (fun z => FloerRegularity.toCpxL (v (z.re, z.im)) i) atTop K := by
+    intro i K hK
+    have h := ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp
+      FloerRegularity.toCpxL).uniformContinuous.comp_tendstoUniformlyOn (hconv K hK)
+    exact h
+  have hflim : ∀ (i : l) (K : Set ℂ), IsCompact K → TendstoUniformlyOn
+      (fun n z => -(FloerRegularity.toCpxL
+        (hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))) i))
+      (fun z => -(FloerRegularity.toCpxL (hamGrad H z.im (v (z.re, z.im))) i)) atTop K := by
+    intro i K hK
+    rw [Metric.tendstoUniformlyOn_iff]
+    intro ε hε
+    have h := (Metric.tendstoUniformlyOn_iff.1 (hconv K hK)) (ε / (2 * LN + 1)) (by positivity)
+    have hδ : 0 < ε / (2 * LN + 1) := by positivity
+    filter_upwards [h] with n hn z hz
+    have e := hn z hz
+    rw [dist_eq_norm] at e ⊢
+    rw [neg_sub_neg, ← Pi.sub_apply, ← map_sub]
+    have h1 := hLN z.im z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) (v (z.re, z.im))
+    rw [hpair, sub_self, abs_zero, max_eq_right (norm_nonneg _)] at h1
+    calc ‖FloerRegularity.toCpxL (hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))
+            - hamGrad H z.im (v (z.re, z.im))) i‖
+        ≤ 2 * ‖hamGrad H z.im (u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ))
+            - hamGrad H z.im (v (z.re, z.im))‖ := FloerRegularity.norm_toCpxL_le _ i
+      _ ≤ 2 * (LN * ‖(u (φ n) z.re z.im - fun i => (k (φ n) i : ℝ)) - v (z.re, z.im)‖) := by
+          gcongr
+      _ < 2 * (LN * (ε / (2 * LN + 1))) + ε / (2 * LN + 1) := by
+          rw [norm_sub_rev] at e
+          have := mul_le_mul_of_nonneg_left e.le hLN0
+          linarith
+      _ = ε * ((2 * LN + 1) / (2 * LN + 1)) := by ring
+      _ = ε := by rw [div_self (by positivity), mul_one]
+  -- the limit is `C¹` and solves the complexified equation
+  have hreg : ∀ i : l, ContDiff ℝ 1 (fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i) ∧
+      ∀ z, CauchyPompeiu.dbar (fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i) z
+        = -(FloerRegularity.toCpxL (hamGrad H z.im (v (z.re, z.im))) i) := fun i =>
+    DbarLimit.contDiff_one_of_tendsto_dbar (fun n => hWC1 n i) (fun n => hfc n i)
+      (fun n z => hWdbar n i z) (hVlip i) (hglip i) (hWlim i) (hflim i)
+  -- hence smooth, by the elliptic bootstrap
+  have hGsmooth : ∀ i : l, ContDiff ℝ ∞ fun p : ℂ × (l → ℂ) =>
+      -(FloerRegularity.toCpxL (hamGrad H p.1.im (FloerRegularity.ofCpxL p.2)) i) := by
+    intro i
+    have h1 : ContDiff ℝ ∞ fun p : ℂ × (l → ℂ) =>
+        ((p.1.im, FloerRegularity.ofCpxL p.2) : ℝ × ((l ⊕ l) → ℝ)) :=
+      ((Complex.imCLM.comp (ContinuousLinearMap.fst ℝ ℂ (l → ℂ))).prod
+        (FloerRegularity.ofCpxL.comp (ContinuousLinearMap.snd ℝ ℂ (l → ℂ)))).contDiff
+    exact ((ContinuousLinearMap.contDiff
+      ((ContinuousLinearMap.proj (R := ℝ) (φ := fun _ : l => ℂ) i).comp
+        FloerRegularity.toCpxL)).comp ((contDiff_hamGrad H hH).comp h1)).neg
+  have heq' : ∀ (i : l) (z : ℂ),
+      CauchyPompeiu.dbar (fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i) z
+        = -(FloerRegularity.toCpxL (hamGrad H z.im (FloerRegularity.ofCpxL
+            fun j => FloerRegularity.toCpxL (v (z.re, z.im)) j)) i) := by
+    intro i z
+    rw [(hreg i).2 z]
+    have h : (fun j => FloerRegularity.toCpxL (v (z.re, z.im)) j)
+        = FloerRegularity.toCpxL (v (z.re, z.im)) := rfl
+    rw [h, FloerRegularity.ofCpxL_toCpxL]
+  have hVsmooth : ∀ i : l, ContDiff ℝ ∞ fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i :=
+    fun i => CauchyHolder.contDiff_infty_of_dbar_system
+      (G := fun (i : l) (z : ℂ) (Y : l → ℂ) =>
+        -(FloerRegularity.toCpxL (hamGrad H z.im (FloerRegularity.ofCpxL Y)) i))
+      (fun i => (hreg i).1) hGsmooth heq' i
+  have hemb : ContDiff ℝ ∞ fun p : ℝ × ℝ => ((p.1 : ℂ) + Complex.I * (p.2 : ℂ)) :=
+    ((Complex.ofRealCLM.comp (ContinuousLinearMap.fst ℝ ℝ ℝ))
+      + Complex.I • (Complex.ofRealCLM.comp (ContinuousLinearMap.snd ℝ ℝ ℝ))).contDiff
+  have hvsmooth : ContDiff ℝ ∞ v := by
+    have hback : v = fun p : ℝ × ℝ => FloerRegularity.ofCpxL fun i =>
+        (fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i)
+          ((p.1 : ℂ) + Complex.I * (p.2 : ℂ)) := by
+      funext p
+      dsimp only
+      have hre : ((p.1 : ℂ) + Complex.I * (p.2 : ℂ)).re = p.1 := by simp
+      have him : ((p.1 : ℂ) + Complex.I * (p.2 : ℂ)).im = p.2 := by simp
+      rw [hre, him]
+      have h : (fun i => FloerRegularity.toCpxL (v (p.1, p.2)) i)
+          = FloerRegularity.toCpxL (v (p.1, p.2)) := rfl
+      rw [h, FloerRegularity.ofCpxL_toCpxL]
+    rw [hback]
+    exact (ContinuousLinearMap.contDiff FloerRegularity.ofCpxL).comp
+      (contDiff_pi.2 fun i => (hVsmooth i).comp hemb)
+  -- the real solution
+  have hVU : ContDiff ℝ ∞ fun p : ℝ × ℝ => (fun s t => v (s, t)) p.1 p.2 := by
+    have e : (fun p : ℝ × ℝ => (fun s t => v (s, t)) p.1 p.2) = v := funext fun p => by simp
+    rw [e]
+    exact hvsmooth
+  have hsv : IsSmoothLoopVariation fun s t => v (s, t) :=
+    isSmoothLoopVariation_of_contDiff hVU fun s t => hvper s t
+  have hfloer : ∀ s t, dS (fun s t => v (s, t)) s t + stdJ l (dT (fun s t => v (s, t)) s t)
+      + hamGrad H t (v (s, t)) = 0 := by
+    intro s t
+    have hd := FloerRegularity.dbar_toCpx hsv.hasDerivAt_s hsv.hasDerivAt_t hsv.continuous_s
+      hsv.continuous_t
+    have hcomp : ∀ i : l, FloerRegularity.toCpxL (dS (fun s t => v (s, t)) s t
+        + stdJ l (dT (fun s t => v (s, t)) s t) + hamGrad H t (v (s, t))) i = 0 := by
+      intro i
+      have h1 : FloerRegularity.toCpxL (dS (fun s t => v (s, t)) s t
+          + stdJ l (dT (fun s t => v (s, t)) s t)) i
+          = CauchyPompeiu.dbar (fun z : ℂ => FloerRegularity.toCpxL (v (z.re, z.im)) i)
+            (⟨s, t⟩ : ℂ) := (hd i (⟨s, t⟩ : ℂ)).symm
+      have h2 := (hreg i).2 (⟨s, t⟩ : ℂ)
+      rw [map_add, Pi.add_apply, h1, h2]
+      show -(FloerRegularity.toCpxL (hamGrad H t (v (s, t))) i)
+        + FloerRegularity.toCpxL (hamGrad H t (v (s, t))) i = 0
+      ring
+    have h : FloerRegularity.toCpxL (dS (fun s t => v (s, t)) s t
+        + stdJ l (dT (fun s t => v (s, t)) s t) + hamGrad H t (v (s, t))) = 0 := funext hcomp
+    have := congrArg FloerRegularity.ofCpxL h
+    rwa [FloerRegularity.ofCpxL_toCpxL, map_zero] at this
+  refine ⟨φ, fun n => k (φ n), fun s t => v (s, t), hφ, ⟨hsv, hfloer⟩, fun K hK => ?_⟩
+  exact (hvu K hK).congr_right fun p _ => by simp
+
+end LimitSolution
 
 end Compactness
 

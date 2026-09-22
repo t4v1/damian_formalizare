@@ -30,6 +30,8 @@ import MorseFloer.Part2.FloerRegularity
 import MorseFloer.Part2.ApproxOrbit
 import MorseFloer.Part2.MeanValue
 import MorseFloer.Part2.LatticePath
+import MorseFloer.Part2.DbarLimit
+import MorseFloer.Part2.LipschitzLimit
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.SardMoreira.MainTheorem

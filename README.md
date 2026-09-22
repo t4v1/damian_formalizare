@@ -17,11 +17,11 @@ blueprint entry with no Lean declaration, rather than an invented statement.
 
 ## Status
 
-All sixteen chapters are formalized. **10 `sorry`s remain**, all in Part II:
+All sixteen chapters are formalized. **9 `sorry`s remain**, all in Part II:
 
 | Chapter | `sorry` | What is missing |
 |---|---|---|
-| 6 The Arnold conjecture and the Floer equation | 2 | compactness of the space of finite-energy solutions (6.5.4), which needs uniform elliptic estimates and Ascoli, and the Arnold conjecture on the torus |
+| 6 The Arnold conjecture and the Floer equation | 1 | the Arnold conjecture on the torus itself, whose proof is Chapters 8–11 with their geometric input |
 | 7 The symplectic group and the Maslov index | 8 | the map `ρ : Sp(2n) → S¹` and `π₁(Sp(2n)) ≅ ℤ` (7.1.3–7.1.6), existence of the Conley–Zehnder index (7.2.1), Lemma 7.2.4 |
 
 Everything else is proved, including:
@@ -46,7 +46,8 @@ Everything else is proved, including:
   uniform energy bound (Cor. 6.5.11); the uniform gradient bound for solutions of bounded energy
   (Prop. 6.6.2), by a mean value inequality and Hofer's lemma instead of bubbling; the convergence
   of finite-energy solutions to periodic orbits at both ends (Thm. 6.5.6), without the
-  compactness theorem; Sard's theorem in all
+  compactness theorem; and the compactness theorem itself (Thm. 6.5.4), by Ascoli and the
+  Cauchy transform rather than uniform elliptic estimates; Sard's theorem in all
   dimensions (the case `dim E > dim F` via Kudryashov's formalization of
   Moreira's theorem, see below).
 

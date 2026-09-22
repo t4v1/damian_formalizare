@@ -1463,18 +1463,50 @@ gaps.
   makes the loops converge to the orbit through the limit.
 \end{theorem}
 
-\begin{theorem}[Theorem 6.5.4, compactness; Conjecture 6.1.2]
+\begin{theorem}[Theorem 6.5.4, compactness of the space of solutions]
   \label{thm:6.5.4}
-  \lean{MorseFloer.Chapter6.compactness_of_energy_bounded,
-        MorseFloer.Chapter6.arnold_conjecture_torus}
+  \lean{MorseFloer.LipschitzLimit.exists_subseq_tendstoUniformlyOn,
+        MorseFloer.DbarLimit.tendsto_cauchyTransform,
+        MorseFloer.DbarLimit.contDiff_one_of_tendsto_dbar,
+        MorseFloer.Chapter6.isSmoothLoopVariation_of_contDiff,
+        MorseFloer.Chapter6.IsFloerSolution.sub_lattice,
+        MorseFloer.Chapter6.lipschitz_of_gradient_bound,
+        MorseFloer.Chapter6.compactness_of_energy_bounded}
+  \leanok
+  \uses{prop:6.6.2, prop:6.5.3, thm:cauchy-pompeiu, prop:schauder}
+  A sequence of solutions of uniformly bounded energy has a subsequence which,
+  after translation by lattice vectors, converges uniformly on every compact
+  subset of the cylinder to a solution.  \emph{Proved}, and without the uniform
+  elliptic estimates of the book.  The gradient bound (\ref{prop:6.6.2}) makes
+  the translated solutions equi-Lipschitz, and Arzel\`a--Ascoli --- done by
+  hand: restricted to the rational points the sequence lives in a compact,
+  first-countable product of closed balls, which replaces the diagonal
+  argument, and the Lipschitz bound spreads the convergence to compact sets ---
+  gives a locally uniformly convergent subsequence with a Lipschitz limit.  Read
+  in $\mathbb{C}^n$, each solution satisfies $\bar\partial u_i = G_i(z,u)$, and
+  the right-hand sides converge locally uniformly too.  For a cut-off $\chi$,
+  $\chi u = T(\chi\,\bar\partial u + u\,\bar\partial\chi)$ by the
+  Cauchy--Pompeiu formula (\ref{thm:cauchy-pompeiu}), and both sides pass to the
+  limit, the Cauchy transform being continuous under uniform convergence of
+  data with supports in a fixed disc; the two data of the limit are Lipschitz
+  with compact support, so their transforms are $C^1$ with the prescribed
+  $\bar\partial$ (\ref{prop:schauder}).  Hence the limit is $C^1$ and solves the
+  limiting equation, the bootstrap (\ref{prop:6.5.3}) makes it smooth, and
+  smoothness supplies the partial derivatives the definition of a solution asks
+  for.  The convergence of the derivatives is a consequence, not an input.
+\end{theorem}
+
+\begin{theorem}[Conjecture 6.1.2 on the torus]
+  \label{thm:6.1.2}
+  \lean{MorseFloer.Chapter6.arnold_conjecture_torus}
   \notready
-  \uses{prop:6.5.7, prop:6.6.2, thm:6.5.6}
-  Solutions of bounded energy are compact up to breaking, and the Arnold
-  conjecture on the torus.  \emph{Assumed}: with elliptic regularity
-  (\ref{prop:6.5.3}) and the uniform gradient bound (\ref{prop:6.6.2}) in hand,
-  what the compactness proof still needs is Ascoli's theorem together with
-  \emph{uniform} $C^{1,\alpha}$ estimates, the bootstrap of
-  \ref{thm:dbar-bootstrap} being qualitative.
+  \uses{thm:6.5.4, thm:6.5.6}
+  A Hamiltonian diffeomorphism of $T^{2n}$ all of whose fixed points are
+  nondegenerate has at least $2^{2n}$ of them.  \emph{Assumed}: this is the
+  theorem the whole of Part II proves, and its proof runs through Chapters
+  8--11, whose geometric input --- the spaces of trajectories and the
+  transversality theory --- enters as explicit hypotheses for want of
+  submanifolds and tubular neighbourhoods in Mathlib.
 \end{theorem}
 
 \chapter{The Maslov and Conley--Zehnder indices (Chapter 7)}
