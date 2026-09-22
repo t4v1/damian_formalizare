@@ -1600,6 +1600,33 @@ gaps.
   continuous in the matrix, by the Leibniz formula.
 \end{lemma}
 
+\begin{lemma}[Lemma 7.3.3 and Corollary 7.3.4: the form $H$ on the generalised eigenspaces]
+  \label{lem:7.3.3}
+  \lean{MorseFloer.SymplecticEigen.HForm, MorseFloer.SymplecticEigen.HForm_cpx,
+        MorseFloer.SymplecticEigen.HForm_eq_zero_of_inGen,
+        MorseFloer.SymplecticEigen.HForm_eq_zero_of_inGen_self,
+        MorseFloer.SymplecticEigen.eq_zero_of_forall_HForm_eq_zero,
+        MorseFloer.SymplecticEigen.eq_zero_of_inGen_of_forall_HForm_eq_zero,
+        MorseFloer.SymplecticEigen.eq_zero_of_inGen_of_forall_BForm_eq_zero}
+  \leanok
+  \uses{def:7.1.c}
+  On $\mathbb{C}^{2n}$ let $H(X, Y) = \omega(X, \bar Y)$, a sesquilinear form
+  whose imaginary part is the real form $B$ of \S7.3.a.  A real symplectic
+  matrix, complexified, preserves $H$: it preserves $\omega$ and commutes with
+  conjugation.  Lemma 7.3.3: the generalised eigenspaces $E_\mu$ and $E_\nu$ of
+  such a matrix are $H$-orthogonal whenever $\mu\bar\nu \ne 1$.  The proof is the
+  book's: for $X \in \ker (A-\mu)^k$ and $Y \in \ker (A-\nu)^l$ write
+  $AX = \mu X + X'$ and $AY = \nu Y + Y'$ with $X'$, $Y'$ one level down, expand
+  $H(X,Y) = H(AX, AY)$, and induct on the levels.  Corollary 7.3.4: $E_\mu$ is
+  $H$-isotropic when $\lvert\mu\rvert \ne 1$.  Finally $H$ is nondegenerate on
+  $\mathbb{C}^{2n}$, so it is nondegenerate on $E_\nu$ when
+  $\lvert\nu\rvert = 1$: a vector of $E_\nu$ orthogonal to $E_\nu$ is orthogonal
+  to every other $E_\mu$ by the lemma, hence to everything, the generalised
+  eigenspaces spanning $\mathbb{C}^{2n}$; replacing $Y$ by $iY$ gives the same
+  for $B$.  This is what makes the signature $m_+(\nu)$ of $Q$ on $E_\nu$
+  meaningful, the third brick for $\rho$.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1607,7 +1634,7 @@ gaps.
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
-  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector}
+  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

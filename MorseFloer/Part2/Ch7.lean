@@ -74,13 +74,18 @@ Rather than inventing a construction, this file
   `‖S‖ < 2π` implies `exp(JS)` has no eigenvalue `1`, by Yorke's theorem applied
   to the linear field `JS` (`Part2/LinearYorke.lean`).
 
-The first two bricks towards the construction of `ρ` are in place, not yet
+The first three bricks towards the construction of `ρ` are in place, not yet
 used here: `Part2/RootsContinuity.lean` proves that the roots of a monic
 polynomial over `ℂ` depend continuously on its coefficients, counted with
-multiplicity, and `Part2/SpectralProjector.lean` builds, for a disc whose
-boundary carries no eigenvalue, the spectral projector onto the sum of the
-generalised eigenspaces of the eigenvalues in the disc, continuous in the
-matrix, with the number of those eigenvalues locally constant.
+multiplicity; `Part2/SpectralProjector.lean` builds, for a disc whose boundary
+carries no eigenvalue, the spectral projector onto the sum of the generalised
+eigenspaces of the eigenvalues in the disc, continuous in the matrix, with the
+number of those eigenvalues locally constant; and `Part2/SymplecticEigen.lean`
+(which imports this file for `stdFormC` and `BForm`) proves Lemma 7.3.3 and
+Corollary 7.3.4 for the sesquilinear form `H(X, Y) = ω(X, Ȳ)` — the generalised
+eigenspaces `E_μ`, `E_ν` of a symplectic matrix are `H`-orthogonal when
+`μν̄ ≠ 1`, `E_μ` is isotropic when `|μ| ≠ 1` — and that `H` and `B` are
+nondegenerate on `E_ν` when `|ν| = 1`.
 
 Assumed (`sorry`):
 
@@ -119,13 +124,11 @@ Omitted as unstatable with today's Mathlib (recorded here rather than faked):
   connects them to a product over the spectrum, and the continuity of `ρ` rests
   on continuity of eigenvalues *and* of characteristic subspaces in the
   Grassmannian, which is absent.  Only the preliminaries §7.3.a are formalized.
-* **Lemma 7.3.3** and **Corollary 7.3.4**, the `B`-orthogonality of the
-  characteristic subspaces `E_λ`, `E_μ` for `λμ ≠ 1` and the vanishing signature
-  of `Q` on `E_λ ⊕ E_{1/λ}`.  The first is the complex shadow of
-  Proposition 5.6.6, which is `sorry` in Chapter 5 beyond genuine eigenvectors;
-  the second needs the signature discussed above.  **Corollary 7.3.2** (the
-  signature of `Q` on all of `ℂ²ⁿ` vanishes) is omitted for the same reason;
-  its nondegeneracy half is proved here as `BForm_eq_zero_of_forall`.
+* **Corollary 7.3.2** (the signature of `Q` on all of `ℂ²ⁿ` vanishes) and the
+  vanishing signature of `Q` on `E_λ ⊕ E_{1/λ}` in **Corollary 7.3.4**: they need
+  the signature discussed above.  The nondegeneracy half of 7.3.2 is proved
+  here as `BForm_eq_zero_of_forall`; **Lemma 7.3.3** and the isotropy half of
+  7.3.4 are proved in `Part2/SymplecticEigen.lean`.
 -/
 
 open LinearMap (BilinForm)
