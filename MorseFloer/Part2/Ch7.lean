@@ -102,8 +102,9 @@ continuity clause of Theorem 7.1.3, and `Part2/RhoProperties.lean` proves that
 it takes its values in the unit circle and satisfies `ρ(A⁻¹) = conj ρ(A)`,
 `Part2/RhoNaturality.lean` that `ρ(TAT⁻¹) = ρ(A)` for `T` symplectic and
 `ρ(Aᵀ) = ρ(A⁻¹)`, and `Part2/RhoNormalisation.lean` the normalisation
-`ρ(A) = (−1)^{m₀/2}` on real spectra; block sums and the unitary determinant
-remain to be checked for it.
+`ρ(A) = (−1)^{m₀/2}` on real spectra, and `Part2/RhoBlockSum.lean` the product
+`ρ(A ⊕ B) = ρ(A)ρ(B)`; only the unitary determinant remains to be checked for
+it.
 
 Assumed (`sorry`):
 
