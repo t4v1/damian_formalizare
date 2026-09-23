@@ -1906,13 +1906,40 @@ gaps.
   \ref{prop:7.3.5}, by the six propositions above.
 \end{theorem}
 
+\begin{lemma}[Lemma 7.1.6: the lifts of $\rho$ on $Sp(2n)^\pm$]
+  \label{lem:7.1.6}
+  \lean{MorseFloer.Rho.rhoLift, MorseFloer.Rho.exp_rhoLiftC,
+        MorseFloer.Rho.det_sub_one_pos_iff, MorseFloer.Rho.continuousOn_rhoLift,
+        MorseFloer.Chapter7.exists_lift_symplecticPlus,
+        MorseFloer.Chapter7.exists_lift_symplecticMinus}
+  \leanok
+  \uses{thm:7.1.3, prop:7.3.6, lem:eigen-mult}
+  On each of $Sp(2n)^\pm$ the map $\rho$ admits a continuous real lift through
+  $\theta \mapsto e^{i\theta}$.  The lift is the function of \S7.3.d,
+  $\tilde\rho(A) = \sum_{\lambda \in S^1, \operatorname{Im}\lambda > 0}
+  (2\pi m_-(\lambda) + \sigma(\lambda)\arg\lambda) + \sum_{\operatorname{Im}\lambda > 0,
+  \lvert\lambda\rvert \neq 1} \pi m(\lambda) + \sum_{\lambda \in \mathbb{R}}
+  \tfrac{\pi}{2} m(\lambda)$, plus $\pi$ on $Sp(2n)^-$.  It lifts $\rho$ because
+  $e^{i\tilde\rho} = \rho\,(-1)^q$ with $q$ the number of real eigenvalues larger
+  than $1$ (the upper eigenvalues off the circle pair as $\mu, 1/\bar\mu$, the
+  real ones pair as $\mu, 1/\mu$), and $(-1)^q$ is the sign of $\det(A - 1)
+  = \prod(1 - \mu)$, the non-real factors pairing into $\lvert 1 - \mu\rvert^2$.
+  It is continuous on $Sp(2n)^\star$ by the same localisation at the eigenvalues
+  as for $\rho$: the local sum is $0$ below the real axis, $\pi m(D)$ above it
+  off the circle, $\tfrac{\pi}{2} m(D)$ at a real centre other than $\pm 1$,
+  $\tfrac{\pi}{2} m(D) + \sum \sigma(\mu)\arg(-\mu)$ at $-1$ with
+  $\arg(-\mu) \to 0$, and $2\pi m_-(V_D) + \sum\sigma(\mu)\arg\mu$ on the upper
+  circle, where the negative index of the eigenspace sum of the disc is locally
+  constant by \ref{prop:7.3.6} and $\sum\sigma(\mu) = \sigma(\lambda)$.
+\end{lemma}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
         MorseFloer.Chapter7.exists_isConleyZehnderIndex,
         MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub}
   \notready
-  \uses{def:7.1.c, thm:7.1.3}
+  \uses{def:7.1.c, thm:7.1.3, lem:7.1.6}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

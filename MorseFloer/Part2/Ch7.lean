@@ -2,6 +2,7 @@ import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.LinearYorke
 import MorseFloer.Part2.SymplecticForms
 import MorseFloer.Part2.RhoUnitary
+import MorseFloer.Part2.RhoLiftContinuity
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -107,7 +108,12 @@ it takes its values in the unit circle and satisfies `ρ(A⁻¹) = conj ρ(A)`,
 `ρ(A) = (−1)^{m₀/2}` on real spectra, and `Part2/RhoBlockSum.lean` the product
 `ρ(A ⊕ B) = ρ(A)ρ(B)`, and `Part2/RhoUnitary.lean` the last clause,
 `ρ = det(X + iY)` on the unitary matrices.  **Theorem 7.1.3 is therefore
-proved** (`exists_isRho`), by exhibiting this `ρ`.  The definitions of §7.3.a
+proved** (`exists_isRho`), by exhibiting this `ρ`; and **Lemma 7.1.6** is
+proved for it too (`exists_lift_symplecticPlus`, `exists_lift_symplecticMinus`):
+`Part2/RhoLift.lean` writes down the lift `ρ̃` of §7.3.d and checks
+`exp(iρ̃) = ρ` on `Sp(2n)⁺`, `exp(i(ρ̃ + π)) = ρ` on `Sp(2n)⁻`, through the sign of
+`det(A − 1)`, and `Part2/RhoLiftContinuity.lean` proves `ρ̃` continuous on
+`Sp(2n)⋆`.  The definitions of §7.3.a
 (`stdFormC`, `conjVec`, `BForm`), of the block sum and of the real spectrum live
 in `Part2/SymplecticForms.lean`, under this chapter's namespace, so that the
 bricks can be built without importing this file.
@@ -116,7 +122,6 @@ Assumed (`sorry`):
 
 * **Proposition 7.1.4**, the path-connectedness of `Sp(2n)±`, and **Lemma 7.1.5**
   on which it rests;
-* **Lemma 7.1.6**, the continuous lifts `ρ± : Sp(2n)± → ℝ`;
 * **Proposition 7.2.1**/the existence of the index
   (`exists_isConleyZehnderIndex`);
 * **Lemma 7.2.4**.
@@ -584,29 +589,30 @@ end Components
 
 section Lifts
 
-variable {ρ : ∀ n : ℕ, Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ → ℂ}
+/-- **Lemma 7.1.6.**  On each of `Sp(2n)±` the map `ρ` of Theorem 7.1.3 admits a
+continuous real-valued lift through `θ ↦ e^{iθ}`.  This is what makes the
+inclusions `Sp(2n)± ↪ Sp(2n)` trivial on fundamental groups, hence what makes
+the class of the connecting path `γ_A` of §7.2.a well defined.
 
-/-- **Lemma 7.1.6.**  On each of `Sp(2n)±` the map `ρ` admits a continuous
-real-valued lift through `θ ↦ e^{iθ}`.  This is what makes the inclusions
-`Sp(2n)± ↪ Sp(2n)` trivial on fundamental groups, hence what makes the class of
-the connecting path `γ_A` of §7.2.a well defined.
-
-Not proved.  The lift is written down in §7.3.d from the explicit formula for
-`ρ` in terms of arguments of the eigenvalues on the unit circle, and its
-continuity is checked by the same four-case analysis that proves the continuity
-of `ρ`; the formula for `ρ` is not available here. -/
-theorem exists_lift_symplecticPlus (_hρ : IsRho ρ) (n : ℕ) :
+The lift is written down in §7.3.d from the explicit formula for `ρ` in terms of
+the arguments of the eigenvalues on the unit circle (`Rho.rhoLift`,
+`Part2/RhoLift.lean`), and its continuity on `Sp(2n)⋆` is checked in
+`Part2/RhoLiftContinuity.lean` by the same case analysis that proves the
+continuity of `ρ`. -/
+theorem exists_lift_symplecticPlus (n : ℕ) :
     ∃ f : Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ → ℝ,
       ContinuousOn f (symplecticPlus (Fin n)) ∧
-      ∀ A ∈ symplecticPlus (Fin n), Complex.exp (f A * Complex.I) = ρ n A := by
-  sorry
+      ∀ A ∈ symplecticPlus (Fin n), Complex.exp (f A * Complex.I) = Rho.rho n A := by
+  obtain ⟨f, hf, hexp⟩ := Rho.exists_lift_plus n
+  exact ⟨f, hf, fun A hA => hexp A hA.1 hA.2⟩
 
-/-- **Lemma 7.1.6** for the other component.  Not proved, for the same reason. -/
-theorem exists_lift_symplecticMinus (_hρ : IsRho ρ) (n : ℕ) :
+/-- **Lemma 7.1.6** for the other component: on `Sp(2n)⁻` the lift is `ρ̃ + π`. -/
+theorem exists_lift_symplecticMinus (n : ℕ) :
     ∃ f : Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ → ℝ,
       ContinuousOn f (symplecticMinus (Fin n)) ∧
-      ∀ A ∈ symplecticMinus (Fin n), Complex.exp (f A * Complex.I) = ρ n A := by
-  sorry
+      ∀ A ∈ symplecticMinus (Fin n), Complex.exp (f A * Complex.I) = Rho.rho n A := by
+  obtain ⟨f, hf, hexp⟩ := Rho.exists_lift_minus n
+  exact ⟨f, hf, fun A hA => hexp A hA.1 hA.2⟩
 
 end Lifts
 
