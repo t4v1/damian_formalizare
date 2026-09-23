@@ -1993,6 +1993,67 @@ gaps.
   on the connected $\mathbb{R}$, hence by a constant.
 \end{lemma}
 
+\begin{lemma}[Rotations, block sums and a homotopy in $\mathcal{S}$]
+  \label{lem:maslov-paths}
+  \lean{MorseFloer.Chapter7.realForm, MorseFloer.Chapter7.exp_realForm,
+        MorseFloer.Chapter7.exp_smul_J,
+        MorseFloer.Chapter7.realForm_mem_symplecticGroup,
+        MorseFloer.Chapter7.exp_blockSum, MorseFloer.Chapter7.expPath_blockSum,
+        MorseFloer.Chapter7.isAdmissiblePath_blockSum,
+        MorseFloer.Chapter7.isAdmissiblePath_expPath_rot,
+        MorseFloer.Chapter7.isAdmissiblePath_expPath_hypBlock,
+        MorseFloer.Chapter7.negEigenCount_smul_one,
+        MorseFloer.Chapter7.negEigenCount_hypBlock,
+        MorseFloer.Chapter7.homotopicInS_rot}
+  \leanok
+  \uses{def:7.1.c, lem:7.1.2}
+  The matrix input of Lemma 7.2.4 (\texttt{Part2/MaslovPaths.lean}).  The real
+  form $X + iY \mapsto \begin{pmatrix} X & -Y \\ Y & X\end{pmatrix}$ is a continuous
+  ring homomorphism $M_n(\mathbb{C}) \to M_{2n}(\mathbb{R})$ sending $i\,\mathrm{Id}$
+  to $J$ and unitary matrices to symplectic ones, so it commutes with $\exp$ and
+  $\exp(\theta J)$ is the real form of $e^{i\theta}\mathrm{Id}$, in every
+  dimension.  The block sum is a continuous ring homomorphism from the product,
+  so $\exp(tJ(S\oplus B)) = \exp(tJS) \oplus \exp(tJB)$, and the block sum of
+  two admissible paths is admissible.  The path of $\ell\pi\,\mathrm{Id}$ for odd
+  $\ell$ ends at $-\mathrm{Id}$, hence is admissible; the hyperbolic block
+  $\operatorname{diag}(1,-1)$ has one negative eigenvalue and its path is admissible
+  by Remark 7.1.2.  Finally, for odd $\ell$ the paths
+  $\exp(t(\ell+2)\pi J) \oplus \exp(t(\ell-2)\pi J)$ and
+  $\exp(t\ell\pi J) \oplus \exp(t\ell\pi J)$ in $Sp(4)$ are homotopic in
+  $\mathcal{S}$: both are real forms of paths in $U(2)$ from $\mathrm{Id}$ to
+  $-\mathrm{Id}$ differing by the loop $\operatorname{diag}(e^{2\pi it},
+  e^{-2\pi it})$ of $SU(2)$, which is contracted through the loops
+  $\gamma_s(t) = \begin{pmatrix} e^{2\pi it}\cos\theta_s & -\sin\theta_s \\
+  \sin\theta_s & e^{-2\pi it}\cos\theta_s\end{pmatrix} R_{-\theta_s}$,
+  $\theta_s = s\pi/2$, based at $\mathrm{Id}$.
+\end{lemma}
+
+\begin{lemma}[Lemma 7.2.4]
+  \label{lem:7.2.4}
+  \lean{MorseFloer.Chapter7.index_expPath_smul_one,
+        MorseFloer.Chapter7.index_expPath_blockSum,
+        MorseFloer.Chapter7.index_expPath_hypBlock,
+        MorseFloer.Chapter7.index_expPath_rot_recurrence,
+        MorseFloer.Chapter7.index_expPath_rot,
+        MorseFloer.Chapter7.exists_symmetric_of_index_two,
+        MorseFloer.Chapter7.exists_symmetric_of_index}
+  \leanok
+  \uses{def:7.2, lem:maslov-paths}
+  For every $k \in \mathbb{Z}$ and $n \ge 2$ there is a symmetric $S_k$ whose path
+  $\exp(tJS_k)$ is admissible and has index $k$.  Proved from the axioms of
+  Proposition 7.2.1 alone.  Normalisation gives the index of $\exp(tcJ)$ on
+  $\mathbb{R}^{2m}$ for $c = \pm\pi$ ($-m$ and $+m$) and of the hyperbolic block
+  ($0$).  On $\mathbb{R}^2$ the index of $\exp(t\ell\pi J)$ is $-\ell$ for every odd
+  $\ell$, by induction on $|\ell|$ from the recurrence
+  $\mu(\ell+2) + \mu(\ell-2) = 2\mu(\ell)$, which is additivity applied to the
+  homotopy of \ref{lem:maslov-paths}.  Then $S_k$ is the block sum of a $4\times 4$
+  block of index $k - (n-2)$ — $-\pi\,\mathrm{Id} \oplus (1-k)\pi\,\mathrm{Id}$ for
+  $k$ even, $\operatorname{diag}(1,-1) \oplus (-k)\pi\,\mathrm{Id}$ for $k$ odd —
+  with $-\pi\,\mathrm{Id}$ on $\mathbb{R}^{2(n-2)}$.  The hypothesis $n \ge 2$ is
+  necessary: on $\mathbb{R}^2$ such a path ends at a rotation or a hyperbolic
+  matrix and its index is odd or $0$.
+\end{lemma}
+
 \chapter{From Floer to Morse (Chapter 10)}
 
 \begin{theorem}[Theorem 10.1.1, the comparison of the two complexes]

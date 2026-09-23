@@ -3,6 +3,7 @@ import MorseFloer.Part2.LinearYorke
 import MorseFloer.Part2.SymplecticForms
 import MorseFloer.Part2.RhoUnitary
 import MorseFloer.Part2.RhoLiftContinuity
+import MorseFloer.Part2.MaslovPaths
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -123,8 +124,17 @@ Assumed (`sorry`):
 * **Proposition 7.1.4**, the path-connectedness of `Sp(2n)±`, and **Lemma 7.1.5**
   on which it rests;
 * **Proposition 7.2.1**/the existence of the index
-  (`exists_isConleyZehnderIndex`);
-* **Lemma 7.2.4**.
+  (`exists_isConleyZehnderIndex`).
+
+**Lemma 7.2.4 is proved** from the axioms of Proposition 7.2.1 alone
+(`exists_symmetric_of_index`), for `n ≥ 2` — for `n = 1` the statement is false
+(a path `exp(tJS)` on `ℝ²` has odd index or index `0`).  The matrix input — the
+rotation `exp(tcJ)` as the real form of `e^{itc}·Id`, block sums commuting with
+`exp`, the hyperbolic block, and the homotopy in `S` between
+`exp(t(ℓ+2)πJ) ⊕ exp(t(ℓ−2)πJ)` and `exp(tℓπJ) ⊕ exp(tℓπJ)` through the
+contraction of a loop of `SU(2)` — is in `Part2/MaslovPaths.lean`; the index of
+`exp(tℓπJ)` on `ℝ²`, `−ℓ` for odd `ℓ`, then follows by induction from the
+normalisation at `ℓ = ±1`, additivity and homotopy invariance.
 
 Omitted as unstatable with today's Mathlib (recorded here rather than faked):
 
@@ -168,105 +178,10 @@ namespace Chapter7
 
 /-! ## §7.1.c The subset `Sp(2n)⋆`
 
-The transformations relevant to the index are the symplectic ones without the
-eigenvalue `1`; they form the open set `Sp(2n)⋆`, the complement in `Sp(2n)` of
-the "hypersurface" `Σ` of matrices that do have it.  Since `det(A − Id)` is a
-continuous nowhere-zero function on `Sp(2n)⋆`, that set is split by its sign
-into the two open pieces `Sp(2n)+` and `Sp(2n)−`. -/
-
-section Star
-
-/-- `Sp(2n)⋆`, the symplectic matrices without the eigenvalue `1` (§7.1.c). -/
-def symplecticStar (l : Type*) [DecidableEq l] [Fintype l] :
-    Set (Matrix (l ⊕ l) (l ⊕ l) ℝ) :=
-  {A | A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det ≠ 0}
-
-/-- `Sp(2n)+`, the part of `Sp(2n)⋆` where `det(A − Id) > 0` (§7.1.c). -/
-def symplecticPlus (l : Type*) [DecidableEq l] [Fintype l] :
-    Set (Matrix (l ⊕ l) (l ⊕ l) ℝ) :=
-  {A | A ∈ Matrix.symplecticGroup l ℝ ∧ 0 < (A - 1).det}
-
-/-- `Sp(2n)−`, the part of `Sp(2n)⋆` where `det(A − Id) < 0` (§7.1.c). -/
-def symplecticMinus (l : Type*) [DecidableEq l] [Fintype l] :
-    Set (Matrix (l ⊕ l) (l ⊕ l) ℝ) :=
-  {A | A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det < 0}
-
-/-- `Σ`, the symplectic matrices that *do* have the eigenvalue `1` (§7.1.c). -/
-def sigmaSet (l : Type*) [DecidableEq l] [Fintype l] :
-    Set (Matrix (l ⊕ l) (l ⊕ l) ℝ) :=
-  {A | A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det = 0}
-
-variable {l : Type*} [DecidableEq l] [Fintype l] {A : Matrix (l ⊕ l) (l ⊕ l) ℝ}
-
-theorem mem_symplecticStar_iff :
-    A ∈ symplecticStar l ↔ A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det ≠ 0 := Iff.rfl
-
-theorem mem_symplecticPlus_iff :
-    A ∈ symplecticPlus l ↔ A ∈ Matrix.symplecticGroup l ℝ ∧ 0 < (A - 1).det := Iff.rfl
-
-theorem mem_symplecticMinus_iff :
-    A ∈ symplecticMinus l ↔ A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det < 0 := Iff.rfl
-
-theorem mem_sigmaSet_iff :
-    A ∈ sigmaSet l ↔ A ∈ Matrix.symplecticGroup l ℝ ∧ (A - 1).det = 0 := Iff.rfl
-
-/-- `Sp(2n)⋆` is the union of the two open pieces `Sp(2n)±`; in particular it is
-not connected (§7.1.c). -/
-theorem symplecticStar_eq_union :
-    symplecticStar l = symplecticPlus l ∪ symplecticMinus l := by
-  ext B
-  simp only [mem_symplecticStar_iff, mem_symplecticPlus_iff, mem_symplecticMinus_iff,
-    Set.mem_union]
-  constructor
-  · rintro ⟨hB, hne⟩
-    rcases lt_or_gt_of_ne hne with h | h
-    · exact Or.inr ⟨hB, h⟩
-    · exact Or.inl ⟨hB, h⟩
-  · rintro (⟨hB, h⟩ | ⟨hB, h⟩)
-    · exact ⟨hB, ne_of_gt h⟩
-    · exact ⟨hB, ne_of_lt h⟩
-
-/-- The two pieces of `Sp(2n)⋆` are disjoint. -/
-theorem disjoint_symplecticPlus_minus :
-    Disjoint (symplecticPlus l) (symplecticMinus l) := by
-  rw [Set.disjoint_left]
-  rintro B ⟨-, h1⟩ ⟨-, h2⟩
-  exact absurd h1 (not_lt.mpr h2.le)
-
-/-- `Sp(2n)` is the disjoint union of `Σ` and `Sp(2n)⋆`. -/
-theorem symplecticGroup_eq_union :
-    (Matrix.symplecticGroup l ℝ : Set (Matrix (l ⊕ l) (l ⊕ l) ℝ))
-      = sigmaSet l ∪ symplecticStar l := by
-  ext B
-  simp only [SetLike.mem_coe, mem_sigmaSet_iff, mem_symplecticStar_iff, Set.mem_union]
-  constructor
-  · intro hB
-    by_cases h : (B - 1).det = 0
-    · exact Or.inl ⟨hB, h⟩
-    · exact Or.inr ⟨hB, h⟩
-  · rintro (⟨hB, -⟩ | ⟨hB, -⟩) <;> exact hB
-
-theorem disjoint_sigmaSet_symplecticStar :
-    Disjoint (sigmaSet l) (symplecticStar l) := by
-  rw [Set.disjoint_left]
-  rintro B ⟨-, h1⟩ ⟨-, h2⟩
-  exact h2 h1
-
-/-- The reference matrix `W⁺ = −Id` of §7.2.a lies in `Sp(2n)+`: indeed
-`det(−Id − Id) = (−2)^{2n} > 0`. -/
-theorem neg_one_mem_symplecticPlus :
-    (-1 : Matrix (l ⊕ l) (l ⊕ l) ℝ) ∈ symplecticPlus l := by
-  refine mem_symplecticPlus_iff.mpr ⟨SymplecticGroup.neg_mem (Submonoid.one_mem _), ?_⟩
-  have h : (-1 : Matrix (l ⊕ l) (l ⊕ l) ℝ) - 1 = (-2 : ℝ) • (1 : Matrix (l ⊕ l) (l ⊕ l) ℝ) := by
-    rw [show (-2 : ℝ) = (-1) + (-1) by norm_num, add_smul, neg_one_smul]
-    abel
-  rw [h, Matrix.det_smul, Matrix.det_one, mul_one, Fintype.card_sum]
-  have hne : ((-2 : ℝ) ^ Fintype.card l) ≠ 0 := pow_ne_zero _ (by norm_num)
-  calc (0 : ℝ) < ((-2 : ℝ) ^ Fintype.card l) * ((-2 : ℝ) ^ Fintype.card l) :=
-        mul_self_pos.mpr hne
-    _ = (-2 : ℝ) ^ (Fintype.card l + Fintype.card l) := (pow_add _ _ _).symm
-
-end Star
+The sets `Sp(2n)⋆`, `Sp(2n)±` and `Σ`, the admissible paths of §7.1.c/§7.2.a and
+the paths `exp(tJS)` of Remark 7.1.2 are defined in `Part2/MaslovPaths.lean`,
+under this chapter's namespace, so that the matrix computations behind
+Lemma 7.2.4 can be carried out without importing this file. -/
 
 /-! ### The spectrum of a symplectic matrix
 
@@ -360,63 +275,8 @@ Remark 7.1.2 is the autonomous case, where the path is explicit:
 `A t = exp(t J S)` with `S` the Hessian of the Hamiltonian at the critical
 point.  That such a path is symplectic *is* provable. -/
 
-section ExpPath
-
-variable {l : Type*} [DecidableEq l] [Fintype l]
-
-/-- **Remark 7.1.2.**  For a symmetric `S`, `t ↦ exp(t J S)` is a path in the
-symplectic group: this is the linearised flow of an autonomous Hamiltonian at a
-critical point, with `S` its Hessian.  It also proves Exercise 15 of the book,
-quoted in §7.2.c. -/
-theorem exp_smul_J_mul_mem_symplecticGroup {S : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hS : Sᵀ = S)
-    (t : ℝ) : NormedSpace.exp (t • (Matrix.J l ℝ * S)) ∈ Matrix.symplecticGroup l ℝ := by
-  refine Chapter5.exp_mem_symplecticGroup ?_
-  have h1 : (Matrix.J l ℝ * S)ᵀ * Matrix.J l ℝ = S := by
-    rw [Matrix.transpose_mul, hS, Matrix.J_transpose, Matrix.mul_neg, Matrix.neg_mul,
-      Matrix.mul_assoc, Matrix.J_squared, Matrix.mul_neg, Matrix.mul_one, neg_neg]
-  have h2 : Matrix.J l ℝ * (Matrix.J l ℝ * S) = -S := by
-    rw [← Matrix.mul_assoc, Matrix.J_squared, Matrix.neg_mul, Matrix.one_mul]
-  rw [Matrix.transpose_smul, Matrix.smul_mul, Matrix.mul_smul, h1, h2, smul_neg,
-    add_neg_cancel]
-
-/-- The path of Remark 7.1.2 starts at the identity. -/
-theorem exp_smul_J_mul_zero (S : Matrix (l ⊕ l) (l ⊕ l) ℝ) :
-    NormedSpace.exp ((0 : ℝ) • (Matrix.J l ℝ * S)) = 1 := by
-  rw [zero_smul, NormedSpace.exp_zero]
-
-/-- **Remark 7.1.2** (second half).  If `S` is symmetric, invertible, and all its
-eigenvalues have absolute value `< 2π`, then `J S` has no eigenvalue `2ikπ` and
-therefore `exp(J S)` does not have the eigenvalue `1`, i.e. the endpoint of the
-path lies in `Sp(2n)⋆`.
-
-Proved in `Part2/LinearYorke.lean`, not through the spectrum of `exp` but
-through Yorke's theorem (Proposition 6.1.5): a fixed vector `v ≠ 0` of `exp(JS)`
-would give a nonconstant `1`-periodic orbit `t ↦ exp(tJS) v` of the linear field
-`x ↦ JSx`, whose Lipschitz constant is the Euclidean operator norm
-`‖JS‖ = ‖S‖ = max |λ_i(S)| < 2π`; the norm bound comes from Mathlib's spectral
-theorem for symmetric matrices. -/
-theorem exp_J_mul_mem_symplecticStar {S : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hS : Sᵀ = S)
-    (hdet : S.det ≠ 0)
-    (hnorm : ∀ c : ℝ, (S - c • 1).det = 0 → |c| < 2 * Real.pi) :
-    NormedSpace.exp ((1 : ℝ) • (Matrix.J l ℝ * S)) ∈ symplecticStar l := by
-  refine ⟨exp_smul_J_mul_mem_symplecticGroup hS 1, ?_⟩
-  rw [one_smul]
-  have hJdet : (Matrix.J l ℝ).det ≠ 0 := by
-    intro h
-    have := Matrix.J_det_mul_J_det (l := l) (R := ℝ)
-    rw [h, zero_mul] at this
-    exact zero_ne_one this
-  have hJ : (Matrix.J l ℝ)ᵀ * Matrix.J l ℝ = 1 := by
-    rw [Matrix.J_transpose, Matrix.neg_mul, Matrix.J_squared, neg_neg]
-  refine LinearYorke.det_exp_sub_one_ne_zero ?_ ?_
-  · rw [Matrix.det_mul]; exact mul_ne_zero hJdet hdet
-  · obtain ⟨M, hM, hbound⟩ :=
-      LinearYorke.exists_norm_toEuclideanCLM_apply_le hS Real.two_pi_pos hnorm
-    refine lt_of_le_of_lt (ContinuousLinearMap.opNorm_le_bound _ M.coe_nonneg fun w => ?_) hM
-    rw [map_mul, mul_apply_eq_comp, LinearYorke.norm_toEuclideanCLM_apply_of_transpose_mul hJ]
-    exact hbound w
-
-end ExpPath
+/-! Remark 7.1.2 is proved in `Part2/MaslovPaths.lean`
+(`exp_smul_J_mul_mem_symplecticGroup`, `exp_J_mul_mem_symplecticStar`). -/
 
 /-! ## §7.1.b Second step: the map `ρ : Sp(2n) → S¹`
 
@@ -675,30 +535,8 @@ theorem Delta_eq_of_isAngleLift {u : ℝ → ℂ} {α β : ℝ → ℝ}
 
 end Delta
 
-section Index
-
-variable {l : Type*} [DecidableEq l] [Fintype l]
-
-/-- The space `S` of §7.1.c: paths of symplectic matrices starting at the
-identity and ending in `Sp(2n)⋆`.  Only the values on `[0,1]` matter; the
-functions are defined on all of `ℝ` to avoid subtype friction. -/
-structure IsAdmissiblePath (ψ : ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ) : Prop where
-  /-- The path is continuous. -/
-  continuous : Continuous ψ
-  /-- It takes symplectic values. -/
-  mem : ∀ t, ψ t ∈ Matrix.symplecticGroup l ℝ
-  /-- It starts at the identity. -/
-  start : ψ 0 = 1
-  /-- Its endpoint has no eigenvalue `1`. -/
-  endpoint : ψ 1 ∈ symplecticStar l
-
-/-- Homotopy inside `S`: a continuous family of admissible paths. -/
-def HomotopicInS (ψ₀ ψ₁ : ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ) : Prop :=
-  ∃ H : ℝ → ℝ → Matrix (l ⊕ l) (l ⊕ l) ℝ,
-    Continuous (fun p : ℝ × ℝ => H p.1 p.2) ∧ (∀ s, IsAdmissiblePath (H s)) ∧
-      H 0 = ψ₀ ∧ H 1 = ψ₁
-
-end Index
+/-! `IsAdmissiblePath` and `HomotopicInS`, the space `S` of §7.1.c and the
+homotopies inside it, are defined in `Part2/MaslovPaths.lean`. -/
 
 section ConleyZehnder
 
@@ -798,21 +636,181 @@ theorem conleyZehnder_eq_morseIndex_sub (hμ : IsConleyZehnderIndex μ) (n : ℕ
       = (negEigenCount S : ℤ) - (n : ℤ) :=
   hμ.normalisation n S hS hdet hsmall
 
-/-- **Lemma 7.2.4.**  For every integer `k` there is a diagonal symmetric matrix
-`S_k` whose path `exp(t J S_k)` is admissible and has Maslov index `k`.  These
-are the matrices reused in Chapter 8.
+/-! ### Lemma 7.2.4: the matrices `S_k`
 
-Not proved.  The book builds `S_k` out of `2 × 2` blocks and computes the index
-by additivity, but the blocks it uses are *not* small in the sense of the
-normalisation axiom (one of them is `(n − k − 1)π`), so the value cannot be read
-off the axioms; the underlying `2 × 2` computations of `exp(tJS)` are themselves
-unavailable. -/
-theorem exists_symmetric_of_index (_hμ : IsConleyZehnderIndex μ) (n : ℕ) (_hn : 0 < n)
+The computation runs on the axioms of Proposition 7.2.1 alone, with the matrix
+input of `Part2/MaslovPaths.lean`.  The path of `S = c · Id` on `ℝ^{2m}` is the
+rotation `exp(tcJ)`; for `c = ±π` the normalisation axiom gives its index,
+`−m` for `π` and `+m` for `−π`.  On `ℝ²` and for the other odd multiples `ℓπ`
+the index is `−ℓ`, by induction on `|ℓ|` from the recurrence
+`μ(ℓ+2) + μ(ℓ−2) = 2μ(ℓ)`, which is additivity applied to the homotopy
+`homotopicInS_rot`.  The hyperbolic block `diag(1, −1)` has index `0` by
+normalisation.  For `n ≥ 2` the block sum of a `4 × 4` block of index
+`k − (n − 2)` — two rotation blocks if `k` is even, the hyperbolic block and a
+rotation block if `k` is odd — with `−π · Id` on `ℝ^{2(n−2)}` has index `k`. -/
+
+/-- The index of the rotation path `exp(tcJ)` on `ℝ^{2m}` for `0 < |c| < 2π`,
+from the normalisation axiom: `2m − m` if `c < 0`, `−m` if `c > 0`. -/
+theorem index_expPath_smul_one (hμ : IsConleyZehnderIndex μ) (m : ℕ) {c : ℝ} (hc0 : c ≠ 0)
+    (hc : |c| < 2 * Real.pi) :
+    μ m (expPath (c • (1 : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℝ)))
+      = (if c < 0 then (2 * m : ℤ) else 0) - m := by
+  have h := hμ.normalisation m (c • 1) (by rw [Matrix.transpose_smul, Matrix.transpose_one])
+    (det_smul_one_ne_zero hc0) (abs_lt_of_det_smul_one_sub_eq_zero hc)
+  rw [negEigenCount_smul_one, Fintype.card_sum, Fintype.card_fin] at h
+  refine h.trans ?_
+  split_ifs <;> push_cast <;> ring
+
+theorem abs_pi_lt : |Real.pi| < 2 * Real.pi := by
+  rw [abs_of_pos Real.pi_pos]; linarith [Real.pi_pos]
+
+theorem abs_neg_pi_lt : |-Real.pi| < 2 * Real.pi := by
+  rw [abs_neg]; exact abs_pi_lt
+
+/-- The index of the block sum of two paths `exp(tJS)`, `exp(tJB)`. -/
+theorem index_expPath_blockSum (hμ : IsConleyZehnderIndex μ) {m n : ℕ}
+    {S : Matrix (Fin m ⊕ Fin m) (Fin m ⊕ Fin m) ℝ} {B : Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ}
+    (hS : IsAdmissiblePath (expPath S)) (hB : IsAdmissiblePath (expPath B)) :
+    μ (m + n) (expPath (blockSum S B)) = μ m (expPath S) + μ n (expPath B) := by
+  rw [expPath_blockSum]
+  exact hμ.additivity m n _ _ hS hB
+
+/-- The index of the hyperbolic block: `Ind(diag(1, −1)) − 1 = 0`. -/
+theorem index_expPath_hypBlock (hμ : IsConleyZehnderIndex μ) : μ 1 (expPath hypBlock) = 0 := by
+  have h := hμ.normalisation 1 hypBlock hypBlock_transpose (by rw [det_hypBlock]; norm_num)
+    abs_lt_of_det_hypBlock_sub_eq_zero
+  rw [negEigenCount_hypBlock] at h
+  exact h.trans (by norm_num)
+
+/-- The recurrence `μ(ℓ+2) + μ(ℓ−2) = 2μ(ℓ)` for the rotation paths on `ℝ²`, from
+the homotopy `homotopicInS_rot` and additivity. -/
+theorem index_expPath_rot_recurrence (hμ : IsConleyZehnderIndex μ) {k : ℤ} (hk : Odd k) :
+    μ 1 (expPath ((((k + 2 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ)))
+      + μ 1 (expPath ((((k - 2 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ)))
+      = 2 * μ 1 (expPath (((k : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) := by
+  have hk2 : Odd (k + 2) := by obtain ⟨q, rfl⟩ := hk; exact ⟨q + 1, by ring⟩
+  have hk2' : Odd (k - 2) := by obtain ⟨q, rfl⟩ := hk; exact ⟨q - 1, by ring⟩
+  have h0 := isAdmissiblePath_blockSum (isAdmissiblePath_expPath_rot (l := Fin 1) hk2)
+    (isAdmissiblePath_expPath_rot (l := Fin 1) hk2')
+  have h1 := isAdmissiblePath_blockSum (isAdmissiblePath_expPath_rot (l := Fin 1) hk)
+    (isAdmissiblePath_expPath_rot (l := Fin 1) hk)
+  have heq := (hμ.homotopy (1 + 1) _ _ h0 h1).mp (homotopicInS_rot hk)
+  rw [hμ.additivity 1 1 _ _ (isAdmissiblePath_expPath_rot hk2) (isAdmissiblePath_expPath_rot hk2'),
+    hμ.additivity 1 1 _ _ (isAdmissiblePath_expPath_rot hk) (isAdmissiblePath_expPath_rot hk)] at heq
+  rw [heq]; ring
+
+/-- The index of `exp(tπJ)` on `ℝ²` is `−1`. -/
+theorem index_expPath_rot_one (hμ : IsConleyZehnderIndex μ) :
+    μ 1 (expPath ((((1 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = -1 := by
+  have h := index_expPath_smul_one hμ 1 Real.pi_pos.ne' abs_pi_lt
+  rw [if_neg (not_lt.mpr Real.pi_pos.le)] at h
+  rw [Int.cast_one, one_mul, h]; norm_num
+
+/-- The index of `exp(−tπJ)` on `ℝ²` is `+1`. -/
+theorem index_expPath_rot_neg_one (hμ : IsConleyZehnderIndex μ) :
+    μ 1 (expPath ((((-1 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = 1 := by
+  have h := index_expPath_smul_one hμ 1 (neg_ne_zero.mpr Real.pi_pos.ne') abs_neg_pi_lt
+  rw [if_pos (neg_lt_zero.mpr Real.pi_pos)] at h
+  rw [Int.cast_neg, Int.cast_one, neg_one_mul, h]; norm_num
+
+/-- The index of `exp(tℓπJ)` on `ℝ²` is `−ℓ` for every odd `ℓ`, by induction on
+`|ℓ|` from the recurrence. -/
+theorem index_expPath_rot_aux (hμ : IsConleyZehnderIndex μ) (q : ℕ) :
+    ∀ k : ℤ, Odd k → -(2 * (q : ℤ) + 1) ≤ k → k ≤ 2 * q + 1 →
+      μ 1 (expPath (((k : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = -k := by
+  induction q with
+  | zero =>
+    intro k hk hlo hhi
+    have hcase : k = 1 ∨ k = -1 := by obtain ⟨j, rfl⟩ := hk; omega
+    rcases hcase with rfl | rfl
+    · exact index_expPath_rot_one hμ
+    · exact index_expPath_rot_neg_one hμ
+  | succ q ih =>
+    intro k hk hlo hhi
+    by_cases h : -(2 * (q : ℤ) + 1) ≤ k ∧ k ≤ 2 * q + 1
+    · exact ih k hk h.1 h.2
+    · have hcase : k = 2 * q + 3 ∨ k = -(2 * q + 3) := by obtain ⟨j, rfl⟩ := hk; omega
+      rcases hcase with rfl | rfl
+      · have hrec := index_expPath_rot_recurrence hμ (k := 2 * q + 1) ⟨q, rfl⟩
+        rw [show (2 * (q : ℤ) + 1 + 2 : ℤ) = 2 * q + 3 by ring,
+          show (2 * (q : ℤ) + 1 - 2 : ℤ) = 2 * q - 1 by ring,
+          ih (2 * q + 1) ⟨q, rfl⟩ (by omega) (by omega),
+          ih (2 * q - 1) ⟨q - 1, by ring⟩ (by omega) (by omega)] at hrec
+        linarith
+      · have hrec := index_expPath_rot_recurrence hμ (k := -(2 * q + 1)) ⟨-q - 1, by ring⟩
+        rw [show (-(2 * (q : ℤ) + 1) + 2 : ℤ) = -(2 * q - 1) by ring,
+          show (-(2 * (q : ℤ) + 1) - 2 : ℤ) = -(2 * q + 3) by ring,
+          ih (-(2 * q + 1)) ⟨-q - 1, by ring⟩ (by omega) (by omega),
+          ih (-(2 * q - 1)) ⟨-q, by ring⟩ (by omega) (by omega)] at hrec
+        linarith
+
+theorem index_expPath_rot (hμ : IsConleyZehnderIndex μ) {k : ℤ} (hk : Odd k) :
+    μ 1 (expPath (((k : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = -k :=
+  index_expPath_rot_aux hμ k.natAbs k hk (by omega) (by omega)
+
+/-- **Lemma 7.2.4 on `ℝ⁴`.**  Every integer is the index of a path `exp(tJS)`
+with `S` symmetric: `S = −π·Id ⊕ (1−k)π·Id` for `k` even, `S = diag(1, −1) ⊕ (−k)π·Id`
+for `k` odd. -/
+theorem exists_symmetric_of_index_two (hμ : IsConleyZehnderIndex μ) (k : ℤ) :
+    ∃ S : Matrix (Fin (1 + 1) ⊕ Fin (1 + 1)) (Fin (1 + 1) ⊕ Fin (1 + 1)) ℝ, Sᵀ = S ∧
+      IsAdmissiblePath (expPath S) ∧ μ (1 + 1) (expPath S) = k := by
+  rcases Int.even_or_odd k with hk | hk
+  · have h1 : Odd (-1 : ℤ) := ⟨-1, by norm_num⟩
+    have h2 : Odd (1 - k) := by obtain ⟨j, rfl⟩ := hk; exact ⟨-j, by ring⟩
+    refine ⟨blockSum ((((-1 : ℤ) : ℝ) * Real.pi) • 1) ((((1 - k : ℤ) : ℝ) * Real.pi) • 1),
+      ?_, ?_, ?_⟩
+    · simp only [blockSum_transpose, Matrix.transpose_smul, Matrix.transpose_one]
+    · rw [expPath_blockSum]
+      exact isAdmissiblePath_blockSum (isAdmissiblePath_expPath_rot h1)
+        (isAdmissiblePath_expPath_rot h2)
+    · rw [index_expPath_blockSum hμ (isAdmissiblePath_expPath_rot h1)
+        (isAdmissiblePath_expPath_rot h2), index_expPath_rot hμ h1, index_expPath_rot hμ h2]
+      ring
+  · have h2 : Odd (-k) := by obtain ⟨j, rfl⟩ := hk; exact ⟨-j - 1, by ring⟩
+    refine ⟨blockSum hypBlock ((((-k : ℤ) : ℝ) * Real.pi) • 1), ?_, ?_, ?_⟩
+    · simp only [blockSum_transpose, hypBlock_transpose, Matrix.transpose_smul,
+        Matrix.transpose_one]
+    · rw [expPath_blockSum]
+      exact isAdmissiblePath_blockSum isAdmissiblePath_expPath_hypBlock
+        (isAdmissiblePath_expPath_rot h2)
+    · rw [index_expPath_blockSum hμ isAdmissiblePath_expPath_hypBlock
+        (isAdmissiblePath_expPath_rot h2), index_expPath_hypBlock hμ, index_expPath_rot hμ h2]
+      ring
+
+/-- **Lemma 7.2.4.**  For every integer `k` and every `n ≥ 2` there is a symmetric
+matrix `S_k` whose path `exp(t J S_k)` is admissible and has Maslov index `k`.
+These are the matrices reused in Chapter 8.
+
+Proved from the axioms of Proposition 7.2.1: see the section header.  The book's
+`S_k` is diagonal; the one exhibited here is block diagonal with `2 × 2` blocks
+`c·Id` and `diag(1, −1)`, hence diagonal too.  The hypothesis `n ≥ 2` is
+necessary: on `ℝ²` a path `exp(tJS)` with `S` symmetric ends at a rotation or a
+hyperbolic matrix, so its index is odd or `0`, and no even `k ≠ 0` occurs. -/
+theorem exists_symmetric_of_index (hμ : IsConleyZehnderIndex μ) (n : ℕ) (hn : 2 ≤ n)
     (k : ℤ) :
     ∃ S : Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ, Sᵀ = S ∧
       IsAdmissiblePath (fun t => NormedSpace.exp (t • (Matrix.J (Fin n) ℝ * S))) ∧
       μ n (fun t => NormedSpace.exp (t • (Matrix.J (Fin n) ℝ * S))) = k := by
-  sorry
+  obtain ⟨p, rfl⟩ : ∃ p, n = 1 + 1 + p := ⟨n - 2, by omega⟩
+  obtain ⟨S₂, hS₂, hadm, hind⟩ := exists_symmetric_of_index_two hμ (k - p)
+  have hB : IsAdmissiblePath
+      (expPath ((-Real.pi) • (1 : Matrix (Fin p ⊕ Fin p) (Fin p ⊕ Fin p) ℝ))) :=
+    isAdmissiblePath_expPath (by rw [Matrix.transpose_smul, Matrix.transpose_one])
+      (det_smul_one_ne_zero (neg_ne_zero.mpr Real.pi_pos.ne'))
+      (abs_lt_of_det_smul_one_sub_eq_zero abs_neg_pi_lt)
+  have hBi : μ p (expPath ((-Real.pi) • (1 : Matrix (Fin p ⊕ Fin p) (Fin p ⊕ Fin p) ℝ)))
+      = p := by
+    have h := index_expPath_smul_one hμ p (neg_ne_zero.mpr Real.pi_pos.ne') abs_neg_pi_lt
+    rw [if_pos (neg_lt_zero.mpr Real.pi_pos)] at h
+    rw [h]; ring
+  refine ⟨blockSum S₂ ((-Real.pi) • 1), ?_, ?_, ?_⟩
+  · rw [blockSum_transpose, hS₂, Matrix.transpose_smul, Matrix.transpose_one]
+  · show IsAdmissiblePath (expPath (blockSum S₂ ((-Real.pi) • 1)))
+    rw [expPath_blockSum]
+    exact isAdmissiblePath_blockSum hadm hB
+  · show μ (1 + 1 + p) (expPath (blockSum S₂ ((-Real.pi) • 1))) = k
+    rw [index_expPath_blockSum hμ hadm hB, hind, hBi]
+    ring
 
 end ConleyZehnder
 
