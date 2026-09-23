@@ -101,7 +101,8 @@ symplectic group (§7.3.c, Corollary 7.3.9 and Proposition 7.3.10), which is the
 continuity clause of Theorem 7.1.3, and `Part2/RhoProperties.lean` proves that
 it takes its values in the unit circle and satisfies `ρ(A⁻¹) = conj ρ(A)`,
 `Part2/RhoNaturality.lean` that `ρ(TAT⁻¹) = ρ(A)` for `T` symplectic and
-`ρ(Aᵀ) = ρ(A⁻¹)`; block sums, the unitary determinant and the normalisation
+`ρ(Aᵀ) = ρ(A⁻¹)`, and `Part2/RhoNormalisation.lean` the normalisation
+`ρ(A) = (−1)^{m₀/2}` on real spectra; block sums and the unitary determinant
 remain to be checked for it.
 
 Assumed (`sorry`):

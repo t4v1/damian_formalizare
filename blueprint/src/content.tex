@@ -1840,6 +1840,20 @@ gaps.
   $A^{\mathsf T} = J A^{-1} J^{-1}$, and $J$ is symplectic.
 \end{proposition}
 
+\begin{proposition}[Normalisation of $\rho$]
+  \label{prop:rho-normalisation}
+  \lean{MorseFloer.Rho.rhoC_of_real, MorseFloer.Rho.rho_normalisation}
+  \leanok
+  \uses{prop:7.3.5, lem:eigen-mult}
+  If the spectrum of the symplectic matrix $A$ is real, then
+  $\rho(A) = (-1)^{m_0/2}$, $m_0$ being the total multiplicity of the negative
+  eigenvalues.  The complex eigenvalues are the images of the real ones, so no
+  eigenvalue lies on the upper half of the circle and
+  $\rho(A) = (-1)^{m(-1)/2}(-1)^{p}$, with $p$ the number of eigenvalues in
+  $(-1, 0)$; and $m_0 = m(-1) + 2p$, the negative eigenvalues other than $-1$
+  coming in pairs $\mu, 1/\mu$, with $m(-1)$ even.
+\end{proposition}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1849,7 +1863,7 @@ gaps.
   \notready
   \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
     lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6, lem:eigen-mult, prop:7.3.5,
-    thm:rho-continuous, prop:rho-norm-inv, prop:rho-naturality}
+    thm:rho-continuous, prop:rho-norm-inv, prop:rho-naturality, prop:rho-normalisation}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
