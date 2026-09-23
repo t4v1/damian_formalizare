@@ -98,8 +98,9 @@ multiplicity bookkeeping (`finrank E_μ = m(μ)`, the pairings of the
 eigenvalues of a symplectic matrix, `m(−1)` even); and `Part2/Rho.lean`
 **defines `ρ`** as the book does in §7.3.b and **proves it continuous** on the
 symplectic group (§7.3.c, Corollary 7.3.9 and Proposition 7.3.10), which is the
-continuity clause of Theorem 7.1.3; the other clauses of `IsRho` remain to be
-checked for it.
+continuity clause of Theorem 7.1.3, and `Part2/RhoProperties.lean` proves that
+it takes its values in the unit circle and satisfies `ρ(A⁻¹) = conj ρ(A)`; the
+other clauses of `IsRho` remain to be checked for it.
 
 Assumed (`sorry`):
 

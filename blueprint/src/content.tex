@@ -1803,6 +1803,28 @@ gaps.
   7.3.10), using that $m(-1)$ is even.
 \end{theorem}
 
+\begin{proposition}[$\rho$ takes unit values, and $\rho(A^{-1}) = \overline{\rho(A)}$]
+  \label{prop:rho-norm-inv}
+  \lean{MorseFloer.Rho.norm_rho, MorseFloer.Rho.posIndex_add_posIndex_star,
+        MorseFloer.Rho.mPos_conj_add, MorseFloer.Rho.charpoly_cpx_inv,
+        MorseFloer.Rho.E_cpx_inv, MorseFloer.Rho.rho_inv}
+  \leanok
+  \uses{prop:7.3.5, lem:hermitian-index, lem:eigen-mult, lem:symplectic-spectrum}
+  Every factor of $\rho(A)$ has norm one, so $\lvert\rho(A)\rvert = 1$.  For the
+  inverse: the spectrum of $A^{-1}$ is that of $A$, with multiplicities
+  (Proposition 5.6.4), and $E_\mu(A^{-1}) = E_{1/\mu}(A)$, the operators
+  $A^{-1} - \mu$ and $A - 1/\mu$ differing by an invertible factor commuting
+  with both; so on the unit circle the factor of $\mu$ in $\rho(A^{-1})$ is
+  $\mu^{\sigma(\bar\mu)}$.  Remark 5.6.8 gives $\sigma(\bar\mu) = -\sigma(\mu)$:
+  conjugation $X \mapsto \bar X$ maps $E_\mu$ onto $E_{\bar\mu}$ and changes the
+  sign of $Q$, hence exchanges the positive and negative parts; in the
+  formalisation this is a statement about any Hermitian form and any subspace,
+  proved by conjugating the diagonalising eigenfamily of
+  \ref{lem:hermitian-index}.  Hence $\mu^{\sigma(\bar\mu)} =
+  \bar\mu^{\sigma(\mu)}$, the real factors are unchanged, and
+  $\rho(A^{-1}) = \overline{\rho(A)}$.
+\end{proposition}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1812,7 +1834,7 @@ gaps.
   \notready
   \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
     lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6, lem:eigen-mult, prop:7.3.5,
-    thm:rho-continuous}
+    thm:rho-continuous, prop:rho-norm-inv}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
