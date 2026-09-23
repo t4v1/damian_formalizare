@@ -89,7 +89,11 @@ nondegenerate on `E_ν` when `|ν| = 1`; and `Part2/EigenDecomp.lean` identifies
 the kernel of the disc factor of the characteristic polynomial, the range of
 the spectral projector, with the sum of the generalised eigenspaces of the
 eigenvalues in the disc, on which `H` is nondegenerate when the disc is stable
-under `μ ↦ 1/μ̄`.
+under `μ ↦ 1/μ̄`; `Part2/HermitianIndex.lean` defines the positive index of a
+Hermitian form on a subspace and proves Sylvester's law for it through the Gram
+matrix; and `Part2/SignatureContinuity.lean` proves that this index, taken on
+the sum of the generalised eigenspaces in a disc, is locally constant in the
+matrix (Propositions 7.3.6–7.3.8).
 
 Assumed (`sorry`):
 

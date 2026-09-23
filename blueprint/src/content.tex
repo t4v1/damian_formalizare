@@ -1682,6 +1682,52 @@ gaps.
   nondegenerate for $Q$.
 \end{lemma}
 
+\begin{lemma}[The positive index of a Hermitian form, and Sylvester's law]
+  \label{lem:hermitian-index}
+  \lean{MorseFloer.HermitianIndex.posIndex,
+        MorseFloer.HermitianIndex.posIndex_add_finrank_le,
+        MorseFloer.HermitianIndex.posIndex_eq_countP,
+        MorseFloer.HermitianIndex.det_gram_ne_zero}
+  \leanok
+  For a Hermitian sesquilinear form $G$ on $\mathbb{C}^m$ and a subspace $V$,
+  the positive index $m_+(G, V)$ is the largest dimension of a subspace of $V$
+  on which $G$ is positive definite.  It satisfies Sylvester's bound: the index
+  plus the dimension of any subspace of $V$ on which $G \le 0$ is at most
+  $\dim V$.  Sylvester's law of inertia follows: for any basis $b$ of $V$,
+  $m_+(G, V)$ is the number of positive eigenvalues of the Gram matrix
+  $(G(b_j, b_i))_{ij}$, counted with multiplicity, i.e.\ the number of roots
+  of its characteristic polynomial with positive real part.  The proof
+  diagonalises the Hermitian Gram matrix in an orthonormal eigenbasis, which
+  produces a positive definite subspace and a nonpositive one of complementary
+  dimensions.  When $G$ is nondegenerate on $V$, the Gram matrix is
+  invertible.  This is the meaning of the numbers $m_\pm(\lambda)$ of \S7.3.b,
+  in a form that survives a continuous change of basis.
+\end{lemma}
+
+\begin{proposition}[The signature is locally constant]
+  \label{prop:7.3.6}
+  \lean{MorseFloer.SignatureContinuity.GForm,
+        MorseFloer.SignatureContinuity.eventually_countP_roots_charpoly,
+        MorseFloer.SignatureContinuity.eventually_posIndex_eq}
+  \leanok
+  \uses{lem:hermitian-index, lem:spectral-projector, lem:eigen-decomp, lem:roots-continuity}
+  Let $G(X, Y) = -i\,\omega(X, \bar Y)$, the Hermitian form whose diagonal is
+  $Q$, and for a disc $D(c, r)$ let $V_A = \ker f_A(A)$ be the sum of the
+  generalised eigenspaces of $A$ for its eigenvalues in the disc.  If $A_0$ has
+  no eigenvalue on the circle and $G$ is nondegenerate on $V_{A_0}$, then the
+  positive index of $G$ on $V_A$ is constant for $A$ near $A_0$.  This is the
+  content of Propositions 7.3.6--7.3.8: a basis of $V_{A_0}$ transported by the
+  spectral projector $P_A$ of \ref{lem:spectral-projector} stays linearly
+  independent near $A_0$ (an open condition) and, together with the family
+  transported by $1 - P_A$, spans $\mathbb{C}^{2n}$, so it spans exactly
+  $V_A$; by \ref{lem:hermitian-index} the index is the number of roots of the
+  characteristic polynomial of its Gram matrix in the half-plane
+  $\operatorname{Re} > 0$; the Gram matrix depends continuously on $A$, and
+  the number of roots in a region that is stable around each root at $A_0$
+  cannot jump (\ref{lem:roots-continuity}) -- here the roots at $A_0$ are real
+  and nonzero by the nondegeneracy.
+\end{proposition}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1690,7 +1736,7 @@ gaps.
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
   \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
-    lem:symplectic-spectrum}
+    lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
