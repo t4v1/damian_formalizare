@@ -45,6 +45,8 @@ import MorseFloer.Part2.RhoProperties
 import MorseFloer.Part2.RhoNaturality
 import MorseFloer.Part2.RhoNormalisation
 import MorseFloer.Part2.RhoBlockSum
+import MorseFloer.Part2.RhoUnitary
+import MorseFloer.Part2.SymplecticForms
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.SardMoreira.MainTheorem

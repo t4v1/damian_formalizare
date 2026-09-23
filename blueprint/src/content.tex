@@ -1873,17 +1873,46 @@ gaps.
   in $\rho(A)$ and $\rho(B)$, the parity of $m(-1)$ entering at $\mu = -1$.
 \end{proposition}
 
+\begin{proposition}[$\rho$ on the unitary group]
+  \label{prop:rho-unitary}
+  \lean{MorseFloer.Rho.E_M_eq, MorseFloer.Rho.mPos_eq_count,
+        MorseFloer.Rho.norm_eq_one_of_mem_roots_unitary, MorseFloer.Rho.star_U_mul_U,
+        MorseFloer.Rho.rho_det_unitary}
+  \leanok
+  \uses{prop:7.3.5, lem:hermitian-index, lem:eigen-mult}
+  For $A = \begin{pmatrix} X & -Y \\ Y & X\end{pmatrix}$ orthogonal, i.e.\ for
+  $U = X + iY$ unitary, $\rho(A) = \det U$.  The complexification splits as
+  $\mathbb{C}^{2n} = V_+ \oplus V_-$ along the eigenspaces of $J$ for $\pm i$,
+  spanned by the vectors $(p, -ip)$ and $(p, ip)$; $A$ acts on $V_+$ as $U$
+  and on $V_-$ as $\bar U$, so $E_\mu(A) = E_\mu(U) \oplus E_\mu(\bar U)$.
+  The form $Q$ is positive definite on $V_+$, negative definite on $V_-$, and
+  the two are orthogonal, so $m_+(\mu) = m_U(\mu)$ and
+  $\sigma(\mu) = m_U(\mu) - m_U(\bar\mu)$.  The eigenvalues of $U$ lie on the
+  unit circle, $\det U = \prod \mu^{m_U(\mu)}$, and grouping the eigenvalues of
+  $A$ into the pairs $\mu, \bar\mu = 1/\mu$ gives $\rho(A) = \det U$.  No
+  diagonalisation of $U$ is needed.
+\end{proposition}
+
+\begin{theorem}[Theorem 7.1.3: the map $\rho$]
+  \label{thm:7.1.3}
+  \lean{MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
+  \leanok
+  \uses{thm:rho-continuous, prop:rho-norm-inv, prop:rho-naturality,
+    prop:rho-normalisation, prop:rho-blocksum, prop:rho-unitary}
+  There is a continuous map $\rho : Sp(2n) \to S^1$, invariant under symplectic
+  conjugation, multiplicative for block sums, equal to the complex determinant
+  on the unitary matrices, equal to $(-1)^{m_0/2}$ when the spectrum is real,
+  and with $\rho(A^{\mathsf T}) = \rho(A^{-1}) = \overline{\rho(A)}$: the map of
+  \ref{prop:7.3.5}, by the six propositions above.
+\end{theorem}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
         MorseFloer.Chapter7.exists_isConleyZehnderIndex,
-        MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
-        MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
+        MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub}
   \notready
-  \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
-    lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6, lem:eigen-mult, prop:7.3.5,
-    thm:rho-continuous, prop:rho-norm-inv, prop:rho-naturality, prop:rho-normalisation,
-    prop:rho-blocksum}
+  \uses{def:7.1.c, thm:7.1.3}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
