@@ -93,7 +93,13 @@ under `μ ↦ 1/μ̄`; `Part2/HermitianIndex.lean` defines the positive index of
 Hermitian form on a subspace and proves Sylvester's law for it through the Gram
 matrix; and `Part2/SignatureContinuity.lean` proves that this index, taken on
 the sum of the generalised eigenspaces in a disc, is locally constant in the
-matrix (Propositions 7.3.6–7.3.8).
+matrix (Propositions 7.3.6–7.3.8); `Part2/EigenMult.lean` supplies the
+multiplicity bookkeeping (`finrank E_μ = m(μ)`, the pairings of the
+eigenvalues of a symplectic matrix, `m(−1)` even); and `Part2/Rho.lean`
+**defines `ρ`** as the book does in §7.3.b and **proves it continuous** on the
+symplectic group (§7.3.c, Corollary 7.3.9 and Proposition 7.3.10), which is the
+continuity clause of Theorem 7.1.3; the other clauses of `IsRho` remain to be
+checked for it.
 
 Assumed (`sorry`):
 

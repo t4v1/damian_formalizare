@@ -112,6 +112,12 @@ theorem exists_posIndex (G : (m → ℂ) → (m → ℂ) → ℂ) (V : Submodule
   rw [Finset.mem_filter] at h
   exact h.2
 
+theorem posIndex_le_finrank (G : (m → ℂ) → (m → ℂ) → ℂ) (V : Submodule ℂ (m → ℂ)) :
+    posIndex G V ≤ finrank ℂ V := by
+  obtain ⟨W, hWV, hWr, -⟩ := exists_posIndex G V
+  rw [← hWr]
+  exact Submodule.finrank_mono hWV
+
 /-- **Sylvester's bound.**  The index plus the dimension of a nonpositive subspace of `V` is at
 most the dimension of `V`. -/
 theorem posIndex_add_finrank_le {G : (m → ℂ) → (m → ℂ) → ℂ} {V U : Submodule ℂ (m → ℂ)}
@@ -166,13 +172,19 @@ theorem gram_form {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G) 
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [gram_mulVec hG, Pi.star_apply, Complex.star_def]
 
-/-- **Sylvester's law of inertia for Hermitian forms.**  For a linearly independent family `b`
-spanning `V`, the positive index of `G` on `V` is the number of positive eigenvalues of the Gram
-matrix, i.e. the number of roots of its characteristic polynomial with positive real part. -/
-theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+/-- **The `G`-orthogonal eigenfamily.**  From a linearly independent family `b` spanning `V`,
+the orthonormal eigenvector basis of the Hermitian Gram matrix produces a linearly independent
+family `f` spanning `V` on which `G` is diagonal, with real diagonal entries `d j` — the
+eigenvalues of the Gram matrix, which are also the roots of its characteristic polynomial and
+whose product is its determinant. -/
+theorem exists_eigen_family {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
     {V : Submodule ℂ (m → ℂ)} {k : ℕ} {b : Fin k → (m → ℂ)} (hb : LinearIndependent ℂ b)
     (hspan : Submodule.span ℂ (Set.range b) = V) :
-    posIndex G V = (gram G b).charpoly.roots.countP fun z => 0 < z.re := by
+    ∃ (f : Fin k → (m → ℂ)) (d : Fin k → ℝ), LinearIndependent ℂ f ∧
+      Submodule.span ℂ (Set.range f) = V ∧
+      (∀ c : Fin k → ℂ, (G (∑ j, c j • f j) (∑ j, c j • f j)).re = ∑ j, ‖c j‖ ^ 2 * d j) ∧
+      (gram G b).charpoly.roots = Finset.univ.val.map (RCLike.ofReal ∘ d) ∧
+      (gram G b).det = ∏ j, (RCLike.ofReal (d j) : ℂ) := by
   classical
   set Γ := gram G b with hΓdef
   have hΓ : Γ.IsHermitian := isHermitian_gram hG b
@@ -234,34 +246,44 @@ theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHer
     simp only [sum_dotProduct, smul_dotProduct, huu, smul_eq_mul, mul_ite, mul_one,
       mul_zero, Finset.sum_ite_eq, Finset.mem_univ, if_true, zero_dotProduct] at h
     exact h
-  -- the positive and the nonpositive subspaces spanned by the `f j`
+  refine ⟨f, d, hf_indep, ?_, hre, hΓ.roots_charpoly_eq_eigenvalues, hΓ.det_eq_prod_eigenvalues⟩
+  refine Submodule.eq_of_le_of_finrank_eq
+    (Submodule.span_le.2 (by rintro _ ⟨j, rfl⟩; exact hfV j)) ?_
+  rw [finrank_span_eq_card hf_indep, Fintype.card_fin, ← hspan, finrank_span_eq_card hb,
+    Fintype.card_fin]
+
+omit [Fintype m] in
+/-- A vector of the span of a subfamily, as a combination with coefficients supported on it. -/
+theorem exists_coeff_of_mem_span_subtype {k : ℕ} {f : Fin k → (m → ℂ)} (T : Finset (Fin k))
+    {x : m → ℂ} (hx : x ∈ Submodule.span ℂ (Set.range fun j : {j // j ∈ T} => f j)) :
+    ∃ c : Fin k → ℂ, (∀ j, j ∉ T → c j = 0) ∧ ∑ j, c j • f j = x := by
+  classical
+  obtain ⟨c, hc⟩ := (Submodule.mem_span_range_iff_exists_fun ℂ).1 hx
+  refine ⟨fun j => if h : j ∈ T then c ⟨j, h⟩ else 0, fun j hj => dif_neg hj, ?_⟩
+  rw [← hc]
+  set c' : Fin k → ℂ := fun j => if h : j ∈ T then c ⟨j, h⟩ else 0 with hc'
+  calc ∑ j, c' j • f j = ∑ j ∈ T, c' j • f j := by
+        symm
+        apply Finset.sum_subset (Finset.subset_univ T)
+        intro j _ hj
+        simp [hc', hj]
+    _ = ∑ i : {j // j ∈ T}, c' i • f i := (Finset.sum_coe_sort T fun j => c' j • f j).symm
+    _ = ∑ i : {j // j ∈ T}, c i • f i := Finset.sum_congr rfl fun i _ => by simp [hc', i.2]
+
+/-- **The index of a diagonalised form.**  If `G` is diagonal on a linearly independent family
+`f` spanning `V`, with diagonal `d`, its positive index on `V` is the number of positive
+`d j`. -/
+theorem posIndex_eq_card_of_family {G : (m → ℂ) → (m → ℂ) → ℂ}
+    {V : Submodule ℂ (m → ℂ)} {k : ℕ} {f : Fin k → (m → ℂ)} {d : Fin k → ℝ}
+    (hf : LinearIndependent ℂ f) (hspan : Submodule.span ℂ (Set.range f) = V)
+    (hre : ∀ c : Fin k → ℂ, (G (∑ j, c j • f j) (∑ j, c j • f j)).re = ∑ j, ‖c j‖ ^ 2 * d j) :
+    posIndex G V = (Finset.univ.filter fun j => 0 < d j).card := by
+  classical
+  have hfV : ∀ j, f j ∈ V := fun j => hspan ▸ Submodule.subset_span ⟨j, rfl⟩
   set S : Finset (Fin k) := Finset.univ.filter fun j => 0 < d j with hS
-  have hsub_mem : ∀ (T : Finset (Fin k)) (x : m → ℂ),
-      x ∈ Submodule.span ℂ (Set.range fun j : {j // j ∈ T} => f j) →
-        ∃ c : Fin k → ℂ, (∀ j, j ∉ T → c j = 0) ∧ ∑ j, c j • f j = x := by
-    intro T x hx
-    obtain ⟨c, hc⟩ := (Submodule.mem_span_range_iff_exists_fun ℂ).1 hx
-    refine ⟨fun j => if h : j ∈ T then c ⟨j, h⟩ else 0, fun j hj => dif_neg hj, ?_⟩
-    rw [← hc]
-    set c' : Fin k → ℂ := fun j => if h : j ∈ T then c ⟨j, h⟩ else 0 with hc'
-    calc ∑ j, c' j • f j = ∑ j ∈ T, c' j • f j := by
-          symm
-          apply Finset.sum_subset (Finset.subset_univ T)
-          intro j _ hj
-          simp [hc', hj]
-      _ = ∑ i : {j // j ∈ T}, c' i • f i := (Finset.sum_coe_sort T fun j => c' j • f j).symm
-      _ = ∑ i : {j // j ∈ T}, c i • f i := Finset.sum_congr rfl fun i _ => by simp [hc', i.2]
-  have hcomb_mem : ∀ (T : Finset (Fin k)) (c : Fin k → ℂ), (∀ j, j ∉ T → c j = 0) →
-      ∑ j, c j • f j ∈ Submodule.span ℂ (Set.range fun j : {j // j ∈ T} => f j) := by
-    intro T c _
-    refine Submodule.sum_mem _ fun j _ => ?_
-    by_cases hj : j ∈ T
-    · exact Submodule.smul_mem _ _ (Submodule.subset_span ⟨⟨j, hj⟩, rfl⟩)
-    · rw [‹∀ j, j ∉ T → c j = 0› j hj, zero_smul]
-      exact Submodule.zero_mem _
   have hpos : PosDefOn G (Submodule.span ℂ (Set.range fun j : {j // j ∈ S} => f j)) := by
     intro x hx hx0
-    obtain ⟨c, hc0, rfl⟩ := hsub_mem S x hx
+    obtain ⟨c, hc0, rfl⟩ := exists_coeff_of_mem_span_subtype S hx
     rw [hre]
     have hne : ∃ j, c j ≠ 0 := by
       by_contra hall
@@ -282,7 +304,7 @@ theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHer
       exact mul_pos (by positivity) hj₀S.2
   have hneg : ∀ x ∈ Submodule.span ℂ (Set.range fun j : {j // j ∈ Sᶜ} => f j), (G x x).re ≤ 0 := by
     intro x hx
-    obtain ⟨c, hc0, rfl⟩ := hsub_mem Sᶜ x hx
+    obtain ⟨c, hc0, rfl⟩ := exists_coeff_of_mem_span_subtype Sᶜ hx
     rw [hre]
     refine Finset.sum_nonpos fun j _ => ?_
     by_cases hj : j ∈ Sᶜ
@@ -290,18 +312,17 @@ theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHer
       exact mul_nonpos_of_nonneg_of_nonpos (by positivity) (hj (Finset.mem_univ _))
     · rw [hc0 j hj]
       simp
-  -- the dimensions
   have hV_rank : finrank ℂ V = k := by
-    rw [← hspan, finrank_span_eq_card hb, Fintype.card_fin]
+    rw [← hspan, finrank_span_eq_card hf, Fintype.card_fin]
   have hWp_rank : finrank ℂ (Submodule.span ℂ (Set.range fun j : {j // j ∈ S} => f j)) = S.card := by
     have hli : LinearIndependent ℂ (fun j : {j // j ∈ S} => f j) :=
-      hf_indep.comp _ Subtype.val_injective
+      hf.comp _ Subtype.val_injective
     rw [finrank_span_eq_card hli]
     simp
   have hWn_rank : finrank ℂ (Submodule.span ℂ (Set.range fun j : {j // j ∈ Sᶜ} => f j))
       = k - S.card := by
     have hli : LinearIndependent ℂ (fun j : {j // j ∈ Sᶜ} => f j) :=
-      hf_indep.comp _ Subtype.val_injective
+      hf.comp _ Subtype.val_injective
     rw [finrank_span_eq_card hli]
     simp
   have hle : S.card ≤ posIndex G V := by
@@ -313,9 +334,51 @@ theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHer
   have hScard : S.card ≤ k := by
     have := Finset.card_le_univ S
     rwa [Fintype.card_fin] at this
-  have hindex : posIndex G V = S.card := by omega
-  -- the count of positive eigenvalues
-  rw [hindex, hΓ.roots_charpoly_eq_eigenvalues, Multiset.countP_map, hS, Finset.card_def,
+  omega
+
+/-- The nonpositive part of a diagonalised form: a subspace of `V` on which `G ≤ 0`, of
+dimension `finrank V - posIndex`. -/
+theorem exists_nonpos_of_family {G : (m → ℂ) → (m → ℂ) → ℂ}
+    {V : Submodule ℂ (m → ℂ)} {k : ℕ} {f : Fin k → (m → ℂ)} {d : Fin k → ℝ}
+    (hf : LinearIndependent ℂ f) (hspan : Submodule.span ℂ (Set.range f) = V)
+    (hre : ∀ c : Fin k → ℂ, (G (∑ j, c j • f j) (∑ j, c j • f j)).re = ∑ j, ‖c j‖ ^ 2 * d j) :
+    ∃ N : Submodule ℂ (m → ℂ), N ≤ V ∧ finrank ℂ N + posIndex G V = finrank ℂ V ∧
+      ∀ x ∈ N, (G x x).re ≤ 0 := by
+  classical
+  have hfV : ∀ j, f j ∈ V := fun j => hspan ▸ Submodule.subset_span ⟨j, rfl⟩
+  set S : Finset (Fin k) := Finset.univ.filter fun j => 0 < d j with hS
+  refine ⟨Submodule.span ℂ (Set.range fun j : {j // j ∈ Sᶜ} => f j),
+    Submodule.span_le.2 (by rintro _ ⟨j, rfl⟩; exact hfV j), ?_, ?_⟩
+  · have hli : LinearIndependent ℂ (fun j : {j // j ∈ Sᶜ} => f j) :=
+      hf.comp _ Subtype.val_injective
+    rw [finrank_span_eq_card hli, posIndex_eq_card_of_family hf hspan hre, ← hspan,
+      finrank_span_eq_card hf]
+    simp only [Fintype.card_coe, Finset.card_compl, Fintype.card_fin]
+    have hScard : S.card ≤ k := by
+      have := Finset.card_le_univ S
+      rwa [Fintype.card_fin] at this
+    rw [hS] at hScard ⊢
+    omega
+  · intro x hx
+    obtain ⟨c, hc0, rfl⟩ := exists_coeff_of_mem_span_subtype Sᶜ hx
+    rw [hre]
+    refine Finset.sum_nonpos fun j _ => ?_
+    by_cases hj : j ∈ Sᶜ
+    · rw [Finset.mem_compl, hS, Finset.mem_filter, not_and, not_lt] at hj
+      exact mul_nonpos_of_nonneg_of_nonpos (by positivity) (hj (Finset.mem_univ _))
+    · rw [hc0 j hj]
+      simp
+
+/-- **Sylvester's law of inertia for Hermitian forms.**  For a linearly independent family `b`
+spanning `V`, the positive index of `G` on `V` is the number of positive eigenvalues of the Gram
+matrix, i.e. the number of roots of its characteristic polynomial with positive real part. -/
+theorem posIndex_eq_countP {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+    {V : Submodule ℂ (m → ℂ)} {k : ℕ} {b : Fin k → (m → ℂ)} (hb : LinearIndependent ℂ b)
+    (hspan : Submodule.span ℂ (Set.range b) = V) :
+    posIndex G V = (gram G b).charpoly.roots.countP fun z => 0 < z.re := by
+  classical
+  obtain ⟨f, d, hf, hfspan, hre, hroots, -⟩ := exists_eigen_family hG hb hspan
+  rw [posIndex_eq_card_of_family hf hfspan hre, hroots, Multiset.countP_map, Finset.card_def,
     Finset.filter_val]
   congr 1
 
@@ -344,6 +407,120 @@ theorem det_gram_ne_zero {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermF
       obtain ⟨y, rfl⟩ := (Submodule.mem_span_range_iff_exists_fun ℂ).1 hw
       rw [gram_form hG, hx, dotProduct_zero]
   exact hx0 (funext (Fintype.linearIndependent_iff.1 hb x hv))
+
+
+/-- A subspace of `V` on which `G ≤ 0`, of dimension `finrank V - posIndex`. -/
+theorem exists_nonpos_subspace {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+    (V : Submodule ℂ (m → ℂ)) :
+    ∃ N : Submodule ℂ (m → ℂ), N ≤ V ∧ finrank ℂ N + posIndex G V = finrank ℂ V ∧
+      ∀ x ∈ N, (G x x).re ≤ 0 := by
+  obtain ⟨e, he, heV⟩ := exists_basis_family V
+  obtain ⟨f, d, hf, hfspan, hre, -, -⟩ := exists_eigen_family hG he heV
+  exact exists_nonpos_of_family hf hfspan hre
+
+omit [Fintype m] in
+theorem IsHermForm.neg {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G) :
+    IsHermForm fun x y => -G x y where
+  add_left x y z := by rw [hG.add_left]; ring
+  smul_left a x y := by rw [hG.smul_left]; ring
+  conj_symm x y := by rw [map_neg, ← hG.conj_symm]
+
+/-- **Sylvester's law, the nondegenerate case.**  When `G` is nondegenerate on `V`, the
+positive index of `G` and that of `-G` add up to the dimension of `V`. -/
+theorem posIndex_add_posIndex_neg {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+    {V : Submodule ℂ (m → ℂ)} (hnd : ∀ v ∈ V, (∀ w ∈ V, G v w = 0) → v = 0) :
+    posIndex G V + posIndex (fun x y => -G x y) V = finrank ℂ V := by
+  classical
+  obtain ⟨e, he, heV⟩ := exists_basis_family V
+  obtain ⟨f, d, hf, hfspan, hre, -, hdet⟩ := exists_eigen_family hG he heV
+  have hre' : ∀ c : Fin (finrank ℂ V) → ℂ,
+      ((fun x y => -G x y) (∑ j, c j • f j) (∑ j, c j • f j)).re = ∑ j, ‖c j‖ ^ 2 * (-d j) := by
+    intro c
+    show (-G (∑ j, c j • f j) (∑ j, c j • f j)).re = _
+    rw [Complex.neg_re, hre, ← Finset.sum_neg_distrib]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    ring
+  have hd : ∀ j, d j ≠ 0 := by
+    intro j hj
+    apply det_gram_ne_zero hG he heV hnd
+    rw [hdet]
+    exact Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hj])
+  rw [posIndex_eq_card_of_family hf hfspan hre, posIndex_eq_card_of_family hf hfspan hre']
+  have h := Finset.card_filter_add_card_filter_not
+    (s := (Finset.univ : Finset (Fin (finrank ℂ V)))) (fun j => 0 < d j)
+  have h' : (Finset.univ.filter fun j => 0 < -d j) = Finset.univ.filter fun j => ¬0 < d j := by
+    apply Finset.filter_congr
+    intro j _
+    rw [neg_pos, not_lt]
+    exact ⟨fun h1 => h1.le, fun h1 => lt_of_le_of_ne h1 (hd j)⟩
+  rw [h', h, Finset.card_univ, Fintype.card_fin]
+
+/-- **A hyperbolic space.**  If `G` is nondegenerate on `V` and vanishes on the diagonal of a
+subspace `I` of half the dimension, the positive index of `G` on `V` is `finrank I`. -/
+theorem posIndex_eq_of_isotropic {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+    {V I : Submodule ℂ (m → ℂ)} (hI : I ≤ V) (hnd : ∀ v ∈ V, (∀ w ∈ V, G v w = 0) → v = 0)
+    (hiso : ∀ x ∈ I, (G x x).re = 0) (hdim : 2 * finrank ℂ I = finrank ℂ V) :
+    posIndex G V = finrank ℂ I := by
+  have h1 := posIndex_add_finrank_le (G := G) hI fun x hx => (hiso x hx).le
+  have h2 := posIndex_add_finrank_le (G := fun x y => -G x y) hI fun x hx => by
+    show (-G x x).re ≤ 0
+    rw [Complex.neg_re, hiso x hx, neg_zero]
+  have h3 := posIndex_add_posIndex_neg hG hnd
+  omega
+
+/-- **Additivity on orthogonal sums.**  If `V ⊓ W = ⊥` and `G(v, w) = 0` for `v ∈ V`, `w ∈ W`,
+the positive index of `G` on `V ⊔ W` is the sum of those on `V` and on `W`. -/
+theorem posIndex_sup {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHermForm G)
+    {V W : Submodule ℂ (m → ℂ)} (hVW : V ⊓ W = ⊥) (horth : ∀ v ∈ V, ∀ w ∈ W, G v w = 0) :
+    posIndex G (V ⊔ W) = posIndex G V + posIndex G W := by
+  have hcross : ∀ v ∈ V, ∀ w ∈ W, (G (v + w) (v + w)).re = (G v v).re + (G w w).re := by
+    intro v hv w hw
+    rw [hG.add_left, hG.add_right, hG.add_right, hG.conj_symm v w, horth v hv w hw, map_zero,
+      add_zero, zero_add, Complex.add_re]
+  have hrank : ∀ (V' W' : Submodule ℂ (m → ℂ)), V' ≤ V → W' ≤ W →
+      finrank ℂ (V' ⊔ W' : Submodule ℂ (m → ℂ)) = finrank ℂ V' + finrank ℂ W' := by
+    intro V' W' hV' hW'
+    have h := Submodule.finrank_sup_add_finrank_inf_eq V' W'
+    have hinf : V' ⊓ W' = ⊥ := by
+      rw [eq_bot_iff, ← hVW]
+      exact inf_le_inf hV' hW'
+    rw [hinf, finrank_bot, add_zero] at h
+    exact h
+  apply le_antisymm
+  · -- the nonpositive subspaces
+    obtain ⟨NV, hNV, hNVr, hNVneg⟩ := exists_nonpos_subspace hG V
+    obtain ⟨NW, hNW, hNWr, hNWneg⟩ := exists_nonpos_subspace hG W
+    have h := posIndex_add_finrank_le (G := G) (V := V ⊔ W) (U := NV ⊔ NW)
+      (sup_le_sup hNV hNW) fun x hx => by
+        obtain ⟨v, hv, w, hw, rfl⟩ := Submodule.mem_sup.1 hx
+        rw [hcross v (hNV hv) w (hNW hw)]
+        exact add_nonpos (hNVneg v hv) (hNWneg w hw)
+    rw [hrank NV NW hNV hNW, hrank V W le_rfl le_rfl] at h
+    omega
+  · -- the positive subspaces
+    obtain ⟨PV, hPV, hPVr, hPVpos⟩ := exists_posIndex G V
+    obtain ⟨PW, hPW, hPWr, hPWpos⟩ := exists_posIndex G W
+    have h := le_posIndex (G := G) (V := V ⊔ W) (W := PV ⊔ PW) (sup_le_sup hPV hPW) fun x hx hx0 => by
+      obtain ⟨v, hv, w, hw, rfl⟩ := Submodule.mem_sup.1 hx
+      rw [hcross v (hPV hv) w (hPW hw)]
+      have hv0 : 0 ≤ (G v v).re := by
+        by_cases h0 : v = 0
+        · rw [h0, hG.zero_left, Complex.zero_re]
+        · exact (hPVpos v hv h0).le
+      have hw0 : 0 ≤ (G w w).re := by
+        by_cases h0 : w = 0
+        · rw [h0, hG.zero_left, Complex.zero_re]
+        · exact (hPWpos w hw h0).le
+      by_cases hv1 : v = 0
+      · have hw1 : w ≠ 0 := by
+          intro hw1
+          exact hx0 (by rw [hv1, hw1, add_zero])
+        have := hPWpos w hw hw1
+        linarith
+      · have := hPVpos v hv hv1
+        linarith
+    rw [hrank PV PW hPV hPW, hPVr, hPWr] at h
+    exact h
 
 end Gram
 

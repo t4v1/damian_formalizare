@@ -1728,6 +1728,81 @@ gaps.
   and nonzero by the nondegeneracy.
 \end{proposition}
 
+\begin{lemma}[Multiplicities and pairings of eigenvalues]
+  \label{lem:eigen-mult}
+  \lean{MorseFloer.EigenMult.finrank_E,
+        MorseFloer.EigenMult.finrank_kerAeval_fS,
+        MorseFloer.EigenMult.kerAeval_fS_or,
+        MorseFloer.EigenMult.HForm_eq_zero_of_mem_kerAeval_of_ne,
+        MorseFloer.EigenMult.card_filter_im_ne_zero,
+        MorseFloer.EigenMult.card_filter_norm_ne_one,
+        MorseFloer.EigenMult.card_filter_neg_real,
+        MorseFloer.EigenMult.even_count_neg_one}
+  \leanok
+  \uses{lem:eigen-decomp, lem:symplectic-spectrum, lem:7.3.3}
+  The dimension of a generalised eigenspace is the algebraic multiplicity, so
+  $\ker f_P(M)$ has dimension the number of eigenvalues satisfying $P$, with
+  multiplicity; the kernels of two factors with disjoint sets of eigenvalues
+  form a direct sum, and are $H$-orthogonal as soon as no eigenvalue of the one
+  and no eigenvalue of the other satisfy $\mu\bar\nu = 1$ (Lemma 7.3.3 spread
+  over the sums).  For a real symplectic matrix, in a region stable under the
+  relevant involution, the non-real eigenvalues pair off under conjugation,
+  those off the unit circle under $\mu \mapsto 1/\bar\mu$, and the negative
+  real ones other than $-1$ under inversion.  Finally the multiplicity of $-1$
+  is even (Corollary 5.6.7): the characteristic polynomial is self-reciprocal,
+  hence so is its quotient $q$ by $(X+1)^m$, and evaluating $q(X) = X^{d} q(1/X)$
+  at $-1$ forces $d$ even.
+\end{lemma}
+
+\begin{proposition}[Definition of $\rho$, Proposition 7.3.5]
+  \label{prop:7.3.5}
+  \lean{MorseFloer.Rho.mPos, MorseFloer.Rho.sigma, MorseFloer.Rho.factor,
+        MorseFloer.Rho.rho}
+  \leanok
+  \uses{lem:hermitian-index, lem:eigen-mult, def:7.1.c}
+  For $\lambda$ on the unit circle, $m_\pm(\lambda)$ are the positive and
+  negative indices of $Q$ on $E_\lambda$ and $\sigma(\lambda) = m_+ - m_- =
+  2m_+(\lambda) - m(\lambda)$; and
+  $\rho(A) = (-1)^{m_0/2} \prod_{\lambda \in S^1, \operatorname{Im}\lambda > 0}
+  \lambda^{\sigma(\lambda)}$, with $m_0$ the total multiplicity of the negative
+  real eigenvalues.  The formalisation writes $\rho(A)$ as a product over the
+  distinct eigenvalues $\mu$ of a factor: $\mu^{\sigma(\mu)}$ on the upper half
+  of the circle, $(-1)^{m(-1)/2}$ at $-1$, $(-1)^{m(\mu)}$ on $(-1, 0)$, and
+  $1$ elsewhere; since the negative real eigenvalues other than $-1$ come in
+  pairs $\mu, 1/\mu$, this is the book's formula.
+\end{proposition}
+
+\begin{theorem}[Continuity of $\rho$; Corollary 7.3.9 and Proposition 7.3.10]
+  \label{thm:rho-continuous}
+  \lean{MorseFloer.Rho.tendsto_prod_zpow, MorseFloer.Rho.eventually_cluster,
+        MorseFloer.Rho.rhoC_eq_prod_localProd, MorseFloer.Rho.eventually_sum_sigma,
+        MorseFloer.Rho.parity_neg_one, MorseFloer.Rho.tendsto_localProd,
+        MorseFloer.Rho.continuousOn_rho}
+  \leanok
+  \uses{prop:7.3.5, prop:7.3.6, lem:roots-continuity, lem:eigen-mult, lem:7.3.3}
+  $\rho$ is continuous on $Sp(2n)$.  At $A_0$, choose disjoint discs about its
+  distinct eigenvalues, small enough to stay on one side of the real axis, of
+  the unit circle and of the lines $\operatorname{Re} = 0, -1$ whenever the
+  centre is not on them; for $A$ near $A_0$ every eigenvalue of $A$ lies in one
+  of the discs, so $\rho(A)$ is the product of the local products over the
+  discs, and it suffices to show that each local product tends to the factor
+  of the centre $\lambda$.  Off the circle and $[-1, 0]$ the local product is
+  $1$.  On $(-1, 0)$ it is $(-1)$ to the number of real eigenvalues in the
+  disc, which has the parity of the multiplicity of $\lambda$, the non-real
+  eigenvalues coming in conjugate pairs.  On the circle it is
+  $\prod \mu^{\sigma(\mu)}$ over the circle eigenvalues $\mu$ in the disc, all
+  close to $\lambda$; since $\sum \sigma(\mu) = \sigma(\lambda)$ (Corollary
+  7.3.9: the sum of the eigenspaces of the disc has signature $\sum\sigma(\mu)$,
+  the eigenvalues off the circle pairing into hyperbolic planes of signature
+  $0$ by Corollary 7.3.4, and that signature is locally constant by
+  \ref{prop:7.3.6}), the product is within $N^2 \varepsilon$ of
+  $\lambda^{\sigma(\lambda)}$.  At $\lambda = -1$ the local product is
+  $(-1)^{m(-1)/2 + p}\prod \mu^{\sigma(\mu)}$, with $p$ the number of
+  eigenvalues in $(-1, 0)$, and the exponent has the parity of $m(-1)(A_0)/2$
+  by counting the eigenvalues of the disc along their orbits (Proposition
+  7.3.10), using that $m(-1)$ is even.
+\end{theorem}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1736,7 +1811,8 @@ gaps.
         MorseFloer.Chapter7.IsRho, MorseFloer.Chapter7.exists_isRho}
   \notready
   \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
-    lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6}
+    lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6, lem:eigen-mult, prop:7.3.5,
+    thm:rho-continuous}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
