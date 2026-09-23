@@ -1825,6 +1825,21 @@ gaps.
   $\rho(A^{-1}) = \overline{\rho(A)}$.
 \end{proposition}
 
+\begin{proposition}[Naturality of $\rho$, and $\rho(A^{\mathsf T}) = \rho(A^{-1})$]
+  \label{prop:rho-naturality}
+  \lean{MorseFloer.Rho.posIndex_map_of_isometry, MorseFloer.Rho.E_conj_mul,
+        MorseFloer.Rho.rho_naturality, MorseFloer.Rho.rho_transpose}
+  \leanok
+  \uses{prop:7.3.5, lem:hermitian-index}
+  For $T$ symplectic, $TAT^{-1}$ and $A$ have the same spectrum with
+  multiplicities, $E_\mu(TAT^{-1}) = T(E_\mu(A))$, and $T$ preserves $\omega$,
+  hence $Q$; the positive index of a Hermitian form is invariant under an
+  injective linear isometry, the Gram matrices of a basis and of its image
+  being equal.  So $m_\pm$ and $\sigma$ agree, and $\rho(TAT^{-1}) = \rho(A)$.
+  For the transpose, $A^{\mathsf T} J A = J$ gives
+  $A^{\mathsf T} = J A^{-1} J^{-1}$, and $J$ is symplectic.
+\end{proposition}
+
 \begin{definition}[The Conley--Zehnder index, axiomatically]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
@@ -1834,7 +1849,7 @@ gaps.
   \notready
   \uses{def:7.1.c, lem:roots-continuity, lem:spectral-projector, lem:7.3.3, lem:eigen-decomp,
     lem:symplectic-spectrum, lem:hermitian-index, prop:7.3.6, lem:eigen-mult, prop:7.3.5,
-    thm:rho-continuous, prop:rho-norm-inv}
+    thm:rho-continuous, prop:rho-norm-inv, prop:rho-naturality}
   The index is characterised by its axioms rather than constructed: the
   construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
   $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal

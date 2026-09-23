@@ -42,6 +42,7 @@ import MorseFloer.Part2.SignatureContinuity
 import MorseFloer.Part2.EigenMult
 import MorseFloer.Part2.Rho
 import MorseFloer.Part2.RhoProperties
+import MorseFloer.Part2.RhoNaturality
 import MorseFloer.Part2.Ch12
 import MorseFloer.Part2.Ch13
 import MorseFloer.Part2.SardMoreira.MainTheorem
