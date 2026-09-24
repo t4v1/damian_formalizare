@@ -17,12 +17,12 @@ blueprint entry with no Lean declaration, rather than an invented statement.
 
 ## Status
 
-All sixteen chapters are formalized. **5 `sorry`s remain**, all in Part II:
+All sixteen chapters are formalized. **3 `sorry`s remain**, all in Part II:
 
 | Chapter | `sorry` | What is missing |
 |---|---|---|
 | 6 The Arnold conjecture and the Floer equation | 1 | the Arnold conjecture on the torus itself, whose proof is Chapters 8–11 with their geometric input |
-| 7 The symplectic group and the Maslov index | 4 | `π₁(Sp(2n)) ≅ ℤ` (7.1.4–7.1.5; the map `ρ` of 7.1.3 is constructed with all its properties, and its lifts of 7.1.6 are proved), existence of the Conley–Zehnder index (7.2.1); Lemma 7.2.4 is proved from the axioms of 7.2.1 |
+| 7 The symplectic group and the Maslov index | 2 | Lemma 7.1.5 (perturbation to distinct eigenvalues) and the existence of the Conley–Zehnder index (7.2.1); Theorem 7.1.3 (`ρ`), Proposition 7.1.4 (`Sp(2n)±` path-connected, by another route than 7.1.5), Lemma 7.1.6 and Lemma 7.2.4 are proved |
 
 Everything else is proved, including:
 

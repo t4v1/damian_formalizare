@@ -1032,10 +1032,9 @@ formalized in depth while the manifold statements are gaps.
   $\exp$); the characteristic polynomial of a symplectic matrix is symmetric
   (5.6.4); $\omega(E_\lambda, E_\mu) = 0$ on generalised eigenspaces with
   $\lambda\mu \neq 1$ (5.6.6, by double induction); and $Sp(2) = SL(2;\mathbb{R})$
-  (Example 5.6.1).  That
-  $Sp(2n)$ retracts onto $U(n)$ with $\pi_1 \simeq \mathbb{Z}$ (Proposition
-  5.6.9) --- the input to the Maslov index of Chapter 7 --- is a gap: $U(n)$ is
-  not available as a subgroup of $GL(2n;\mathbb{R})$.
+  (Example 5.6.1).  The path-connectedness of
+  $Sp(2n)$ in Proposition 5.6.9 is proved in Chapter 7's files
+  (\ref{prop:5.6.9-connected}); that $\pi_1(Sp(2n)) \simeq \mathbb{Z}$ is a gap.
 \end{proposition}
 
 \chapter{Linearisation and transversality (Chapter 8)}
@@ -1523,6 +1522,48 @@ gaps.
   $\det(A-\mathrm{Id})$, with the reference matrix $-\mathrm{Id}$ in the positive
   part.
 \end{definition}
+
+\begin{proposition}[Proposition 5.6.9, path-connectedness of $Sp(2n)$]
+  \label{prop:5.6.9-connected}
+  \lean{MorseFloer.Chapter7.sqrt_mem_symplecticGroup, MorseFloer.Chapter7.posPath_mem,
+        MorseFloer.Chapter7.uPath_mem, MorseFloer.Chapter7.eq_realForm_of_commute,
+        MorseFloer.Chapter7.joinedIn_one_of_mem_symplecticGroup,
+        MorseFloer.Chapter7.isPathConnected_symplecticGroup,
+        MorseFloer.Chapter7.joinedIn_conj}
+  \leanok
+  \uses{def:7.1.c, lem:maslov-paths}
+  $Sp(2n)$ is path-connected, by the polar decomposition: the positive square
+  root $R$ of $A^{T}A$ is symplectic (both $J^{-1}RJ$ and $R^{-1}$ are positive
+  square roots of $(A^{T}A)^{-1}$), $R$ is joined to $\mathrm{Id}$ by the Cayley
+  path $((1+s)R + (1-s))((1-s)R + (1+s))^{-1}$, and $AR^{-1}$ is orthogonal and
+  symplectic, hence the real form of a unitary matrix, which a rotation
+  $e^{i\theta}$ followed by the unitary Cayley path joins to $\mathrm{Id}$.
+  Consequently conjugation by a symplectic matrix does not leave a path
+  component of $Sp(2n)^\star$.
+\end{proposition}
+
+\begin{proposition}[Proposition 7.1.4]
+  \label{prop:7.1.4}
+  \lean{MorseFloer.Chapter7.exists_normal_path, MorseFloer.Chapter7.cayInv_spec,
+        MorseFloer.Chapter7.cay_mem_symplecticStar, MorseFloer.Chapter7.exists_conj_normal,
+        MorseFloer.Chapter7.joinedIn_merge, MorseFloer.Chapter7.exists_joinedIn_normal,
+        MorseFloer.Chapter7.isPathConnected_symplecticPlus,
+        MorseFloer.Chapter7.isPathConnected_symplecticMinus}
+  \leanok
+  \uses{def:7.1.c, prop:5.6.9-connected}
+  $Sp(2n)^{+}$ and $Sp(2n)^{-}$ are path-connected.  Proved without Lemma 7.1.5:
+  the Cayley transform $A \mapsto (A+1)(A-1)^{-1}$ identifies $Sp(2n)^\star$ with
+  the Hamiltonian matrices without the eigenvalue $1$; a straight segment joins
+  such an $M$ to $N$ with $N^3 = 4N$, $N$ being $2$, $-2$, $0$ on the spectral
+  pieces cut out by the factors $f_+ f_- f_0$ of the characteristic polynomial
+  (roots $>1$, $<-1$, the rest), whose Bézout projectors are polynomials in $M$
+  and whose kernels are isotropic or orthogonal because
+  $\omega(f(M)x, y) = \omega(x, f(-M)y)$; an adapted symplectic basis conjugates
+  $N$ to $\begin{pmatrix} B & 0 \\ 0 & -B^{T}\end{pmatrix}$ with $B$ diagonal,
+  entries $2$ and $0$; two entries $2$ are merged by $2(1-s)R(\pi s/2)$; and the
+  sign of $\det(A-\mathrm{Id}) = $ sign of $(-3)^{k}$ decides whether the path ends
+  at $-\mathrm{Id}$ or at the normal form with one hyperbolic pair.
+\end{proposition}
 
 \begin{proposition}[Proposition 5.6.4, proved here]
   \label{prop:5.6.4}

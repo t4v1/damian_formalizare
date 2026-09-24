@@ -4,6 +4,7 @@ import MorseFloer.Part2.SymplecticForms
 import MorseFloer.Part2.RhoUnitary
 import MorseFloer.Part2.RhoLiftContinuity
 import MorseFloer.Part2.MaslovPaths
+import MorseFloer.Part2.SymplecticComponents
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -121,8 +122,9 @@ bricks can be built without importing this file.
 
 Assumed (`sorry`):
 
-* **Proposition 7.1.4**, the path-connectedness of `Sp(2n)±`, and **Lemma 7.1.5**
-  on which it rests;
+* **Lemma 7.1.5** (perturbation to distinct eigenvalues).  **Proposition 7.1.4**
+  itself, the path-connectedness of `Sp(2n)±`, is proved without it, in
+  `Part2/SymplecticComponents.lean`;
 * **Proposition 7.2.1**/the existence of the index
   (`exists_isConleyZehnderIndex`).
 
@@ -429,21 +431,27 @@ theorem exists_joinedIn_symplecticStar_distinct (A : Matrix (l ⊕ l) (l ⊕ l) 
         (A ∈ symplecticMinus l ∧ posEigenCount B = 2)) := by
   sorry
 
-/-- **Proposition 7.1.4** (first half).  `Sp(2n)+` is path-connected: by
-Lemma 7.1.5 every matrix in it can be joined inside `Sp(2n)⋆` to one with
-distinct eigenvalues and no positive real eigenvalue, and then to `W⁺ = −Id`.
+/-- **Proposition 7.1.4** (first half).  `Sp(2n)+` is path-connected; every
+matrix in it is joined to `W⁺ = −Id`.
 
-Not proved: it rests on Lemma 7.1.5. -/
+Proved in `Part2/SymplecticComponents.lean`, not through Lemma 7.1.5 but
+through the Cayley transform `A ↦ (A + 1)(A − 1)⁻¹` onto the Hamiltonian
+matrices without the eigenvalue `1`: a straight segment brings such a matrix to
+one with `N³ = 4N` (`HamiltonianSpectrum.lean`), an adapted symplectic basis and
+the path-connectedness of `Sp(2n)` (`SymplecticConnected.lean`, Proposition
+5.6.9) conjugate it to a normal form `[[B, 0], [0, −Bᵀ]]` with `B` diagonal with
+entries `2` and `0`, and pairs of hyperbolic eigenvalues are then merged two by
+two; the sign of `det(A − 1)` decides where the path ends. -/
 theorem isPathConnected_symplecticPlus [Nonempty l] :
-    IsPathConnected (symplecticPlus l) := by
-  sorry
+    IsPathConnected (symplecticPlus l) :=
+  isPathConnected_symplecticPlus'
 
-/-- **Proposition 7.1.4** (second half).  `Sp(2n)−` is path-connected.
-
-Not proved: it rests on Lemma 7.1.5. -/
+/-- **Proposition 7.1.4** (second half).  `Sp(2n)−` is path-connected; every
+matrix in it is joined to the Cayley transform of the normal form with one
+hyperbolic pair.  Proved in `Part2/SymplecticComponents.lean`. -/
 theorem isPathConnected_symplecticMinus [Nonempty l] :
-    IsPathConnected (symplecticMinus l) := by
-  sorry
+    IsPathConnected (symplecticMinus l) :=
+  isPathConnected_symplecticMinus'
 
 end Components
 
