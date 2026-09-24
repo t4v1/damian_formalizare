@@ -765,5 +765,239 @@ theorem isPathConnected_symplecticMinus' [Nonempty l] :
 
 end Components
 
+/-! ## Lemma 7.1.5: distinct eigenvalues -/
+
+section Distinct
+
+variable {l : Type*} [DecidableEq l] [Fintype l]
+
+theorem posEigenCount_diagonal {ι : Type*} [DecidableEq ι] [Fintype ι] (d : ι → ℝ) :
+    posEigenCount (Matrix.diagonal d) = (Finset.univ.filter fun i => 0 < d i).card := by
+  have h : (fun i => Polynomial.X - Polynomial.C (d i))
+      = (fun a : ℝ => Polynomial.X - Polynomial.C a) ∘ d := rfl
+  rw [posEigenCount, Matrix.charpoly_diagonal, Finset.prod_eq_multiset_prod, h,
+    ← Multiset.map_map, Polynomial.roots_multiset_prod_X_sub_C, Multiset.countP_map]
+  rfl
+
+theorem roots_charpoly_diagonal {ι : Type*} [DecidableEq ι] [Fintype ι] (d : ι → ℂ) :
+    (Matrix.diagonal d).charpoly.roots = Finset.univ.val.map d := by
+  have h : (fun i => Polynomial.X - Polynomial.C (d i))
+      = (fun a : ℂ => Polynomial.X - Polynomial.C a) ∘ d := rfl
+  rw [Matrix.charpoly_diagonal, Finset.prod_eq_multiset_prod, h, ← Multiset.map_map,
+    Polynomial.roots_multiset_prod_X_sub_C]
+
+theorem det_HN_diagonal_sub_one (d : l → ℝ) :
+    (HN (Matrix.diagonal d) - 1).det = ∏ m, (1 - d m ^ 2) := by
+  rw [det_HN_sub_one, ← Matrix.diagonal_one, Matrix.diagonal_sub, Matrix.diagonal_add,
+    Matrix.det_diagonal, Matrix.det_diagonal, ← Finset.card_univ, ← Finset.prod_const,
+    ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib]
+  exact Finset.prod_congr rfl fun m _ => by ring
+
+omit [Fintype l] in
+theorem HN_diagonal (d : l → ℝ) :
+    HN (Matrix.diagonal d) = Matrix.diagonal (Sum.elim d fun m => -d m) := by
+  rw [HN, Matrix.diagonal_transpose, Matrix.diagonal_neg, Matrix.fromBlocks_diagonal]
+
+/-- The Cayley transform of a diagonal matrix without the entry `1`. -/
+theorem cay_diagonal {ι : Type*} [DecidableEq ι] [Fintype ι] (e : ι → ℝ) (he : ∀ a, e a ≠ 1) :
+    (Matrix.diagonal e + 1) * (Matrix.diagonal e - 1)⁻¹
+      = Matrix.diagonal fun a => (e a + 1) / (e a - 1) := by
+  have h1 : Matrix.diagonal e - 1 = Matrix.diagonal fun a => e a - 1 := by
+    rw [← Matrix.diagonal_one, Matrix.diagonal_sub]
+  have h2 : Matrix.diagonal e + 1 = Matrix.diagonal fun a => e a + 1 := by
+    rw [← Matrix.diagonal_one, Matrix.diagonal_add]
+  have hinv : (Matrix.diagonal fun a => e a - 1)⁻¹ = Matrix.diagonal fun a => (e a - 1)⁻¹ := by
+    apply Matrix.inv_eq_left_inv
+    rw [Matrix.diagonal_mul_diagonal]
+    rw [← Matrix.diagonal_one]
+    congr 1
+    funext a
+    exact inv_mul_cancel₀ (sub_ne_zero.mpr (he a))
+  rw [h1, h2, hinv, Matrix.diagonal_mul_diagonal]
+  rfl
+
+/-- Distinct positive weights in `(0, 1)`. -/
+noncomputable def wt (l : Type*) [Fintype l] (m : l) : ℝ :=
+  (((Fintype.equivFin l m : Fin (Fintype.card l)) : ℕ) + 1 : ℝ) / (Fintype.card l + 1)
+
+omit [DecidableEq l] in
+theorem wt_pos (m : l) : 0 < wt l m := by unfold wt; positivity
+
+omit [DecidableEq l] in
+theorem wt_lt_one (m : l) : wt l m < 1 := by
+  unfold wt
+  rw [div_lt_one (by positivity)]
+  have := (Fintype.equivFin l m).isLt
+  have : ((Fintype.equivFin l m : Fin (Fintype.card l)) : ℝ) < Fintype.card l := by
+    exact_mod_cast this
+  linarith
+
+omit [DecidableEq l] in
+theorem wt_injective : Function.Injective (wt l) := by
+  intro m m' h
+  unfold wt at h
+  rw [div_left_inj' (by positivity), add_left_inj, Nat.cast_inj] at h
+  exact (Fintype.equivFin l).injective (Fin.ext h)
+
+/-- The diagonal entries of the path: `2` on `K`, `t · wt` elsewhere. -/
+noncomputable def bt (K : Finset l) (t : ℝ) (m : l) : ℝ := if m ∈ K then 2 else t * wt l m
+
+theorem card_Kset_le_one {k : ℕ} (hk : k < 2) : (Kset l k).card ≤ 1 := by
+  refine Finset.card_le_one.mpr fun a ha b hb => ?_
+  rw [mem_Kset] at ha hb
+  exact (Fintype.equivFin l).injective (Fin.ext (by omega))
+
+/-- **Lemma 7.1.5.**  Every `A ∈ Sp(2n)⋆` is joined inside `Sp(2n)⋆` to a
+symplectic matrix with pairwise distinct eigenvalues, none of them positive if
+`A ∈ Sp(2n)⁺`, exactly two if `A ∈ Sp(2n)⁻`.  The endpoint is the Cayley
+transform of a diagonal Hamiltonian matrix `diag(b, −b)` with the entries of `b`
+distinct, one of them `2` in the second case, the others in `(0, 1)`. -/
+theorem exists_joinedIn_distinct {A : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hA : A ∈ symplecticStar l) :
+    ∃ B ∈ symplecticStar l, JoinedIn (symplecticStar l) A B ∧
+      (B.map (fun r : ℝ => (r : ℂ))).charpoly.roots.Nodup ∧
+      ((A ∈ symplecticPlus l ∧ posEigenCount B = 0) ∨
+        (A ∈ symplecticMinus l ∧ posEigenCount B = 2)) := by
+  obtain ⟨k, hk, hj⟩ := exists_joinedIn_normal hA
+  set K := Kset l k with hKdef
+  have hKc : K.card ≤ 1 := card_Kset_le_one hk
+  -- the path of diagonal normal forms
+  have hbt0 : Matrix.diagonal (bt K 0) = dK K := by
+    rw [dK]; congr 1; funext m; simp [bt]
+  have hsq : ∀ t ∈ unitInterval, ∀ m, 1 - bt K t m ^ 2 ≠ 0 := by
+    intro t ht m
+    unfold bt
+    split_ifs
+    · norm_num
+    · have h1 := wt_pos m
+      have h2 := wt_lt_one m
+      have : t * wt l m < 1 := by nlinarith [ht.1, ht.2]
+      have : 0 ≤ t * wt l m := mul_nonneg ht.1 h1.le
+      nlinarith
+  have j2 := joinedIn_cay (fun t => HN (Matrix.diagonal (bt K t)))
+    (continuous_HN (Continuous.matrix_diagonal (continuous_pi fun m => by
+      unfold bt; split_ifs <;> fun_prop))).continuousOn
+    (fun t _ => isHam_HN _)
+    (fun t ht => by
+      rw [det_HN_diagonal_sub_one]
+      exact Finset.prod_ne_zero_iff.mpr fun m _ => hsq t ht m)
+  simp only [hbt0] at j2
+  set b := bt K 1 with hb
+  set e : l ⊕ l → ℝ := Sum.elim b fun m => -b m with he
+  have hbpos : ∀ m, 0 < b m := fun m => by
+    simp only [hb, bt]; split_ifs
+    · norm_num
+    · rw [one_mul]; exact wt_pos m
+  have hb2 : ∀ m, m ∈ K → b m = 2 := fun m hm => by simp [hb, bt, hm]
+  have hbw : ∀ m, m ∉ K → b m = wt l m := fun m hm => by simp [hb, bt, hm]
+  have he1 : ∀ a, e a ≠ 1 := by
+    rintro (m | m)
+    · by_cases hm : m ∈ K
+      · simp [he, hb2 m hm]
+      · have := wt_lt_one m
+        simp only [he, Sum.elim_inl, hbw m hm]; exact ne_of_lt this
+    · have := hbpos m
+      simp only [he, Sum.elim_inr]; intro h; linarith
+  set c : l ⊕ l → ℝ := fun a => (e a + 1) / (e a - 1) with hc
+  have hB : cay (HN (Matrix.diagonal b)) = Matrix.diagonal c := by
+    rw [cay, HN_diagonal]; exact cay_diagonal e he1
+  refine ⟨cay (HN (Matrix.diagonal b)), (hj.trans j2).mem.2, hj.trans j2, ?_, ?_⟩
+  · -- distinct eigenvalues
+    rw [hB, Matrix.diagonal_map (by simp), roots_charpoly_diagonal]
+    refine Multiset.Nodup.map ?_ Finset.univ.nodup
+    refine Complex.ofReal_injective.comp ?_
+    -- `c` is injective
+    have hmob : Function.Injective e := by
+      have hbinj : Function.Injective b := by
+        intro m m' h
+        by_cases hm : m ∈ K <;> by_cases hm' : m' ∈ K
+        · exact Finset.card_le_one.mp hKc m hm m' hm'
+        · rw [hb2 m hm, hbw m' hm'] at h; have := wt_lt_one m'; linarith
+        · rw [hbw m hm, hb2 m' hm'] at h; have := wt_lt_one m; linarith
+        · rw [hbw m hm, hbw m' hm'] at h; exact wt_injective h
+      rintro (m | m) (m' | m') h
+      · simp only [he, Sum.elim_inl] at h; rw [hbinj h]
+      · simp only [he, Sum.elim_inl, Sum.elim_inr] at h
+        have := hbpos m; have := hbpos m'; linarith
+      · simp only [he, Sum.elim_inl, Sum.elim_inr] at h
+        have := hbpos m; have := hbpos m'; linarith
+      · simp only [he, Sum.elim_inr, neg_inj] at h; rw [hbinj h]
+    intro a a' h
+    apply hmob
+    simp only [hc] at h
+    have h1 := sub_ne_zero.mpr (he1 a)
+    have h2 := sub_ne_zero.mpr (he1 a')
+    rw [div_eq_div_iff h1 h2] at h
+    linarith
+  · -- the count of positive eigenvalues, decided by the sign of `det(A − 1)`
+    have hcount : posEigenCount (cay (HN (Matrix.diagonal b))) = 2 * K.card := by
+      rw [hB, posEigenCount_diagonal, Finset.card_filter, Fintype.sum_sum_type]
+      have hpos : ∀ m, (if 0 < c (Sum.inl m) then 1 else 0) = (if m ∈ K then 1 else 0) ∧
+          (if 0 < c (Sum.inr m) then 1 else 0) = (if m ∈ K then 1 else 0) := by
+        intro m
+        by_cases hm : m ∈ K
+        · simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hb2 m hm, hm, if_true]
+          norm_num
+        · have h1 := wt_pos m
+          have h2 := wt_lt_one m
+          simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hbw m hm, hm, if_false]
+          constructor
+          · rw [if_neg]; rw [not_lt]
+            exact div_nonpos_of_nonneg_of_nonpos (by linarith) (by linarith)
+          · rw [if_neg]; rw [not_lt]
+            exact div_nonpos_of_nonneg_of_nonpos (by linarith) (by linarith)
+      rw [Finset.sum_congr rfl fun m _ => (hpos m).1, Finset.sum_congr rfl fun m _ => (hpos m).2,
+        Finset.sum_boole, Finset.filter_mem_eq_inter, Finset.univ_inter]
+      simp only [Nat.cast_id]
+      ring
+    have hdet : (cay (HN (Matrix.diagonal b)) - 1).det
+        = 2 ^ Fintype.card (l ⊕ l) * (∏ m, (1 - b m ^ 2))⁻¹ := by
+      have hne : (HN (Matrix.diagonal b) - 1).det ≠ 0 := by
+        rw [det_HN_diagonal_sub_one]
+        exact Finset.prod_ne_zero_iff.mpr fun m _ => hsq 1 ⟨zero_le_one, le_rfl⟩ m
+      rw [det_cay_sub_one hne, det_HN_diagonal_sub_one]
+    have hprod : ∏ m, (1 - b m ^ 2)
+        = (-3 : ℝ) ^ K.card * ∏ m ∈ Finset.univ.filter (fun m => m ∉ K), (1 - wt l m ^ 2) := by
+      rw [← Finset.prod_filter_mul_prod_filter_not Finset.univ (fun m => m ∈ K),
+        Finset.filter_mem_eq_inter, Finset.univ_inter,
+        Finset.prod_congr rfl fun m hm => by rw [hb2 m hm],
+        Finset.prod_const]
+      congr 1
+      · norm_num
+      · exact Finset.prod_congr rfl fun m hm => by
+          rw [hbw m (Finset.mem_filter.mp hm).2]
+    have hQ : 0 < ∏ m ∈ Finset.univ.filter (fun m => m ∉ K), (1 - wt l m ^ 2) :=
+      Finset.prod_pos fun m _ => by
+        have := wt_pos m; have := wt_lt_one m; nlinarith
+    have h2pos : (0 : ℝ) < 2 ^ Fintype.card (l ⊕ l) := by positivity
+    have hjoin := hj.trans j2
+    rcases lt_or_gt_of_ne hA.2 with hneg | hpos
+    · -- `A ∈ Sp(2n)⁻`
+      right
+      refine ⟨⟨hA.1, hneg⟩, ?_⟩
+      have hBneg := (joinedIn_minus_of_star hjoin ⟨hA.1, hneg⟩).mem.2.2
+      rw [hdet, hprod] at hBneg
+      rw [hcount]
+      interval_cases hcard : K.card
+      · exfalso
+        rw [pow_zero, one_mul] at hBneg
+        have := mul_pos h2pos (inv_pos.mpr hQ)
+        linarith
+      · rfl
+    · left
+      refine ⟨⟨hA.1, hpos⟩, ?_⟩
+      have hBpos := (joinedIn_plus_of_star hjoin ⟨hA.1, hpos⟩).mem.2.2
+      rw [hdet, hprod] at hBpos
+      rw [hcount]
+      interval_cases hcard : K.card
+      · rfl
+      · exfalso
+        simp only [pow_one] at hBpos
+        have : (0 : ℝ) < ((-3) * ∏ m ∈ Finset.univ.filter (fun m => m ∉ K), (1 - wt l m ^ 2))⁻¹ :=
+          pos_of_mul_pos_right hBpos h2pos.le
+        rw [inv_pos] at this
+        nlinarith
+
+end Distinct
+
 end Chapter7
 end MorseFloer

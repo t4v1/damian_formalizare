@@ -122,11 +122,18 @@ bricks can be built without importing this file.
 
 Assumed (`sorry`):
 
-* **Lemma 7.1.5** (perturbation to distinct eigenvalues).  **Proposition 7.1.4**
-  itself, the path-connectedness of `Sp(2n)±`, is proved without it, in
-  `Part2/SymplecticComponents.lean`;
 * **Proposition 7.2.1**/the existence of the index
-  (`exists_isConleyZehnderIndex`).
+  (`exists_isConleyZehnderIndex`).  Everything but one direction of its
+  homotopy clause is within reach (`μ = (ρ̃(ψ 1) − α(1))/π − n` with `α` the lift
+  of `ρ ∘ ψ`); the converse, "equal index ⇒ homotopic in `S`", needs
+  `π₁(Sp(2n)) ≅ ℤ` detected by `ρ`, i.e. the simple connectivity of `SU(n)`,
+  which Mathlib does not have.
+
+**Proposition 7.1.4 and Lemma 7.1.5 are proved** (`Part2/SymplecticComponents.lean`),
+by the Cayley transform onto Hamiltonian matrices, a normal form under
+symplectic conjugation (with `Sp(2n)` path-connected, `SymplecticConnected.lean`)
+and explicit merging of hyperbolic pairs, rather than by the book's
+eigenvalue-by-eigenvalue perturbation.
 
 **Lemma 7.2.4 is proved** from the axioms of Proposition 7.2.1 alone
 (`exists_symmetric_of_index`), for `n ≥ 2` — for `n = 1` the statement is false
@@ -416,20 +423,20 @@ variable {l : Type*} [DecidableEq l] [Fintype l]
 symplectic matrix with pairwise distinct eigenvalues and with exactly zero
 positive real eigenvalues if `A ∈ Sp(2n)+`, exactly two if `A ∈ Sp(2n)−`.
 
-Not proved.  The book's argument perturbs a multiple eigenvalue at a time,
-choosing at each stage a symplectic basis of a characteristic subspace adapted
-to complex conjugation and modifying `A` only there.  Formalizing it needs
-symplectic bases of generalised eigenspaces of a symplectic matrix over `ℂ`, the
-symplectic orthogonal complement of such a subspace, and Proposition 5.6.6 in
-full — all of which is missing (Chapter 5 proves 5.6.6 only for genuine
-eigenvectors). -/
+Proved in `Part2/SymplecticComponents.lean` (`exists_joinedIn_distinct`), not by
+the book's eigenvalue-by-eigenvalue perturbation but from the normal form of
+Proposition 7.1.4: `A` is joined to the Cayley transform of `[[B, 0], [0, −Bᵀ]]`
+with `B = 2P_K`, `|K| ≤ 1`, and moving the zero diagonal entries of `B` to
+distinct values in `(0, 1)` makes the eigenvalues `(b + 1)/(b − 1)` and
+`(b − 1)/(b + 1)` of the endpoint distinct; the positive ones are `3` and `1/3`,
+present exactly when `|K| = 1`, i.e. when `det(A − 1) < 0`. -/
 theorem exists_joinedIn_symplecticStar_distinct (A : Matrix (l ⊕ l) (l ⊕ l) ℝ)
-    (_hA : A ∈ symplecticStar l) :
+    (hA : A ∈ symplecticStar l) :
     ∃ B ∈ symplecticStar l, JoinedIn (symplecticStar l) A B ∧
       (B.map (fun r : ℝ => (r : ℂ))).charpoly.roots.Nodup ∧
       ((A ∈ symplecticPlus l ∧ posEigenCount B = 0) ∨
-        (A ∈ symplecticMinus l ∧ posEigenCount B = 2)) := by
-  sorry
+        (A ∈ symplecticMinus l ∧ posEigenCount B = 2)) :=
+  exists_joinedIn_distinct hA
 
 /-- **Proposition 7.1.4** (first half).  `Sp(2n)+` is path-connected; every
 matrix in it is joined to `W⁺ = −Id`.

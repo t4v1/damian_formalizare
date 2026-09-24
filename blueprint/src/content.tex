@@ -1565,6 +1565,21 @@ gaps.
   at $-\mathrm{Id}$ or at the normal form with one hyperbolic pair.
 \end{proposition}
 
+\begin{lemma}[Lemma 7.1.5]
+  \label{lem:7.1.5}
+  \lean{MorseFloer.Chapter7.exists_joinedIn_distinct,
+        MorseFloer.Chapter7.cay_diagonal, MorseFloer.Chapter7.det_HN_diagonal_sub_one,
+        MorseFloer.Chapter7.exists_joinedIn_symplecticStar_distinct}
+  \leanok
+  \uses{prop:7.1.4}
+  Every $A \in Sp(2n)^\star$ is joined in $Sp(2n)^\star$ to a matrix with distinct
+  eigenvalues, none positive if $A \in Sp(2n)^+$, exactly two if $A \in Sp(2n)^-$.
+  From the normal form of \ref{prop:7.1.4}: the zero entries of the diagonal $B$
+  are moved to distinct values in $(0,1)$; the Cayley transform of
+  $\operatorname{diag}(b,-b)$ is $\operatorname{diag}((b+1)/(b-1), (b-1)/(b+1))$,
+  whose entries are distinct and positive only for $b = 2$.
+\end{lemma}
+
 \begin{proposition}[Proposition 5.6.4, proved here]
   \label{prop:5.6.4}
   \lean{MorseFloer.Chapter5.det_charpoly_symmetric,
