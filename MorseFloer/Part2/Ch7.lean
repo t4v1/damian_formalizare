@@ -5,7 +5,7 @@ import MorseFloer.Part2.RhoUnitary
 import MorseFloer.Part2.RhoLiftContinuity
 import MorseFloer.Part2.MaslovPaths
 import MorseFloer.Part2.SymplecticComponents
-import MorseFloer.Part2.MaslovIndex
+import MorseFloer.Part2.MaslovNormalisation
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -600,18 +600,19 @@ structure IsConleyZehnderIndex
 
 The index is `MaslovIndex.maslovIndex`: `(ρ̃(ψ 1) - θ 1) / π - n`, with `θ` the lift of
 `ρ ∘ ψ` vanishing at `0` and `ρ̃` the continuous lift of Lemma 7.1.6 on `Sp(2n)⋆`. For it the
-sign clause, homotopy invariance and additivity are proved in `Part2/MaslovIndex.lean`.
+sign clause, homotopy invariance and additivity are proved in `Part2/MaslovIndex.lean`, and
+the normalisation in `Part2/MaslovNormalisation.lean`.
 
-Still assumed: the normalisation on `exp(tJS)`, and the converse of homotopy invariance
-(admissible paths with the same index are homotopic in `S`), which needs
-`π₁(Sp(2n)) ≅ ℤ` through `ρ`, i.e. the simple connectivity of `SU(n)`. -/
+Still assumed: the converse of homotopy invariance (admissible paths with the same index are
+homotopic in `S`), which needs `π₁(Sp(2n)) ≅ ℤ` through `ρ`, i.e. the simple connectivity of
+`SU(n)`. -/
 theorem exists_isConleyZehnderIndex : ∃ μ, IsConleyZehnderIndex μ := by
   refine ⟨MaslovIndex.maslovIndex, fun n ψ₀ ψ₁ _ _ =>
     ⟨MaslovIndex.maslovIndex_eq_of_homotopicInS, ?converse⟩,
-    fun n ψ hψ => MaslovIndex.maslovIndex_sign hψ, ?normalisation,
+    fun n ψ hψ => MaslovIndex.maslovIndex_sign hψ,
+    fun n S hS hdet hb => MaslovIndex.maslovIndex_expPath_eq hS hdet hb,
     fun m n ψ₀ ψ₁ h₀ h₁ => MaslovIndex.maslovIndex_blockSum h₀ h₁⟩
   case converse => sorry
-  case normalisation => sorry
 
 variable {μ : ∀ n : ℕ, (ℝ → Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ) → ℤ}
 
