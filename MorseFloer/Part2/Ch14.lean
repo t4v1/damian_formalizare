@@ -1,5 +1,6 @@
 import MorseFloer.Basic
 import MorseFloer.Part2.SardMoreira.MainTheorem
+import MorseFloer.Part2.SardLowDim
 
 /-!
 # Chapter 14: A little differential geometry
@@ -155,15 +156,12 @@ Proved.  The image has Hausdorff dimension at most `dim E`, since a `C¹` map do
 not raise Hausdorff dimension, and a set of Hausdorff dimension below `dim F` is
 null for the Hausdorff measure of dimension `dim F`, which is itself a Haar
 measure on `F`.  Nullity does not depend on which Haar measure is chosen, as any
-two are mutually absolutely continuous. -/
+two are mutually absolutely continuous.  The proof lives in `Part2/SardLowDim.lean`,
+which does not depend on `SardMoreira`. -/
 theorem sard_of_finrank_lt (μ : Measure F) [μ.IsAddHaarMeasure]
     {f : E → F} (hf : ContDiff ℝ 1 f) (s : Set E) (hEF : finrank ℝ E < finrank ℝ F) :
-    μ (f '' s) = 0 := by
-  have hlt : dimH (f '' s) < (finrank ℝ F : ℝ≥0) := by
-    refine lt_of_le_of_lt ((dimH_mono (image_subset_range f s)).trans hf.dimH_range_le) ?_
-    exact_mod_cast hEF
-  refine measure_zero_of_dimH_lt (d := (finrank ℝ F : ℝ≥0)) ?_ hlt
-  exact Measure.absolutelyContinuous_isAddHaarMeasure μ (μH[(finrank ℝ F : ℝ)])
+    μ (f '' s) = 0 :=
+  measure_image_eq_zero_of_finrank_lt μ hf s hEF
 
 /-- **Sard's theorem, equidimensional regime.**  The critical values of a
 differentiable map between spaces of equal dimension are null.

@@ -1,6 +1,6 @@
 import MorseFloer.Part2.UnitaryRotation
 import MorseFloer.Part2.MaslovIndex
-import MorseFloer.Part2.Ch14
+import MorseFloer.Part2.SardLowDim
 
 /-!
 # Loops of unitary matrices
@@ -552,7 +552,7 @@ theorem exists_missed [Nontrivial ι] (i₀ : ι) {P : ℝ → ι → ℂ} (hP :
     omega
   have hnull : (MeasureTheory.volume : MeasureTheory.Measure (ι → ℂ)) (Set.range F) = 0 := by
     rw [← Set.image_univ]
-    exact Chapter14.sard_of_finrank_lt _ hF Set.univ hdim
+    exact measure_image_eq_zero_of_finrank_lt _ hF Set.univ hdim
   set e : ι → ℂ := Pi.single i₀ 1
   obtain ⟨x, hxB, hxF⟩ : ∃ x ∈ Metric.ball (-e) (1 / 2), x ∉ Set.range F := by
     by_contra h
