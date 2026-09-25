@@ -19,6 +19,7 @@ import MorseFloer.Part2.Darboux
 import MorseFloer.Part2.Ch5
 import MorseFloer.Part2.Ch6
 import MorseFloer.Part2.MaslovPaths
+import MorseFloer.Part2.MaslovIndex
 import MorseFloer.Part2.SymplecticConnected
 import MorseFloer.Part2.HamiltonianSpectrum
 import MorseFloer.Part2.SymplecticComponents
