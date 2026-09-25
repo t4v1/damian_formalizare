@@ -1989,19 +1989,34 @@ gaps.
   constant by \ref{prop:7.3.6} and $\sum\sigma(\mu) = \sigma(\lambda)$.
 \end{lemma}
 
-\begin{definition}[The Conley--Zehnder index, axiomatically]
+\begin{definition}[The Conley--Zehnder index, Proposition 7.2.1]
   \label{def:7.2}
   \lean{MorseFloer.Chapter7.IsConleyZehnderIndex,
         MorseFloer.Chapter7.exists_isConleyZehnderIndex,
-        MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub}
-  \notready
-  \uses{def:7.1.c, thm:7.1.3, lem:7.1.6}
-  The index is characterised by its axioms rather than constructed: the
-  construction needs that $Sp(2n)$ retracts onto $U(n)$ with fundamental group
-  $\mathbb{Z}$, and Mathlib has no $U(n)$ inside $GL(2n;\mathbb{R})$.  Its formal
-  consequences \emph{are} proved, including Corollary 7.2.2, which relates the
-  index to the Morse index and is what makes the Floer grading agree with the
-  Morse grading in Chapter 10.
+        MorseFloer.Chapter7.conleyZehnder_eq_morseIndex_sub,
+        MorseFloer.MaslovIndex.maslovIndex,
+        MorseFloer.MaslovIndex.maslovIndex_eq_of_homotopicInS,
+        MorseFloer.MaslovIndex.maslovIndex_expPath_eq,
+        MorseFloer.MaslovIndex.homotopicInS_of_maslovIndex_eq,
+        MorseFloer.UnitaryLoops.nullHomotopic_of_windsZero,
+        MorseFloer.MaslovIndex.loop_homotopic_refl}
+  \leanok
+  \uses{def:7.1.c, thm:7.1.3, lem:7.1.6, prop:7.1.4}
+  The index exists and satisfies all the axioms.  It is
+  $\mu(\psi) = (\tilde\rho(\psi(1)) - \alpha(1))/\pi - n$, with $\alpha$ the lift of
+  $\rho\circ\psi$ vanishing at $0$ and $\tilde\rho$ the continuous lift of Lemma 7.1.6,
+  which replaces the book's connecting path.  The sign clause, homotopy invariance
+  (lifting the homotopy over the plane) and additivity follow from the properties
+  of $\rho$ and $\tilde\rho$; the normalisation reduces a symmetric $S$ to a diagonal
+  matrix of signs along congruence paths (spectral theorem and transvections)
+  and computes the rotations at $\pm\pi$.  The converse of homotopy invariance is
+  $\pi_1(Sp(2n)) \cong \mathbb{Z}$ through $\rho$, proved from scratch: a loop of
+  unitary matrices on which $\det$ winds zero times contracts, by an induction on
+  the size in which a polynomial approximation of one column misses a point of
+  the sphere and explicit unitary rotations lift the resulting homotopies; and
+  $Sp(2n)$ retracts onto $U(n)$ by the polar decomposition, with $\rho = \det$ there.
+  Its formal consequences include Corollary 7.2.2, which relates the index to the
+  Morse index and makes the Floer grading agree with the Morse grading in Chapter 10.
 \end{definition}
 
 \begin{proposition}[Dimension two, in full]

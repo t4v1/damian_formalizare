@@ -6,6 +6,7 @@ import MorseFloer.Part2.RhoLiftContinuity
 import MorseFloer.Part2.MaslovPaths
 import MorseFloer.Part2.SymplecticComponents
 import MorseFloer.Part2.MaslovNormalisation
+import MorseFloer.Part2.MaslovConverse
 
 /-!
 # Chapter 7: Geometry of the symplectic group, the Maslov index
@@ -51,8 +52,8 @@ Rather than inventing a construction, this file
 * states the **defining properties** of the Conley–Zehnder index
   (Proposition 7.2.1) as a predicate `IsConleyZehnderIndex` on a family of
   functions on paths — normalisation on `exp(tJS)`, the sign of
-  `det(ψ(1) − Id)`, homotopy invariance, additivity under block sums — asserts
-  its existence with `sorry`, and *proves* what follows formally from the
+  `det(ψ(1) − Id)`, homotopy invariance, additivity under block sums — proves
+  its existence (see below), and *proves* what follows formally from the
   axioms, notably the parity of `μ(ψ) − n` and Corollary 7.2.2.  This is what
   later chapters should quote when they state index formulas;
 * *proves* the matrix algebra of §7.1.c outright: the sets `Sp(2n)⋆`,
@@ -121,14 +122,15 @@ proved for it too (`exists_lift_symplecticPlus`, `exists_lift_symplecticMinus`):
 in `Part2/SymplecticForms.lean`, under this chapter's namespace, so that the
 bricks can be built without importing this file.
 
-Assumed (`sorry`):
-
-* **Proposition 7.2.1**/the existence of the index
-  (`exists_isConleyZehnderIndex`).  Everything but one direction of its
-  homotopy clause is within reach (`μ = (ρ̃(ψ 1) − α(1))/π − n` with `α` the lift
-  of `ρ ∘ ψ`); the converse, "equal index ⇒ homotopic in `S`", needs
-  `π₁(Sp(2n)) ≅ ℤ` detected by `ρ`, i.e. the simple connectivity of `SU(n)`,
-  which Mathlib does not have.
+Nothing is assumed.  **Proposition 7.2.1 is proved**
+(`exists_isConleyZehnderIndex`): the index is `μ = (ρ̃(ψ 1) − α(1))/π − n` with
+`α` the lift of `ρ ∘ ψ` (`Part2/MaslovIndex.lean`), with the normalisation in
+`Part2/MaslovNormalisation.lean` and the converse of homotopy invariance,
+"equal index ⇒ homotopic in `S`", in `Part2/MaslovConverse.lean`.  That converse
+is `π₁(Sp(2n)) ≅ ℤ` detected by `ρ`, proved from scratch: loops of unitary
+matrices on which `det` winds zero times contract (`Part2/UnitaryLoops.lean`,
+an induction on the size with no fibre bundle), and `Sp(2n)` retracts onto
+`U(n)`, where `ρ = det` (`Part2/SymplecticLoops.lean`).
 
 **Proposition 7.1.4 and Lemma 7.1.5 are proved** (`Part2/SymplecticComponents.lean`),
 by the Cayley transform onto Hamiltonian matrices, a normal form under
@@ -600,19 +602,18 @@ structure IsConleyZehnderIndex
 
 The index is `MaslovIndex.maslovIndex`: `(ρ̃(ψ 1) - θ 1) / π - n`, with `θ` the lift of
 `ρ ∘ ψ` vanishing at `0` and `ρ̃` the continuous lift of Lemma 7.1.6 on `Sp(2n)⋆`. For it the
-sign clause, homotopy invariance and additivity are proved in `Part2/MaslovIndex.lean`, and
-the normalisation in `Part2/MaslovNormalisation.lean`.
-
-Still assumed: the converse of homotopy invariance (admissible paths with the same index are
-homotopic in `S`), which needs `π₁(Sp(2n)) ≅ ℤ` through `ρ`, i.e. the simple connectivity of
-`SU(n)`. -/
+sign clause, homotopy invariance and additivity are proved in `Part2/MaslovIndex.lean`, the
+normalisation in `Part2/MaslovNormalisation.lean`, and the converse of homotopy invariance in
+`Part2/MaslovConverse.lean`: it rests on `π₁(Sp(2n)) ≅ ℤ` through `ρ`, proved in
+`Part2/UnitaryLoops.lean` (loops of unitary matrices on which `det` winds zero times contract,
+by an induction on the size with no fibre bundle) and `Part2/SymplecticLoops.lean` (the polar
+retraction of `Sp(2n)` onto `U(n)`, where `ρ = det`). -/
 theorem exists_isConleyZehnderIndex : ∃ μ, IsConleyZehnderIndex μ := by
-  refine ⟨MaslovIndex.maslovIndex, fun n ψ₀ ψ₁ _ _ =>
-    ⟨MaslovIndex.maslovIndex_eq_of_homotopicInS, ?converse⟩,
+  exact ⟨MaslovIndex.maslovIndex, fun n ψ₀ ψ₁ h₀ h₁ =>
+    ⟨MaslovIndex.maslovIndex_eq_of_homotopicInS, MaslovIndex.homotopicInS_of_maslovIndex_eq h₀ h₁⟩,
     fun n ψ hψ => MaslovIndex.maslovIndex_sign hψ,
     fun n S hS hdet hb => MaslovIndex.maslovIndex_expPath_eq hS hdet hb,
     fun m n ψ₀ ψ₁ h₀ h₁ => MaslovIndex.maslovIndex_blockSum h₀ h₁⟩
-  case converse => sorry
 
 variable {μ : ∀ n : ℕ, (ℝ → Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ) → ℤ}
 
