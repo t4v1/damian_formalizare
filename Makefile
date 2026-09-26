@@ -16,6 +16,7 @@ blueprint-pdf:
 
 blueprint-web:
 	cd blueprint/src && $(BP_VENV)/bin/plastex -c plastex.cfg web.tex
+	python3 blueprint/link_decls.py
 
 # The web pages draw the dependency graph with a WebAssembly Graphviz, which a
 # browser refuses to load from a file:// URL.  Either serve the directory...

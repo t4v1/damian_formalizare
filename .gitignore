@@ -12,5 +12,6 @@ parts/
 blueprint/web/
 blueprint/print/
 blueprint/CheckDecls.lean
+blueprint/DeclLocs.lean
 blueprint/lean_decls
 blueprint/src/*.paux
