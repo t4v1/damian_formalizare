@@ -315,16 +315,16 @@ private theorem sum_range_ite_mul (k p q : ℕ) :
   · have h1 : (∑ i ∈ Finset.range (k + 1),
         (if p = i then (1 : ℕ) else 0) * (if q = k - i then 1 else 0))
         = (if p = p then (1 : ℕ) else 0) * (if q = k - p then 1 else 0) :=
-      Finset.sum_eq_single p (fun b _ hb => by rw [if_neg (Ne.symm hb), zero_mul])
+      Finset.sum_eq_single p (fun b _ hb => by rw [ite_eq_right (Ne.symm hb), zero_mul])
         (fun h => absurd (Finset.mem_range.mpr (by omega)) h)
-    rw [h1, if_pos rfl, one_mul]
+    rw [h1, ite_eq_left rfl, one_mul]
     by_cases hq : p + q = k
-    · rw [if_pos (show q = k - p by omega), if_pos hq]
-    · rw [if_neg (show ¬(q = k - p) by omega), if_neg hq]
-  · rw [if_neg (show ¬(p + q = k) by omega)]
+    · rw [ite_eq_left (show q = k - p by omega), ite_eq_left hq]
+    · rw [ite_eq_right (show ¬(q = k - p) by omega), ite_eq_right hq]
+  · rw [ite_eq_right (show ¬(p + q = k) by omega)]
     refine Finset.sum_eq_zero fun i hi => ?_
     have hi' := Finset.mem_range.mp hi
-    rw [if_neg (show ¬(p = i) by omega), zero_mul]
+    rw [ite_eq_right (show ¬(p = i) by omega), zero_mul]
 
 end Sums
 
@@ -368,13 +368,13 @@ def extChains (ind : Crit → ℕ) (k : ℕ) : Chains K ind k →ₗ[K] (Crit �
   map_add' x y := by
     funext c
     by_cases h : ind c = k
-    · simp only [dif_pos h, Pi.add_apply]
-    · simp only [dif_neg h, Pi.add_apply, add_zero]
+    · simp only [dite_eq_left h, Pi.add_apply]
+    · simp only [dite_eq_right h, Pi.add_apply, add_zero]
   map_smul' r x := by
     funext c
     by_cases h : ind c = k
-    · simp only [dif_pos h, Pi.smul_apply, RingHom.id_apply]
-    · simp only [dif_neg h, Pi.smul_apply, RingHom.id_apply, smul_zero]
+    · simp only [dite_eq_left h, Pi.smul_apply, RingHom.id_apply]
+    · simp only [dite_eq_right h, Pi.smul_apply, RingHom.id_apply, smul_zero]
 
 /-- The degree `k` part of a function on all critical points. -/
 def resChains (ind : Crit → ℕ) (k : ℕ) : (Crit → K) →ₗ[K] Chains K ind k :=
@@ -382,11 +382,11 @@ def resChains (ind : Crit → ℕ) (k : ℕ) : (Crit → K) →ₗ[K] Chains K i
 
 omit [Fintype Crit] in
 theorem extChains_apply_of_eq {ind : Crit → ℕ} {k : ℕ} (x : Chains K ind k) {c : Crit}
-    (h : ind c = k) : extChains ind k x c = x ⟨c, h⟩ := dif_pos h
+    (h : ind c = k) : extChains ind k x c = x ⟨c, h⟩ := dite_eq_left h
 
 omit [Fintype Crit] in
 theorem extChains_apply_of_ne {ind : Crit → ℕ} {k : ℕ} (x : Chains K ind k) {c : Crit}
-    (h : ind c ≠ k) : extChains ind k x c = 0 := dif_neg h
+    (h : ind c ≠ k) : extChains ind k x c = 0 := dite_eq_right h
 
 omit [Fintype Crit] in
 theorem resChains_extChains (ind : Crit → ℕ) (k : ℕ) (x : Chains K ind k) :
@@ -403,9 +403,9 @@ omit [Fintype Crit] in
 theorem extChains_resChains_apply (ind : Crit → ℕ) (k : ℕ) (x : Crit → K) (c : Crit) :
     extChains ind k (resChains ind k x) c = if ind c = k then x c else 0 := by
   by_cases h : ind c = k
-  · rw [extChains_apply_of_eq _ h, if_pos h]
+  · rw [extChains_apply_of_eq _ h, ite_eq_left h]
     rfl
-  · rw [extChains_apply_of_ne _ h, if_neg h]
+  · rw [extChains_apply_of_ne _ h, ite_eq_right h]
 
 /-- Reading the total differential in degree `k` gives back `∂ₖ`. -/
 theorem resChains_totalD_mulVec (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ)
@@ -418,8 +418,8 @@ theorem resChains_totalD_mulVec (ind : Crit → ℕ) (cnt : Crit → Crit → K)
   have hb : ind b.1 = k := b.2
   rw [totalD_apply]
   by_cases ha : ind a = k + 1
-  · rw [if_pos (by omega), if_pos ha, mul_comm]
-  · rw [if_neg (by omega), if_neg ha, zero_mul]
+  · rw [ite_eq_left (by omega), ite_eq_left ha, mul_comm]
+  · rw [ite_eq_right (by omega), ite_eq_right ha, zero_mul]
 
 /-- The total differential kills everything of degree `0`. -/
 theorem totalD_mulVec_extChains_zero (ind : Crit → ℕ) (cnt : Crit → Crit → K)
@@ -430,7 +430,7 @@ theorem totalD_mulVec_extChains_zero (ind : Crit → ℕ) (cnt : Crit → Crit �
   rw [totalD_apply]
   by_cases ha : ind a = ind b + 1
   · rw [extChains_apply_of_ne x (show ind a ≠ 0 by omega), mul_zero]
-  · rw [if_neg ha, zero_mul]
+  · rw [ite_eq_right ha, zero_mul]
 
 /-- On chains of degree `k + 1` the total differential is `∂ₖ`. -/
 theorem totalD_mulVec_extChains (ind : Crit → ℕ) (cnt : Crit → Crit → K) (k : ℕ)
@@ -448,7 +448,7 @@ theorem totalD_mulVec_extChains (ind : Crit → ℕ) (cnt : Crit → Crit → K)
     rw [totalD_apply]
     by_cases ha : ind a = ind b + 1
     · rw [extChains_apply_of_ne x (show ind a ≠ k + 1 by omega), mul_zero]
-    · rw [if_neg ha, zero_mul]
+    · rw [ite_eq_right ha, zero_mul]
 
 /-- `BrokenPairs` says exactly that the total differential squares to zero. -/
 theorem totalD_mul_self {ind : Crit → ℕ} {cnt : Crit → Crit → K} (h : BrokenPairs ind cnt) :
@@ -462,13 +462,13 @@ theorem totalD_mul_self {ind : Crit → ℕ} {cnt : Crit → Crit → K} (h : Br
     refine Eq.trans (Finset.sum_congr rfl fun c _ => ?_) hB
     rw [totalD_apply, totalD_apply]
     by_cases hc : ind c = ind b + 1
-    · rw [if_pos hc, if_pos (by omega), if_pos hc, mul_comm]
-    · rw [if_neg hc, if_neg hc, zero_mul]
+    · rw [ite_eq_left hc, ite_eq_left (by omega), ite_eq_left hc, mul_comm]
+    · rw [ite_eq_right hc, ite_eq_right hc, zero_mul]
   · refine Finset.sum_eq_zero fun c _ => ?_
     rw [totalD_apply, totalD_apply]
     by_cases hc : ind c = ind b + 1
-    · rw [if_neg (show ¬ind a = ind c + 1 by omega), mul_zero]
-    · rw [if_neg hc, zero_mul]
+    · rw [ite_eq_right (show ¬ind a = ind c + 1 by omega), mul_zero]
+    · rw [ite_eq_right hc, zero_mul]
 
 /-- A chain is a cycle exactly when the total differential kills its extension
 by zero; in degree `0` both conditions always hold. -/
@@ -498,18 +498,18 @@ theorem extChains_resChains_mulVec {CH : Type*} [Fintype CH] (ind : Crit → ℕ
   rw [extChains_resChains_apply]
   show _ = ∑ e, I c e * extChains indH k (resChains indH k y) e
   by_cases hc : ind c = k
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     show ∑ e, I c e * y e = _
     refine Finset.sum_congr rfl fun e _ => ?_
     rw [extChains_resChains_apply]
     by_cases he : indH e = k
-    · rw [if_pos he]
-    · rw [if_neg he]
+    · rw [ite_eq_left he]
+    · rw [ite_eq_right he]
       have h0 : I c e = 0 := by
         by_contra hne
         exact he ((hI c e hne).symm.trans hc)
       rw [h0, zero_mul, mul_zero]
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     symm
     refine Finset.sum_eq_zero fun e _ => ?_
     rw [extChains_resChains_apply]
@@ -518,7 +518,7 @@ theorem extChains_resChains_mulVec {CH : Type*} [Fintype CH] (ind : Crit → ℕ
         by_contra hne
         exact hc ((hI c e hne).trans he)
       rw [h0, zero_mul]
-    · rw [if_neg he, mul_zero]
+    · rw [ite_eq_right he, mul_zero]
 
 /-- **Betti numbers from a deformation retraction.**  Suppose the complex retracts
 onto a based graded vector space with zero differential: a degree-preserving `I`
@@ -656,9 +656,9 @@ theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → C
     intro x
     funext c
     rw [Finset.sum_apply, Finset.sum_eq_single ⟨ind c, Nat.lt_succ_of_le (hN c)⟩]
-    · rw [extChains_resChains_apply, if_pos rfl]
+    · rw [extChains_resChains_apply, ite_eq_left rfl]
     · intro k _ hk
-      rw [extChains_resChains_apply, if_neg]
+      rw [extChains_resChains_apply, ite_eq_right]
       intro hc
       exact hk (Fin.ext hc.symm)
     · intro hc
@@ -730,14 +730,14 @@ theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → C
     funext c
     rw [extChains_resChains_apply]
     by_cases hk : (e.1 : ℕ) = k
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       by_cases hc : ind c = k
-      · rw [if_pos hc]
-      · rw [if_neg hc, hu_deg e c (by omega)]
-    · rw [if_neg hk, Pi.zero_apply]
+      · rw [ite_eq_left hc]
+      · rw [ite_eq_right hc, hu_deg e c (by omega)]
+    · rw [ite_eq_right hk, Pi.zero_apply]
       by_cases hc : ind c = k
-      · rw [if_pos hc, hu_deg e c (by omega)]
-      · rw [if_neg hc]
+      · rw [ite_eq_left hc, hu_deg e c (by omega)]
+      · rw [ite_eq_right hc]
   -- the matrices
   let Pl : (Crit → K) →ₗ[K] (CH → K) := LinearMap.pi fun e : CH =>
     (Finsupp.lapply e.2) ∘ₗ (b e.1).repr.toLinearMap ∘ₗ
@@ -777,7 +777,7 @@ theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → C
           (fun x => hvU k x) (u ⟨k, j⟩) = b k j := by
         apply Subtype.ext
         show prC k (extChains ind k (resChains ind k (πZ (u ⟨k, j⟩)))) = u ⟨k, j⟩
-        rw [πZ_fix _ (hu_ker _), pr_u, if_pos rfl]
+        rw [πZ_fix _ (hu_ker _), pr_u, ite_eq_left rfl]
         exact Submodule.projection_apply_of_mem_left (hC k).symm (hu_C ⟨k, j⟩)
       show (b k).repr (LinearMap.codRestrict (U k)
         (prC k ∘ₗ extChains ind k ∘ₗ resChains ind k ∘ₗ πZ)
@@ -785,8 +785,8 @@ theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → C
       rw [hvL, Module.Basis.repr_self, Finsupp.single_apply]
       by_cases hj : j = j'
       · subst hj
-        rw [if_pos rfl, if_pos rfl]
-      · rw [if_neg hj, if_neg]
+        rw [ite_eq_left rfl, ite_eq_left rfl]
+      · rw [ite_eq_right hj, ite_eq_right]
         intro heq
         exact hj (eq_of_heq (Sigma.mk.inj_iff.mp heq).2).symm
     · have hvL : LinearMap.codRestrict (U k')
@@ -794,11 +794,11 @@ theorem exists_retract [DecidableEq Crit] {ind : Crit → ℕ} {cnt : Crit → C
           (fun x => hvU k' x) (u ⟨k, j⟩) = 0 := by
         apply Subtype.ext
         show prC k' (extChains ind k' (resChains ind k' (πZ (u ⟨k, j⟩)))) = 0
-        rw [πZ_fix _ (hu_ker _), pr_u, if_neg (fun h => hk (Fin.ext h)), map_zero]
+        rw [πZ_fix _ (hu_ker _), pr_u, ite_eq_right (fun h => hk (Fin.ext h)), map_zero]
       show (b k').repr (LinearMap.codRestrict (U k')
         (prC k' ∘ₗ extChains ind k' ∘ₗ resChains ind k' ∘ₗ πZ)
           (fun x => hvU k' x) (u ⟨k, j⟩)) j' = _
-      rw [hvL, map_zero, Finsupp.zero_apply, if_neg]
+      rw [hvL, map_zero, Finsupp.zero_apply, ite_eq_right]
       intro heq
       exact hk (Sigma.mk.inj_iff.mp heq).1.symm
   have hIPl : ∀ x, I *ᵥ Pl x = ∑ k : Fin (N + 1),
@@ -961,10 +961,10 @@ theorem brokenPairs_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
               (if a₁ = a₁ then cnt₂ a₂ c₂ else 0) * (if a₁ = b₁ then cnt₂ c₂ b₂ else 0) else 0)
               = (if ind₂ c₂ = ind₂ b₂ + 1 then cnt₂ a₂ c₂ * cnt₂ c₂ b₂ else 0) := by
           intro c₂
-          rw [if_pos hab, if_pos (rfl : a₁ = a₁)]
+          rw [ite_eq_left hab, ite_eq_left (rfl : a₁ = a₁)]
           by_cases hc : ind₂ c₂ = ind₂ b₂ + 1
-          · rw [if_pos (show ind₁ a₁ + ind₂ c₂ = k + 1 by omega), if_pos hc]
-          · rw [if_neg (show ¬(ind₁ a₁ + ind₂ c₂ = k + 1) by omega), if_neg hc]
+          · rw [ite_eq_left (show ind₁ a₁ + ind₂ c₂ = k + 1 by omega), ite_eq_left hc]
+          · rw [ite_eq_right (show ¬(ind₁ a₁ + ind₂ c₂ = k + 1) by omega), ite_eq_right hc]
         rw [Finset.sum_congr rfl fun c₂ _ => hsimp c₂]
         have hconv : (∑ c₂ : Crit₂, if ind₂ c₂ = ind₂ b₂ + 1 then cnt₂ a₂ c₂ * cnt₂ c₂ b₂ else 0)
             = ∑ c : CritSet ind₂ (ind₂ b₂ + 1), cnt₂ a₂ c.1 * cnt₂ c.1 b₂ :=
@@ -999,10 +999,10 @@ theorem brokenPairs_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
             cnt₁ a₁ c₁ * (if a₂ = b₂ then cnt₁ c₁ b₁ else 0) else 0)
           = (if ind₁ c₁ = ind₁ b₁ + 1 then cnt₁ a₁ c₁ * cnt₁ c₁ b₁ else 0) := by
         intro c₁
-        rw [if_pos hab]
+        rw [ite_eq_left hab]
         by_cases hc : ind₁ c₁ = ind₁ b₁ + 1
-        · rw [if_pos (show ind₁ c₁ + ind₂ a₂ = k + 1 by omega), if_pos hc]
-        · rw [if_neg (show ¬(ind₁ c₁ + ind₂ a₂ = k + 1) by omega), if_neg hc]
+        · rw [ite_eq_left (show ind₁ c₁ + ind₂ a₂ = k + 1 by omega), ite_eq_left hc]
+        · rw [ite_eq_right (show ¬(ind₁ c₁ + ind₂ a₂ = k + 1) by omega), ite_eq_right hc]
       rw [Finset.sum_congr rfl fun c₁ _ => hsimp c₁]
       have hconv : (∑ c₁ : Crit₁, if ind₁ c₁ = ind₁ b₁ + 1 then cnt₁ a₁ c₁ * cnt₁ c₁ b₁ else 0)
           = ∑ c : CritSet ind₁ (ind₁ b₁ + 1), cnt₁ a₁ c.1 * cnt₁ c.1 b₁ :=
@@ -1044,10 +1044,10 @@ theorem brokenPairs_prod {ind₁ : Crit₁ → ℕ} {ind₂ : Crit₂ → ℕ}
   simp only [Finset.sum_add_distrib]
   rw [hS1, hS4, hS2, hS3]
   by_cases hC : ind₁ a₁ + ind₂ b₂ = k + 1
-  · rw [if_pos hC, if_pos (show ind₁ b₁ + ind₂ a₂ = k + 1 by omega), zero_add, add_zero,
+  · rw [ite_eq_left hC, ite_eq_left (show ind₁ b₁ + ind₂ a₂ = k + 1 by omega), zero_add, add_zero,
       show cnt₂ a₂ b₂ * cnt₁ a₁ b₁ + cnt₁ a₁ b₁ * cnt₂ a₂ b₂
         = 2 * (cnt₂ a₂ b₂ * cnt₁ a₁ b₁) by ring, h2, zero_mul]
-  · rw [if_neg hC, if_neg (show ¬(ind₁ b₁ + ind₂ a₂ = k + 1) by omega)]
+  · rw [ite_eq_right hC, ite_eq_right (show ¬(ind₁ b₁ + ind₂ a₂ = k + 1) by omega)]
     simp
 
 /-- **The graded vector space underlying the product complex**: the degree `k`
@@ -1095,22 +1095,22 @@ theorem totalD_prod (ind₁ : Crit₁ → ℕ) (ind₂ : Crit₂ → ℕ) (cnt�
   · subst h1; subst h2
     simp
   · subst h1
-    rw [if_pos rfl, if_neg h2, if_neg (Ne.symm h2), if_pos rfl, add_zero, mul_zero, zero_add,
+    rw [ite_eq_left rfl, ite_eq_right h2, ite_eq_right (Ne.symm h2), ite_eq_left rfl, add_zero, mul_zero, zero_add,
       one_mul]
     by_cases h : ind₂ a₂ = ind₂ b₂ + 1
-    · rw [if_pos (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
-        rw [hp, hp]; omega), if_pos h]
-    · rw [if_neg (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
-        rw [hp, hp]; omega), if_neg h]
+    · rw [ite_eq_left (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
+        rw [hp, hp]; omega), ite_eq_left h]
+    · rw [ite_eq_right (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (a₁, b₂) + 1 by
+        rw [hp, hp]; omega), ite_eq_right h]
   · subst h2
-    rw [if_neg h1, if_pos rfl, if_pos rfl, if_neg (Ne.symm h1), zero_add, mul_one, zero_mul,
+    rw [ite_eq_right h1, ite_eq_left rfl, ite_eq_left rfl, ite_eq_right (Ne.symm h1), zero_add, mul_one, zero_mul,
       add_zero]
     by_cases h : ind₁ a₁ = ind₁ b₁ + 1
-    · rw [if_pos (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
-        rw [hp, hp]; omega), if_pos h]
-    · rw [if_neg (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
-        rw [hp, hp]; omega), if_neg h]
-  · rw [if_neg h1, if_neg h2, if_neg (Ne.symm h1), if_neg (Ne.symm h2), add_zero, mul_zero,
+    · rw [ite_eq_left (show prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
+        rw [hp, hp]; omega), ite_eq_left h]
+    · rw [ite_eq_right (show ¬prodIndex ind₁ ind₂ (a₁, a₂) = prodIndex ind₁ ind₂ (b₁, a₂) + 1 by
+        rw [hp, hp]; omega), ite_eq_right h]
+  · rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right (Ne.symm h1), ite_eq_right (Ne.symm h2), add_zero, mul_zero,
       zero_mul, add_zero, ite_self]
 
 /-- **Künneth for retractions.**  Retractions of two complexes onto `H₁` and `H₂`
@@ -2122,9 +2122,9 @@ theorem exists_antipodal_pair_of_closed_cover (n : ℕ)
     intro i
     by_cases h : (F i).Nonempty
     · show (if (F i).Nonempty then F i else F i₀).Nonempty
-      rw [if_pos h]; exact h
+      rw [ite_eq_left h]; exact h
     · show (if (F i).Nonempty then F i else F i₀).Nonempty
-      rw [if_neg h]; exact ⟨x₀, hi₀⟩
+      rw [ite_eq_right h]; exact ⟨x₀, hi₀⟩
   have hGcl : ∀ i, IsClosed (G i) := by
     intro i
     show IsClosed (if (F i).Nonempty then F i else F i₀)
@@ -2134,14 +2134,14 @@ theorem exists_antipodal_pair_of_closed_cover (n : ℕ)
   have hGF : ∀ i, ∃ j, G i = F j := by
     intro i
     by_cases h : (F i).Nonempty
-    · exact ⟨i, if_pos h⟩
-    · exact ⟨i₀, if_neg h⟩
+    · exact ⟨i, ite_eq_left h⟩
+    · exact ⟨i₀, ite_eq_right h⟩
   have hGcover : Metric.sphere (0 : EuclideanSpace ℝ (Fin (n + 1))) 1 ⊆ ⋃ i, G i := by
     intro x hx
     obtain ⟨i, hi⟩ := Set.mem_iUnion.mp (hcover hx)
     refine Set.mem_iUnion.mpr ⟨i, ?_⟩
     show x ∈ (if (F i).Nonempty then F i else F i₀)
-    rw [if_pos ⟨x, hi⟩]
+    rw [ite_eq_left ⟨x, hi⟩]
     exact hi
   -- the distances to the first `n` sets
   let ψ : EuclideanSpace ℝ (Fin (n + 1)) → EuclideanSpace ℝ (Fin n) :=

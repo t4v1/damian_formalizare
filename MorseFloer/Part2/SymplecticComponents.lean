@@ -298,7 +298,7 @@ theorem det_mergeB_sub_ne_zero {K : Finset l} {i j : l} (hij : i ≠ j) {s : ℝ
   have hout : ∀ m, m ≠ i → m ≠ j → v m = 0 := by
     intro m hmi hmj
     have h' := hcoord m
-    simp only [d, hmi, hmj, or_self, if_false, sub_zero, mul_zero, add_zero] at h'
+    simp only [d, hmi, hmj, or_self, ite_false, sub_zero, mul_zero, add_zero] at h'
     have hne : (if m ∈ K then (2 : ℝ) else 0) - c ≠ 0 := by
       intro h0
       have hc' : c = 2 ∨ c = 0 := by split_ifs at h0 <;> [left; right] <;> linarith
@@ -307,7 +307,7 @@ theorem det_mergeB_sub_ne_zero {K : Finset l} {i j : l} (hij : i ≠ j) {s : ℝ
   -- the two coordinates `i, j`
   have hi := hcoord i
   have hj := hcoord j
-  simp only [d, true_or, if_true, hij, Ne.symm hij, if_false, or_true] at hi hj
+  simp only [d, true_or, ite_true, hij, Ne.symm hij, ite_false, or_true] at hi hj
   set α := a * Real.cos φ - c
   set β := a * Real.sin φ
   have hsc := Real.sin_sq_add_cos_sq φ
@@ -564,16 +564,16 @@ theorem exists_conj_normal {N : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hN : IsHam N)
     · show Chapter5.stdForm l (b i : (l ⊕ l) → ℝ) (fb i' : (l ⊕ l) → ℝ) = _
       simp only [Sum.inl.injEq]
       exact hpair i i'
-    · rw [if_neg Sum.inl_ne_inr]
+    · rw [ite_eq_right Sum.inl_ne_inr]
       exact orth (b i).2 (b0 _).2 (by norm_num)
-    · rw [if_neg Sum.inr_ne_inl]
+    · rw [ite_eq_right Sum.inr_ne_inl]
       exact orth (b0 _).2 (fb i').2 (by norm_num)
     · by_cases hjj : j = j'
       · subst hjj
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         exact hb0.ef_self j
       · have : (Sum.inr j : Fin k ⊕ ι₀) ≠ Sum.inr j' := by simpa using hjj
-        rw [if_neg this]; exact hb0.ef_ne j j' hjj
+        rw [ite_eq_right this]; exact hb0.ef_ne j j' hjj
   -- independence and spanning
   have hli : LinearIndependent ℝ (Sum.elim cL cR) := by
     rw [Fintype.linearIndependent_iff]
@@ -593,14 +593,14 @@ theorem exists_conj_normal {N : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hN : IsHam N)
       have := eL (cR q)
       rw [hg, map_zero, LinearMap.zero_apply, Fintype.sum_sum_type] at this
       simp only [Sum.elim_inl, Sum.elim_inr, pLR, pRR, mul_zero, Finset.sum_const_zero, add_zero,
-        mul_ite, mul_one, Finset.sum_ite_eq', Finset.mem_univ, if_true] at this
+        mul_ite, mul_one, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at this
       exact this.symm
     have hR : ∀ q, g (Sum.inr q) = 0 := by
       intro q
       have := eR (cL q)
       rw [hg, map_zero, Fintype.sum_sum_type] at this
       simp only [Sum.elim_inl, Sum.elim_inr, pLR, pLL, mul_zero, Finset.sum_const_zero, zero_add,
-        mul_ite, mul_one, Finset.sum_ite_eq, Finset.mem_univ, if_true] at this
+        mul_ite, mul_one, Finset.sum_ite_eq, Finset.mem_univ, ite_true] at this
       exact this.symm
     rintro (q | q)
     · exact hL q
@@ -657,7 +657,7 @@ theorem exists_conj_normal {N : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hN : IsHam N)
         by_cases hmm : m = m'
         · subst hmm; simp [Matrix.J]
         · have : σ.symm m' ≠ σ.symm m := fun h => hmm (σ.symm.injective h).symm
-          rw [if_neg this]; simp [Matrix.J, hmm]
+          rw [ite_eq_right this]; simp [Matrix.J, hmm]
       · simp [c', pRR, Matrix.J]
     exact LinearMap.congr_fun₂ hB X Y
   -- `N T = T D`
@@ -668,17 +668,17 @@ theorem exists_conj_normal {N : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hN : IsHam N)
     rintro (m | m)
     · rcases hm : σ.symm m with i | j
       · have hmK : m ∈ Kset l k := by rw [← σ.apply_symm_apply m, hm]; exact hσL i
-        simp only [c', Sum.elim_inl, Function.comp_apply, hm, cL, hd, hmK, if_true]
+        simp only [c', Sum.elim_inl, Function.comp_apply, hm, cL, hd, hmK, ite_true]
         exact (mem_eig 2 _).mp (b i).2
       · have hmK : m ∉ Kset l k := by rw [← σ.apply_symm_apply m, hm]; exact hσR j
-        simp only [c', Sum.elim_inl, Function.comp_apply, hm, cL, hd, hmK, if_false]
+        simp only [c', Sum.elim_inl, Function.comp_apply, hm, cL, hd, hmK, ite_false]
         exact (mem_eig 0 _).mp (b0 _).2
     · rcases hm : σ.symm m with i | j
       · have hmK : m ∈ Kset l k := by rw [← σ.apply_symm_apply m, hm]; exact hσL i
-        simp only [c', Sum.elim_inr, Function.comp_apply, hm, cR, hd, hmK, if_true]
+        simp only [c', Sum.elim_inr, Function.comp_apply, hm, cR, hd, hmK, ite_true]
         exact (mem_eig (-2) _).mp (fb i).2
       · have hmK : m ∉ Kset l k := by rw [← σ.apply_symm_apply m, hm]; exact hσR j
-        simp only [c', Sum.elim_inr, Function.comp_apply, hm, cR, hd, hmK, if_false, neg_zero]
+        simp only [c', Sum.elim_inr, Function.comp_apply, hm, cR, hd, hmK, ite_false, neg_zero]
         exact (mem_eig 0 _).mp (b0 _).2
   have hNT : N * T = T * HN (dK (Kset l k)) := by
     rw [hD]
@@ -935,15 +935,15 @@ theorem exists_joinedIn_distinct {A : Matrix (l ⊕ l) (l ⊕ l) ℝ} (hA : A �
           (if 0 < c (Sum.inr m) then 1 else 0) = (if m ∈ K then 1 else 0) := by
         intro m
         by_cases hm : m ∈ K
-        · simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hb2 m hm, hm, if_true]
+        · simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hb2 m hm, hm, ite_true]
           norm_num
         · have h1 := wt_pos m
           have h2 := wt_lt_one m
-          simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hbw m hm, hm, if_false]
+          simp only [hc, he, Sum.elim_inl, Sum.elim_inr, hbw m hm, hm, ite_false]
           constructor
-          · rw [if_neg]; rw [not_lt]
+          · rw [ite_eq_right]; rw [not_lt]
             exact div_nonpos_of_nonneg_of_nonpos (by linarith) (by linarith)
-          · rw [if_neg]; rw [not_lt]
+          · rw [ite_eq_right]; rw [not_lt]
             exact div_nonpos_of_nonneg_of_nonpos (by linarith) (by linarith)
       rw [Finset.sum_congr rfl fun m _ => (hpos m).1, Finset.sum_congr rfl fun m _ => (hpos m).2,
         Finset.sum_boole, Finset.filter_mem_eq_inter, Finset.univ_inter]

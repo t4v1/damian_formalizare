@@ -453,10 +453,10 @@ noncomputable def floerD {R : Type*} [CommRing R] (cz : Orbit → ℤ) (cnt : Or
   if j + 1 = i then ModuleCat.ofHom (floerDiff cnt i j) else 0
 
 theorem floerD_pos {R : Type*} [CommRing R] (cnt : Orbit → Orbit → R) {i j : ℤ}
-    (h : j + 1 = i) : floerD cz cnt i j = ModuleCat.ofHom (floerDiff cnt i j) := if_pos h
+    (h : j + 1 = i) : floerD cz cnt i j = ModuleCat.ofHom (floerDiff cnt i j) := ite_eq_left h
 
 theorem floerD_neg {R : Type*} [CommRing R] (cnt : Orbit → Orbit → R) {i j : ℤ}
-    (h : ¬ j + 1 = i) : floerD cz cnt i j = 0 := if_neg h
+    (h : ¬ j + 1 = i) : floerD cz cnt i j = 0 := ite_eq_right h
 
 /-- **The Floer complex `(C⋆(H), ∂)`** (§9.1, Corollary 9.2.2), as an object of
 Mathlib's category of chain complexes, so that all the homological algebra

@@ -583,20 +583,20 @@ theorem card_down {τ : Finset (Fin n → ℤ)} (hτ : IsNode m τ) :
         refine ⟨by rw [hs]; rfl, by rw [hs]; exact empty_subset _, ?_⟩
         rw [hs, image_singleton]
         exact singleton_ne_empty _
-      rw [if_pos hA, if_pos rfl]
+      rw [ite_eq_left hA, ite_eq_left rfl]
       decide
     · have hA : ¬ IsA lab ({v} : Finset (Fin n → ℤ)) := by
         rintro ⟨hc, -, -⟩
         rw [card_singleton, sgnS, singleton_biUnion] at hc
         have : sgnSet v = ∅ := card_eq_zero.mp (by omega)
         exact hv (sgnSet_eq_empty_iff.mp this)
-      rw [if_neg hA, if_neg (fun h => hv (singleton_injective h))]
+      rw [ite_eq_right hA, ite_eq_right (fun h => hv (singleton_injective h))]
       simp
   · have h2 : 2 ≤ #τ := by
       have := card_pos.mpr hτ.1
       omega
     have hne : τ ≠ {0} := fun h => by rw [h, card_singleton] at h2; omega
-    rw [if_neg hne, add_zero]
+    rw [ite_eq_right hne, add_zero]
     have hfilt : τ.filter (fun v => (τ.erase v).Nonempty ∧ sgnS τ ⊆ (τ.erase v).image lab) =
         τ.filter (fun v => sgnS τ ⊆ (τ.erase v).image lab) := by
       apply filter_congr
@@ -609,14 +609,14 @@ theorem card_down {τ : Finset (Fin n → ℤ)} (hτ : IsNode m τ) :
     · rw [card_removable τ lab (sgnS τ) hfull.1 hfull.2]
       by_cases himg : τ.image lab = sgnS τ
       · have hA : ¬ IsA lab τ := fun h => h.2.2 himg
-        rw [if_pos himg, if_neg hA]
+        rw [ite_eq_left himg, ite_eq_right hA]
         decide
       · have hA : IsA lab τ := ⟨hfull.1, hfull.2, himg⟩
-        rw [if_neg himg, if_pos hA]
+        rw [ite_eq_right himg, ite_eq_left hA]
         simp
     · rw [removable_eq_empty τ lab (sgnS τ) hfull hτ.2.2.card_le]
       have hA : ¬ IsA lab τ := fun h => hfull ⟨h.1, h.2.1⟩
-      rw [if_neg hA]
+      rw [ite_eq_right hA]
       simp
 
 /-- What a door says about the larger chain. -/
@@ -977,11 +977,11 @@ theorem card_comp_top (hm : 1 ≤ m) {ρ : Finset (Fin n → ℤ)} (hρ : IsNode
   have hTjb := hρ.2.1 T hT j
   rw [hY, card_filter, sum_pair (by omega)]
   by_cases hb : T j = 2 * m ∨ T j = -(2 * m)
-  · rw [if_pos (hbdry.mpr hb)]
+  · rw [ite_eq_left (hbdry.mpr hb)]
     rcases hb with hb | hb
-    · rw [if_neg (by omega), if_pos (by omega)]; simp
-    · rw [if_pos (by omega), if_neg (by omega)]; simp
-  · rw [if_neg (fun h => hb (hbdry.mp h)), if_pos (by omega), if_pos (by omega)]
+    · rw [ite_eq_right (by omega), ite_eq_left (by omega)]; simp
+    · rw [ite_eq_left (by omega), ite_eq_right (by omega)]; simp
+  · rw [ite_eq_right (fun h => hb (hbdry.mp h)), ite_eq_left (by omega), ite_eq_left (by omega)]
     decide
 
 /-- **Missing vertex.** When the missing dimension is `0`, the two completions are the
@@ -1148,7 +1148,7 @@ theorem card_up_tight (hm : 1 ≤ m) {ρ : Finset (Fin n → ℤ)} (hρ : IsNode
       rcases Nat.eq_zero_or_pos d with rfl | hpos
       · exact card_comp_bottom hm hρ hr hd
       · exact card_comp_middle hm hρ hpos hlt hd
-    rw [h2.1, if_neg h2.2]
+    rw [h2.1, ite_eq_right h2.2]
     decide
   · have : d = #(sgnS ρ) := le_antisymm hdr hge
     rw [this] at hd
@@ -1173,7 +1173,7 @@ theorem card_up (hm : 1 ≤ m)
   rcases Nat.lt_or_ge #ρ #(sgnS ρ) with hlt | hge
   · have hA : ¬ IsA lab ρ := fun h => by have := h.1; omega
     have hB : ¬ IsB m lab ρ := fun h => by have := h.1; omega
-    rw [if_neg hA, if_neg hB, card_eq_zero.mpr, Nat.cast_zero, add_zero]
+    rw [ite_eq_right hA, ite_eq_right hB, card_eq_zero.mpr, Nat.cast_zero, add_zero]
     rw [filter_eq_empty_iff]
     intro τ hτ hd
     obtain ⟨a, -, rfl, -, hSS, hSτ⟩ := door_facts lab (mem_nodes.mp hτ) hd
@@ -1182,11 +1182,11 @@ theorem card_up (hm : 1 ≤ m)
   · rcases Nat.lt_or_ge #(sgnS ρ) #ρ with hlt | hge'
     · have hf : #ρ = #(sgnS ρ) + 1 := by omega
       have hB : ¬ IsB m lab ρ := fun h => by have := h.1; omega
-      rw [card_up_full lab hm hno hρ hf, if_neg hB, add_zero]
+      rw [card_up_full lab hm hno hρ hf, ite_eq_right hB, add_zero]
       split_ifs <;> simp
     · have ht : #ρ = #(sgnS ρ) := by omega
       have hA : ¬ IsA lab ρ := fun h => by have := h.1; omega
-      rw [if_neg hA, zero_add]
+      rw [ite_eq_right hA, zero_add]
       by_cases himg : ρ.image lab = sgnS ρ
       · have hfilt : (nodes m).filter (fun τ => Door lab ρ τ) =
             (nodes m).filter (fun τ => ρ ⊆ τ ∧ #τ = #ρ + 1 ∧ sgnS τ ⊆ sgnS ρ) := by
@@ -1195,10 +1195,10 @@ theorem card_up (hm : 1 ≤ m)
           simp only [Door, himg]
         rw [hfilt, card_up_tight hm hρ ht]
         by_cases hb : Bdry m ρ
-        · rw [if_pos hb, if_pos ⟨ht, himg, hb⟩]
-        · rw [if_neg hb, if_neg (fun h => hb h.2.2)]
+        · rw [ite_eq_left hb, ite_eq_left ⟨ht, himg, hb⟩]
+        · rw [ite_eq_right hb, ite_eq_right (fun h => hb h.2.2)]
       · have hB : ¬ IsB m lab ρ := fun h => himg h.2.1
-        rw [if_neg hB, card_eq_zero.mpr, Nat.cast_zero]
+        rw [ite_eq_right hB, card_eq_zero.mpr, Nat.cast_zero]
         rw [filter_eq_empty_iff]
         intro τ hτ hd
         obtain ⟨a, -, rfl, -, hSS, hSτ⟩ := door_facts lab (mem_nodes.mp hτ) hd
@@ -1324,7 +1324,7 @@ theorem tucker (hm : 1 ≤ m)
       exact Or.inl (FLE.refl 0)
   rw [sum_congr rfl fun ρ hρ => card_up lab hm hno (mem_nodes.mp hρ),
     sum_congr rfl fun τ hτ => card_down lab (mem_nodes.mp hτ), sum_add_distrib,
-    sum_add_distrib, hB, sum_ite_eq', if_pos h0node] at h1
+    sum_add_distrib, hB, sum_ite_eq', ite_eq_left h0node] at h1
   exact absurd (add_left_cancel h1) (by decide)
 
 end Tucker
@@ -1485,8 +1485,8 @@ theorem continuous_lift : Continuous (lift (n := n)) := by
   apply continuous_pi
   intro i
   by_cases h : (i : ℕ) < n
-  · simp only [h, dif_pos]; exact continuous_apply _
-  · simp only [h, dif_neg, not_false_eq_true]; exact continuous_const.sub continuous_norm
+  · simp only [h, dite_eq_left]; exact continuous_apply _
+  · simp only [h, dite_eq_right, not_false_eq_true]; exact continuous_const.sub continuous_norm
 
 theorem lift_ne_zero (y : Fin n → ℝ) : lift y ≠ 0 := by
   intro h

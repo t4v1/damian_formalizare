@@ -577,14 +577,14 @@ Hölder's inequality with exponents `(p, ∞)`.  The first inequality of the lem
 `‖fg‖_{W^{1,p}} ≤ ‖f‖_{W^{1,p}} ‖g‖_{C¹}`, needs `W^{1,p}` and is not
 statable. -/
 theorem eLpNorm_mul_le_mul_ofReal {α : Type*} [MeasurableSpace α] {μ : Measure α}
-    (p : ENNReal) {f g : α → ℝ} (hf : AEStronglyMeasurable f μ) {C : ℝ}
+    (p : ENNReal) {f g : α → ℝ} (hgm : AEStronglyMeasurable g μ) {C : ℝ}
     (hg : ∀ᵐ x ∂μ, ‖g x‖ ≤ C) :
     eLpNorm (f * g) p μ ≤ eLpNorm f p μ * ENNReal.ofReal C := by
   have hfg : f * g = f • g := rfl
   rw [hfg]
-  refine (eLpNorm_smul_le_eLpNorm_mul_eLpNorm_top p g hf).trans ?_
+  refine (eLpNorm_smul_le_eLpNorm_mul_eLpNorm_top p hgm).trans ?_
   gcongr
-  rw [eLpNorm_exponent_top]
+  rw [eLpNorm_exponent_top hgm]
   exact eLpNormEssSup_le_of_ae_bound hg
 
 end Sobolev

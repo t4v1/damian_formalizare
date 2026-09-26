@@ -27,7 +27,7 @@ theorem measure_image_eq_zero_of_finrank_lt (μ : Measure F) [μ.IsAddHaarMeasur
     {f : E → F} (hf : ContDiff ℝ 1 f) (s : Set E) (hEF : finrank ℝ E < finrank ℝ F) :
     μ (f '' s) = 0 := by
   have hlt : dimH (f '' s) < (finrank ℝ F : ℝ≥0) := by
-    refine lt_of_le_of_lt ((dimH_mono (image_subset_range f s)).trans hf.dimH_range_le) ?_
+    refine lt_of_le_of_lt ((dimH_mono (image_subset_range f s)).trans (hf.differentiable one_ne_zero).dimH_range_le) ?_
     exact_mod_cast hEF
   refine measure_zero_of_dimH_lt (d := (finrank ℝ F : ℝ≥0)) ?_ hlt
   exact Measure.absolutelyContinuous_isAddHaarMeasure μ (μH[(finrank ℝ F : ℝ)])

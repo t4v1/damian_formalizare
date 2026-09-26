@@ -120,16 +120,16 @@ theorem glue {f : E → E} {K : ℝ≥0} (hf : LipschitzWith K f) {a b c d t₁ 
   set γ : ℝ → E := fun t => if t < t₁ then α t else β t with hγ
   have hγα : ∀ t ∈ Ioo a b, γ t = α t := fun t ht => by
     rcases lt_or_ge t t₁ with hlt | hge
-    · exact if_pos hlt
+    · exact ite_eq_left hlt
     · show (if t < t₁ then α t else β t) = α t
-      rw [if_neg (not_lt.mpr hge)]
+      rw [ite_eq_right (not_lt.mpr hge)]
       exact (hover ⟨lt_of_lt_of_le ht₁.1 hge, ht.2⟩).symm
   have hγβ : ∀ t ∈ Ioo c d, γ t = β t := fun t ht => by
     rcases lt_or_ge t t₁ with hlt | hge
     · show (if t < t₁ then α t else β t) = β t
-      rw [if_pos hlt]
+      rw [ite_eq_left hlt]
       exact hover ⟨ht.1, lt_trans hlt ht₁.2⟩
-    · exact if_neg (not_lt.mpr hge)
+    · exact ite_eq_right (not_lt.mpr hge)
   refine ⟨γ, fun t ht => ?_, hγα, hγβ⟩
   rcases lt_or_ge t t₁ with hlt | hge
   · have hmem : t ∈ Ioo a b := ⟨ht.1, lt_trans hlt ht₁.2⟩

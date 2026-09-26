@@ -286,10 +286,9 @@ probability space — this is just the monotonicity of the `L^q` norms in `q`. -
 12.1.3, for `p ≥ 2`, in the form `‖Y‖_{L²} ≤ ‖Y‖_{L^p}` on a probability space.
 `S¹` with its normalised length is such a space. -/
 theorem eLpNorm_two_le_eLpNorm {α E : Type*} [MeasurableSpace α] {μ : Measure α}
-    [IsProbabilityMeasure μ] [NormedAddCommGroup E] {p : ℝ≥0∞} (hp : 2 ≤ p) {Y : α → E}
-    (hY : AEStronglyMeasurable Y μ) :
+    [IsProbabilityMeasure μ] [NormedAddCommGroup E] {p : ℝ≥0∞} (hp : 2 ≤ p) {Y : α → E} :
     eLpNorm Y 2 μ ≤ eLpNorm Y p μ :=
-  eLpNorm_le_eLpNorm_of_exponent_le hp hY
+  eLpNorm_le_eLpNorm_of_exponent_le hp
 
 /-! ## §12.1.c The fil d'Ariane
 

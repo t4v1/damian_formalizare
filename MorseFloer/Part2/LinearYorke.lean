@@ -112,6 +112,10 @@ theorem exists_norm_toEuclideanCLM_apply_le {S : Matrix n n ℝ} (hS : Sᵀ = S)
       gcongr
     exact (pow_le_pow_iff_left₀ (norm_nonneg _) (by positivity) two_ne_zero).mp hsq
 
+/-- Found once here, where the search is cheap: under
+`backward.isDefEq.respectTransparency false` it times out. -/
+instance instContinuousSMulEuclidean : ContinuousSMul ℝ (EuclideanSpace ℝ n) := inferInstance
+
 set_option backward.isDefEq.respectTransparency false in
 /-- The orbit `t ↦ exp(tA) w` of the linear field `x ↦ Ax` solves `x' = A x`. -/
 theorem hasDerivAt_exp_smul_apply (A : Matrix n n ℝ) (w : EuclideanSpace ℝ n) (t : ℝ) :
@@ -160,7 +164,7 @@ theorem det_exp_sub_one_ne_zero {A : Matrix n n ℝ} (hA : A.det ≠ 0)
     show WithLp.toLp 2 (NormedSpace.exp A *ᵥ v) = WithLp.toLp 2 v
     rw [hfix]
   have hK : (‖T‖₊ : ℝ) < 2 * Real.pi := by rwa [coe_nnnorm]
-  have hconst : ∀ s, x s = x 0 := fun s => Wirtinger.yorke T.lipschitz hK hxd hper s
+  have hconst : ∀ s, x s = x 0 := fun s => Wirtinger.yorke T.lipschitzWith hK hxd hper s
   have hx0 : x 0 = w := by
     show Matrix.toEuclideanCLM (𝕜 := ℝ) (NormedSpace.exp ((0 : ℝ) • A)) w = w
     rw [zero_smul, NormedSpace.exp_zero, map_one, one_apply_eq_self]

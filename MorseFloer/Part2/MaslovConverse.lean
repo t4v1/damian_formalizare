@@ -59,8 +59,8 @@ theorem HomotopicInS.trans {ψ₀ ψ₁ ψ₂ : ℝ → Matrix (l ⊕ l) (l ⊕ 
     split_ifs
     · exact hadm₁ _
     · exact hadm₂ _
-  · simp only [show (0 : ℝ) ≤ 1 / 2 by norm_num, if_true, mul_zero, h₁0]
-  · simp only [show ¬ (1 : ℝ) ≤ 1 / 2 by norm_num, if_false, mul_one,
+  · simp only [show (0 : ℝ) ≤ 1 / 2 by norm_num, ite_true, mul_zero, h₁0]
+  · simp only [show ¬ (1 : ℝ) ≤ 1 / 2 by norm_num, ite_false, mul_one,
       show (2 : ℝ) - 1 = 1 by norm_num, h₂1]
 
 /-- The clamp of `t` to `[0, 1]`. -/

@@ -268,8 +268,8 @@ theorem glue_arc (hloc : LocallyArc V) {γ δ : ℝ → V} (hγ : IsOpenEmbeddin
     (hdisj : ∀ t s, t < t₀ → s₀ < s → γ t ≠ δ s) :
     ∃ ε : ℝ → V, IsOpenEmbedding ε ∧ range ε = range γ ∪ range δ := by
   let ε : ℝ → V := fun x => if x ≤ t₀ then γ x else δ (x - t₀ + s₀)
-  have hεl : ∀ x, x ≤ t₀ → ε x = γ x := fun x hx => if_pos hx
-  have hεr : ∀ x, t₀ < x → ε x = δ (x - t₀ + s₀) := fun x hx => if_neg (not_le.2 hx)
+  have hεl : ∀ x, x ≤ t₀ → ε x = γ x := fun x hx => ite_eq_left hx
+  have hεr : ∀ x, t₀ < x → ε x = δ (x - t₀ + s₀) := fun x hx => ite_eq_right (not_le.2 hx)
   have hc : Continuous ε := by
     refine Continuous.if_le hγ.continuous (hδ.continuous.comp (by fun_prop)) continuous_id
       continuous_const ?_
@@ -340,8 +340,8 @@ theorem glue_circle [T2Space V] [ConnectedSpace V] {γ δ : ℝ → V} (hγ : Is
   have : Fact (0 < a + b) := ⟨by linarith⟩
   -- the loop, parametrised by `[0, a + b]`
   let F : ℝ → V := fun x => if x ≤ a then γ (t₁ + x) else δ (s₀ + (x - a))
-  have hFl : ∀ x, x ≤ a → F x = γ (t₁ + x) := fun x hx => if_pos hx
-  have hFr : ∀ x, a < x → F x = δ (s₀ + (x - a)) := fun x hx => if_neg (not_le.2 hx)
+  have hFl : ∀ x, x ≤ a → F x = γ (t₁ + x) := fun x hx => ite_eq_left hx
+  have hFr : ∀ x, a < x → F x = δ (s₀ + (x - a)) := fun x hx => ite_eq_right (not_le.2 hx)
   have hFc : Continuous F := by
     refine Continuous.if_le (hγ.continuous.comp (by fun_prop)) (hδ.continuous.comp (by fun_prop))
       continuous_id continuous_const ?_

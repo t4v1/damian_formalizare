@@ -409,7 +409,7 @@ theorem permMatrix_transpose_mul_diagonal_mul (e : Equiv.Perm ι) (σ : ι → �
   simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.submatrix_apply, id,
     Matrix.one_apply, Matrix.diagonal_apply, Function.comp_apply]
   simp only [ite_mul, one_mul, zero_mul, mul_ite, mul_zero, Finset.sum_ite_eq',
-    Finset.mem_univ, if_true]
+    Finset.mem_univ, ite_true]
   by_cases h : i = j
   · subst h; simp
   · simp [h, Ne.symm h, e.injective.eq_iff]
@@ -587,7 +587,7 @@ theorem maslovIndex_expPath_sign_even {N b : ℕ} {σ : Fin N ⊕ Fin N → ℝ}
     maslovIndex_expPath_smul_one (by norm_num) (by norm_num; linarith),
     Matrix.smul_one_eq_diagonal, Matrix.smul_one_eq_diagonal, blockSum_diagonal] at hsum
   rw [maslovIndex_expPath_sign_eq hρ hσ (by rw [← negCount, ← negCount, hb, hcount])]
-  rw [hsum, if_pos one_pos, if_neg (by norm_num)]
+  rw [hsum, ite_eq_left one_pos, ite_eq_right (by norm_num)]
   push_cast; ring
 
 /-- **The index of a diagonal matrix of signs**: the number of `-1` minus `n`, by doubling. -/

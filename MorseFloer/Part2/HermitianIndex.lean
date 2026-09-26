@@ -217,10 +217,10 @@ theorem exists_eigen_family {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHe
     rw [hG.sum_left]
     refine Finset.sum_congr rfl fun j _ => ?_
     rw [hG.sum_right, Finset.sum_eq_single j]
-    · rw [hGff, if_pos rfl]
+    · rw [hGff, ite_eq_left rfl]
       ring
     · intro l _ hl
-      rw [hGff, if_neg hl, mul_zero]
+      rw [hGff, ite_eq_right hl, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ j) h
   have hre : ∀ c : Fin k → ℂ, (G (∑ j, c j • f j) (∑ j, c j • f j)).re
@@ -244,7 +244,7 @@ theorem exists_eigen_family {G : (m → ℂ) → (m → ℂ) → ℂ} (hG : IsHe
       simpa [smul_eq_mul] using hcoef i
     have h := congrArg (fun v : Fin k → ℂ => v ⬝ᵥ star (u l)) hvec
     simp only [sum_dotProduct, smul_dotProduct, huu, smul_eq_mul, mul_ite, mul_one,
-      mul_zero, Finset.sum_ite_eq, Finset.mem_univ, if_true, zero_dotProduct] at h
+      mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true, zero_dotProduct] at h
     exact h
   refine ⟨f, d, hf_indep, ?_, hre, hΓ.roots_charpoly_eq_eigenvalues, hΓ.det_eq_prod_eigenvalues⟩
   refine Submodule.eq_of_le_of_finrank_eq
@@ -259,7 +259,7 @@ theorem exists_coeff_of_mem_span_subtype {k : ℕ} {f : Fin k → (m → ℂ)} (
     ∃ c : Fin k → ℂ, (∀ j, j ∉ T → c j = 0) ∧ ∑ j, c j • f j = x := by
   classical
   obtain ⟨c, hc⟩ := (Submodule.mem_span_range_iff_exists_fun ℂ).1 hx
-  refine ⟨fun j => if h : j ∈ T then c ⟨j, h⟩ else 0, fun j hj => dif_neg hj, ?_⟩
+  refine ⟨fun j => if h : j ∈ T then c ⟨j, h⟩ else 0, fun j hj => dite_eq_right hj, ?_⟩
   rw [← hc]
   set c' : Fin k → ℂ := fun j => if h : j ∈ T then c ⟨j, h⟩ else 0 with hc'
   calc ∑ j, c' j • f j = ∑ j ∈ T, c' j • f j := by

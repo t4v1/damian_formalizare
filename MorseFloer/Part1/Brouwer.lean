@@ -440,8 +440,8 @@ theorem exists_contDiff_approx {K : Set E} (hK : IsClosed K) {ϕ : E → E}
   let T : E → Set E := fun x => if x ∈ K then ball (ϕ x) ε else univ
   have hT : ∀ x, Convex ℝ (T x) := fun x => by
     by_cases hx : x ∈ K
-    · simp only [T, if_pos hx]; exact convex_ball _ _
-    · simp only [T, if_neg hx]; exact convex_univ
+    · simp only [T, ite_eq_left hx]; exact convex_ball _ _
+    · simp only [T, ite_eq_right hx]; exact convex_univ
   have hloc : ∀ x : E, ∃ c : E, ∀ᶠ y in nhds x, c ∈ T y := by
     intro x
     by_cases hx : x ∈ K
@@ -451,15 +451,15 @@ theorem exists_contDiff_approx {K : Set E} (hK : IsClosed K) {ϕ : E → E}
       rw [eventually_nhdsWithin_iff] at h1
       filter_upwards [h1] with y hy
       by_cases hyK : y ∈ K
-      · simp only [T, if_pos hyK]; exact mem_ball_comm.mp (hy hyK)
-      · simp only [T, if_neg hyK]; exact mem_univ _
+      · simp only [T, ite_eq_left hyK]; exact mem_ball_comm.mp (hy hyK)
+      · simp only [T, ite_eq_right hyK]; exact mem_univ _
     · refine ⟨0, ?_⟩
       filter_upwards [hK.isOpen_compl.mem_nhds hx] with y hy
-      simp only [T, if_neg hy]; exact mem_univ _
+      simp only [T, ite_eq_right hy]; exact mem_univ _
   obtain ⟨g, hg⟩ := exists_contMDiffMap_forall_mem_convex_of_local_const 𝓘(ℝ, E) (n := 1) hT hloc
   refine ⟨g, contMDiff_iff_contDiff.mp g.contMDiff, fun x hx => ?_⟩
   have := hg x
-  simp only [T, if_pos hx] at this
+  simp only [T, ite_eq_left hx] at this
   rwa [mem_ball, dist_eq_norm] at this
 
 /-- The algebra behind the ray construction. If `τ` is the larger root of

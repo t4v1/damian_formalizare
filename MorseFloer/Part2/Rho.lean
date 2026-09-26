@@ -294,23 +294,23 @@ noncomputable def rho (n : ℕ) (A : Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) 
 open Classical in
 theorem factor_of_circle {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h : ‖μ‖ = 1 ∧ 0 < μ.im) :
     factor M μ = μ ^ sigma M μ := by
-  rw [factor, if_pos h]
+  rw [factor, ite_eq_left h]
 
 open Classical in
 theorem factor_neg_one (M : Matrix (l ⊕ l) (l ⊕ l) ℂ) :
     factor M (-1) = (-1) ^ (M.charpoly.roots.count (-1) / 2) := by
-  rw [factor, if_neg (by simp), if_pos rfl]
+  rw [factor, ite_eq_right (by simp), ite_eq_left rfl]
 
 open Classical in
 theorem factor_of_real {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h1 : ¬(‖μ‖ = 1 ∧ 0 < μ.im))
     (h2 : μ ≠ -1) (h3 : μ.im = 0 ∧ -1 < μ.re ∧ μ.re < 0) :
     factor M μ = (-1) ^ M.charpoly.roots.count μ := by
-  rw [factor, if_neg h1, if_neg h2, if_pos h3]
+  rw [factor, ite_eq_right h1, ite_eq_right h2, ite_eq_left h3]
 
 open Classical in
 theorem factor_eq_one {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h1 : ¬(‖μ‖ = 1 ∧ 0 < μ.im))
     (h2 : μ ≠ -1) (h3 : ¬(μ.im = 0 ∧ -1 < μ.re ∧ μ.re < 0)) : factor M μ = 1 := by
-  rw [factor, if_neg h1, if_neg h2, if_neg h3]
+  rw [factor, ite_eq_right h1, ite_eq_right h2, ite_eq_right h3]
 
 open Classical in
 theorem natAbs_sigma_le (M : Matrix (l ⊕ l) (l ⊕ l) ℂ) (μ : ℂ) :
@@ -431,7 +431,7 @@ theorem disc_im (hc : c₀.im ≠ 0) {z : ℂ} (hz : dist z c₀ < r) :
     (0 < z.im ↔ 0 < c₀.im) ∧ z.im ≠ 0 := by
   have h1 : r ≤ |c₀.im| := by
     have := hrb.trans ((min_le_right _ _).trans (min_le_left _ _))
-    rwa [if_neg hc] at this
+    rwa [ite_eq_right hc] at this
   refine sign_stable ?_ h1
   calc |z.im - c₀.im| = |(z - c₀).im| := by rw [Complex.sub_im]
     _ ≤ ‖z - c₀‖ := Complex.abs_im_le_norm _
@@ -441,7 +441,7 @@ theorem disc_norm (hc : ‖c₀‖ ≠ 1) {z : ℂ} (hz : dist z c₀ < r) :
     (0 < ‖z‖ - 1 ↔ 0 < ‖c₀‖ - 1) ∧ ‖z‖ ≠ 1 := by
   have h1 : r ≤ |‖c₀‖ - 1| := by
     have := hrb.trans ((min_le_right _ _).trans ((min_le_right _ _).trans (min_le_left _ _)))
-    rwa [if_neg hc] at this
+    rwa [ite_eq_right hc] at this
   have h := sign_stable (a := ‖z‖ - 1) (b := ‖c₀‖ - 1) ?_ h1
   · exact ⟨h.1, fun h2 => h.2 (by rw [h2, sub_self])⟩
   · calc |‖z‖ - 1 - (‖c₀‖ - 1)| = |‖z‖ - ‖c₀‖| := by ring_nf
@@ -453,7 +453,7 @@ theorem disc_re (hc : c₀.re ≠ 0) {z : ℂ} (hz : dist z c₀ < r) :
   have h1 : r ≤ |c₀.re| := by
     have := hrb.trans ((min_le_right _ _).trans ((min_le_right _ _).trans
       ((min_le_right _ _).trans (min_le_left _ _))))
-    rwa [if_neg hc] at this
+    rwa [ite_eq_right hc] at this
   refine sign_stable ?_ h1
   calc |z.re - c₀.re| = |(z - c₀).re| := by rw [Complex.sub_re]
     _ ≤ ‖z - c₀‖ := Complex.abs_re_le_norm _
@@ -464,7 +464,7 @@ theorem disc_re_add_one (hc : c₀.re ≠ -1) {z : ℂ} (hz : dist z c₀ < r) :
   have h1 : r ≤ |c₀.re + 1| := by
     have := hrb.trans ((min_le_right _ _).trans ((min_le_right _ _).trans
       ((min_le_right _ _).trans (min_le_right _ _))))
-    rwa [if_neg hc] at this
+    rwa [ite_eq_right hc] at this
   have h := sign_stable (a := z.re + 1) (b := c₀.re + 1) ?_ h1
   · refine ⟨?_, fun h2 => h.2 (by rw [h2]; ring)⟩
     have h3 := h.1

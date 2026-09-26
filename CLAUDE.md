@@ -32,8 +32,8 @@ lake build MorseFloer.Part1.Ch1     # build one chapter
 lake env lean MorseFloer/Part1/Ch1.lean   # type-check one file, no build lock
 ```
 
-- Toolchain `leanprover/lean4:v4.33.1`, pinned in `lean-toolchain`.
-- Mathlib is a **git dependency pinned to tag `v4.33.1`**, already fetched with
+- Toolchain `leanprover/lean4:v4.34.1`, pinned in `lean-toolchain`.
+- Mathlib is a **git dependency pinned to tag `v4.34.1`**, already fetched with
   its prebuilt cache in `.lake/packages/mathlib`. Do not run `lake update` — it
   would re-resolve and force a multi-hour rebuild.
 - A cold build of one chapter file takes **3–6 minutes** (importing Mathlib
@@ -429,6 +429,23 @@ Checked against this pinned checkout, and worth knowing before planning a proof:
   are global on all of `ℝⁿ` and admit no restriction to a relatively compact
   `V`, and the GNS inequality is stated only for `p < finrank ℝ E`. There is no
   Sobolev embedding into `L^∞`, no Poincaré, no Rellich.
+
+## The v4.34.1 bump (September 2026)
+
+Moving from v4.33.1 to v4.34.1 took four rebuild rounds. What changed and will bite again:
+
+- `if_pos`/`if_neg`/`dif_pos`/`dif_neg`/`if_true`/`if_false` are deprecated in core, in favour of
+  `ite_eq_left`/`ite_eq_right`/`dite_eq_left`/`dite_eq_right`/`ite_true`/`ite_false`, with the
+  same arguments.
+- **`eLpNorm f p μ` is now `∞` when `f` is not `AEStronglyMeasurable`.** Statements about
+  `eLpNorm` of a product with a merely bounded factor can become false; they need the factor's
+  measurability (`Chapter8.eLpNorm_mul_le_mul_ofReal`, `Chapter13.eLpNorm_mul_le_of_eLpNorm_top_le`
+  gained it), and `eLpNorm_exponent_zero`, `eLpNorm_exponent_top` take a measurability argument.
+- `UniformSpace.Completion.toComplL` has arguments `(α := E) (S := 𝕜)`; `ContinuousLinearMap.lipschitz`
+  is `lipschitzWith`; `ContDiff.dimH_range_le` is `Differentiable.dimH_range_le`.
+- Under `set_option backward.isDefEq.respectTransparency false`, the search for
+  `ContinuousSMul ℝ (EuclideanSpace ℝ n)` times out; `LinearYorke.lean` declares it once outside
+  the option.
 
 ## Lean gotchas that cost real time here
 

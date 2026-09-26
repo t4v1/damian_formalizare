@@ -207,18 +207,21 @@ section Holder
 variable {α : Type*} [MeasurableSpace α] {μ : Measure α}
 
 /-- **Lemma 13.2.2, the half Mathlib can state.**  If `‖g‖_∞ ≤ K` then
-`‖fg‖_{L^p} ≤ K ‖f‖_{L^p}`.
+`‖fg‖_{L^p} ≤ K ‖f‖_{L^p}`, for measurable `g` (Mathlib's `eLpNorm` is `∞` on a function
+that is not almost everywhere strongly measurable, and the book's functions are
+continuous).
 
 In the book `K` comes from the Sobolev embedding `‖g‖_∞ ≤ K ‖g‖_{W^{1,p}}`,
 valid on `ℝ × S¹` for `p > 2`; that embedding is exactly what Mathlib lacks. -/
 theorem eLpNorm_mul_le_of_eLpNorm_top_le {p : ℝ≥0∞} {f g : α → ℝ}
-    (hf : AEStronglyMeasurable f μ) {K : ℝ≥0∞} (hg : eLpNorm g ∞ μ ≤ K) :
+    (hgm : AEStronglyMeasurable g μ) {K : ℝ≥0∞}
+    (hg : eLpNorm g ∞ μ ≤ K) :
     eLpNorm (fun x => f x * g x) p μ ≤ K * eLpNorm f p μ := by
   have hfg : (fun x => f x * g x) = f • g := by
     funext x; simp [Pi.smul_apply', smul_eq_mul]
   rw [hfg]
   calc eLpNorm (f • g) p μ
-      ≤ eLpNorm f p μ * eLpNorm g ∞ μ := eLpNorm_smul_le_eLpNorm_mul_eLpNorm_top p g hf
+      ≤ eLpNorm f p μ * eLpNorm g ∞ μ := eLpNorm_smul_le_eLpNorm_mul_eLpNorm_top p hgm
     _ ≤ eLpNorm f p μ * K := by gcongr
     _ = K * eLpNorm f p μ := mul_comm _ _
 

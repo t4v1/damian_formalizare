@@ -34,7 +34,7 @@ protected theorem MeasureTheory.Measure.AbsolutelyContinuous.comap {α β : Type
     · exact hsm.nullMeasurableSet
     · exact fun t ht ↦ (hf.2 t ht).mono_ac h
     · exact hsm.nullMeasurableSet
-  · rw [Measure.comap, dif_neg]
+  · rw [Measure.comap, dite_eq_right]
     · exact .zero _
     · contrapose! hf
       exact ⟨hf.1, hfν⟩

@@ -730,14 +730,14 @@ theorem index_expPath_rot_recurrence (hμ : IsConleyZehnderIndex μ) {k : ℤ} (
 theorem index_expPath_rot_one (hμ : IsConleyZehnderIndex μ) :
     μ 1 (expPath ((((1 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = -1 := by
   have h := index_expPath_smul_one hμ 1 Real.pi_pos.ne' abs_pi_lt
-  rw [if_neg (not_lt.mpr Real.pi_pos.le)] at h
+  rw [ite_eq_right (not_lt.mpr Real.pi_pos.le)] at h
   rw [Int.cast_one, one_mul, h]; norm_num
 
 /-- The index of `exp(−tπJ)` on `ℝ²` is `+1`. -/
 theorem index_expPath_rot_neg_one (hμ : IsConleyZehnderIndex μ) :
     μ 1 (expPath ((((-1 : ℤ) : ℝ) * Real.pi) • (1 : Matrix (Fin 1 ⊕ Fin 1) (Fin 1 ⊕ Fin 1) ℝ))) = 1 := by
   have h := index_expPath_smul_one hμ 1 (neg_ne_zero.mpr Real.pi_pos.ne') abs_neg_pi_lt
-  rw [if_pos (neg_lt_zero.mpr Real.pi_pos)] at h
+  rw [ite_eq_left (neg_lt_zero.mpr Real.pi_pos)] at h
   rw [Int.cast_neg, Int.cast_one, neg_one_mul, h]; norm_num
 
 /-- The index of `exp(tℓπJ)` on `ℝ²` is `−ℓ` for every odd `ℓ`, by induction on
@@ -828,7 +828,7 @@ theorem exists_symmetric_of_index (hμ : IsConleyZehnderIndex μ) (n : ℕ) (hn 
   have hBi : μ p (expPath ((-Real.pi) • (1 : Matrix (Fin p ⊕ Fin p) (Fin p ⊕ Fin p) ℝ)))
       = p := by
     have h := index_expPath_smul_one hμ p (neg_ne_zero.mpr Real.pi_pos.ne') abs_neg_pi_lt
-    rw [if_pos (neg_lt_zero.mpr Real.pi_pos)] at h
+    rw [ite_eq_left (neg_lt_zero.mpr Real.pi_pos)] at h
     rw [h]; ring
   refine ⟨blockSum S₂ ((-Real.pi) • 1), ?_, ?_, ?_⟩
   · rw [blockSum_transpose, hS₂, Matrix.transpose_smul, Matrix.transpose_one]

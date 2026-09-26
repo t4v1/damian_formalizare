@@ -78,8 +78,8 @@ contrib/                     material prepared for Mathlib, not built here
 
 ## Building
 
-The toolchain is `leanprover/lean4:v4.33.1`, and Mathlib is pinned to the tag
-`v4.33.1`.
+The toolchain is `leanprover/lean4:v4.34.1`, and Mathlib is pinned to the tag
+`v4.34.1`.
 
 ```sh
 lake exe cache get      # download the prebuilt Mathlib

@@ -244,7 +244,7 @@ theorem embed_apply (A : Matrix (Cpl i₀) (Cpl i₀) ℂ) (i j : ι) :
 omit [Fintype ι] in
 theorem restrict_embed (A : Matrix (Cpl i₀) (Cpl i₀) ℂ) : restrict (embed i₀ A) = A := by
   ext i j
-  rw [restrict, Matrix.submatrix_apply, embed_apply, dif_neg i.2, dif_neg j.2]
+  rw [restrict, Matrix.submatrix_apply, embed_apply, dite_eq_right i.2, dite_eq_right j.2]
 
 /-- A unitary matrix fixing `e_{i₀}` is the embedding of its restriction. -/
 theorem embed_restrict {V : Matrix ι ι ℂ} (hV : V ∈ Matrix.unitaryGroup ι ℂ)
@@ -267,12 +267,12 @@ theorem embed_restrict {V : Matrix ι ι ℂ} (hV : V ∈ Matrix.unitaryGroup ι
   rw [embed_apply]
   by_cases hi : i = i₀
   · subst hi
-    rw [dif_pos rfl, hrow]
+    rw [dite_eq_left rfl, hrow]
     by_cases hj : j = i <;> simp [hj]
-  · rw [dif_neg hi]
+  · rw [dite_eq_right hi]
     by_cases hj : j = i₀
-    · rw [dif_pos hj, hj, hcol, Pi.single_eq_of_ne hi]
-    · rw [dif_neg hj]; rfl
+    · rw [dite_eq_left hj, hj, hcol, Pi.single_eq_of_ne hi]
+    · rw [dite_eq_right hj]; rfl
 
 theorem restrict_mem_unitaryGroup {V : Matrix ι ι ℂ} (hV : V ∈ Matrix.unitaryGroup ι ℂ)
     (hfix : V *ᵥ Pi.single i₀ 1 = Pi.single i₀ 1) :

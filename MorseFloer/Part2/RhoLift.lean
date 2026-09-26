@@ -117,23 +117,23 @@ open Classical in
 theorem liftTerm_of_circle {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h : ‖μ‖ = 1 ∧ 0 < μ.im) :
     liftTerm M μ = 2 * Real.pi * ((M.charpoly.roots.count μ : ℝ) - (mPos M μ : ℝ))
       + (sigma M μ : ℝ) * Complex.arg μ := by
-  rw [liftTerm, if_pos h]
+  rw [liftTerm, ite_eq_left h]
 
 open Classical in
 theorem liftTerm_of_upper {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h1 : ¬(‖μ‖ = 1 ∧ 0 < μ.im))
     (h2 : 0 < μ.im) : liftTerm M μ = Real.pi * (M.charpoly.roots.count μ : ℝ) := by
-  rw [liftTerm, if_neg h1, if_pos h2]
+  rw [liftTerm, ite_eq_right h1, ite_eq_left h2]
 
 open Classical in
 theorem liftTerm_of_real {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h : μ.im = 0) :
     liftTerm M μ = Real.pi / 2 * (M.charpoly.roots.count μ : ℝ) := by
-  rw [liftTerm, if_neg (fun h' => by rw [h] at h'; exact lt_irrefl _ h'.2),
-    if_neg (by rw [h]; exact lt_irrefl _), if_pos h]
+  rw [liftTerm, ite_eq_right (fun h' => by rw [h] at h'; exact lt_irrefl _ h'.2),
+    ite_eq_right (by rw [h]; exact lt_irrefl _), ite_eq_left h]
 
 open Classical in
 theorem liftTerm_of_lower {M : Matrix (l ⊕ l) (l ⊕ l) ℂ} {μ : ℂ} (h : μ.im < 0) :
     liftTerm M μ = 0 := by
-  rw [liftTerm, if_neg (fun h' => by linarith [h'.2]), if_neg (by linarith), if_neg h.ne]
+  rw [liftTerm, ite_eq_right (fun h' => by linarith [h'.2]), ite_eq_right (by linarith), ite_eq_right h.ne]
 
 /-! ### `exp(i ρ̃) = ρ (-1)^q` -/
 

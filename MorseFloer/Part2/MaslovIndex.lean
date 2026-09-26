@@ -154,7 +154,7 @@ theorem angle_spec {ψ : ℝ → Matrix (Fin n ⊕ Fin n) (Fin n ⊕ Fin n) ℝ}
     Continuous (angle n ψ) ∧ angle n ψ 0 = 0 ∧
       ∀ t, Complex.exp (angle n ψ t * Complex.I) = rho n (ψ t) := by
   have h := exists_angle hψ
-  rw [angle, dif_pos h]
+  rw [angle, dite_eq_left h]
   exact h.choose_spec
 
 /-- Any continuous lift of `t ↦ ρ(ψ t)` vanishing at `0` is `angle n ψ`. -/
